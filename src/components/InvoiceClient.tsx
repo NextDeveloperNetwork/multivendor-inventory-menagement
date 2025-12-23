@@ -51,18 +51,6 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
         router.push(`/admin/invoices?${params.toString()}`);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) return;
-
-        const result = await deleteInvoice(id);
-        if (result.success) {
-            toast.success('Invoice deleted successfully');
-            router.refresh();
-        } else {
-            toast.error(result.error);
-        }
-    };
-
     const addItem = () => {
         setItems([...items, { productId: '', quantity: '', cost: '' }]);
     };

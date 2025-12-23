@@ -3,46 +3,51 @@
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { deleteSale } from '@/app/actions/sales';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 export default function DeleteSaleButton({ id }: { id: string }) {
-    const [isDeleting, setIsDeleting] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
     const router = useRouter();
 
     const handleDelete = async () => {
-        if (!confirm('Are you sure you want to delete this sale? Inventory will be reverted.')) {
-            return;
-        }
-
-        setIsDeleting(true);
+        setLoading(true);
         try {
             const result = await deleteSale(id);
             if (result.success) {
-                toast.success('Sale deleted and inventory reverted');
+                toast.success('Sale deleted and inventory restored');
                 router.refresh();
             } else {
-                toast.error(result.error);
+                toast.error(result.error || 'Failed to delete sale');
             }
         } catch (error) {
             toast.error('An unexpected error occurred');
-        } finally {
-            setIsDeleting(false);
         }
+        setLoading(false);
     };
 
     return (
-        <button
-            onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleDelete();
-            }}
-            disabled={isDeleting}
-            className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
-            title="Delete Sale"
-        >
-            <Trash2 size={16} className={isDeleting ? 'animate-pulse' : ''} />
-        </button>
+        <>
+            <button
+                onClick={() => setShowConfirm(true)}
+                disabled={loading}
+                className="p-3.5 text-blue-200 hover:text-red-500 bg-white rounded-xl shadow-sm border border-blue-50 transition-all disabled:opacity-50"
+                title="Delete Sale"
+            >
+                <Trash2 size={20} className={loading ? 'animate-pulse' : ''} />
+            </button>
+
+            <ConfirmDialog
+                isOpen={showConfirm}
+                onClose={() => setShowConfirm(false)}
+                onConfirm={handleDelete}
+                title="Delete Sale"
+                description="Are you sure you want to delete this sale? The inventory will be reverted and this action cannot be undone."
+                confirmText="Delete Sale"
+                variant="danger"
+            />
+        </>
     );
 }

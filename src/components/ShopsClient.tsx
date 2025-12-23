@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Store, User as UserIcon, MapPin, X, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 interface ShopsPageProps {
     initialShops: (Shop & { users: User[] })[];
@@ -16,6 +17,7 @@ interface ShopsPageProps {
 export default function ShopsClient({ initialShops, initialUnassignedUsers }: ShopsPageProps) {
     const [shops, setShops] = useState(initialShops);
     const [unassignedUsers, setUnassignedUsers] = useState(initialUnassignedUsers);
+    const [removeUser, setRemoveUser] = useState<{ id: string; name: string } | null>(null);
     const router = useRouter();
 
     // State for new shop form can be simple
@@ -102,17 +104,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers }: Sh
                                                     <span className="text-sm font-bold text-black uppercase tracking-tight">{user.name || user.email}</span>
                                                 </div>
                                                 <button
-                                                    onClick={async () => {
-                                                        if (confirm(`Revoke access for ${user.name || user.email}?`)) {
-                                                            const result = await removeUserFromShop(user.id);
-                                                            if (result.success) {
-                                                                toast.success('Access revoked');
-                                                                router.refresh();
-                                                            } else {
-                                                                toast.error(result.error);
-                                                            }
-                                                        }
-                                                    }}
+                                                    onClick={() => setRemoveUser({ id: user.id, name: user.name || user.email || 'User' })}
                                                     className="text-blue-100 hover:text-red-500 p-3 hover:bg-red-50 rounded-xl transition-all"
                                                     title="Revoke Permission"
                                                 >
@@ -156,6 +148,26 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers }: Sh
                     </div>
                 ))}
             </div>
+
+            <ConfirmDialog
+                isOpen={removeUser !== null}
+                onClose={() => setRemoveUser(null)}
+                onConfirm={async () => {
+                    if (!removeUser) return;
+                    const result = await removeUserFromShop(removeUser.id);
+                    if (result.success) {
+                        toast.success('Access revoked');
+                        router.refresh();
+                    } else {
+                        toast.error(result.error);
+                    }
+                    setRemoveUser(null);
+                }}
+                title="Revoke User Access"
+                description={`Are you sure you want to revoke access for ${removeUser?.name}? They will no longer be able to access this shop.`}
+                confirmText="Revoke Access"
+                variant="warning"
+            />
         </div>
     );
 }

@@ -5,6 +5,7 @@ import { createSupplier, updateSupplier, deleteSupplier } from '@/app/actions/su
 import { Plus, Trash2, Edit2, Users, Mail, Phone, MapPin, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 interface SupplierClientProps {
     suppliers: any[];
@@ -20,6 +21,7 @@ export default function SupplierClient({ suppliers }: SupplierClientProps) {
         address: '',
     });
     const [loading, setLoading] = useState(false);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
     const router = useRouter();
 
     const resetForm = () => {
@@ -63,16 +65,16 @@ export default function SupplierClient({ suppliers }: SupplierClientProps) {
         setLoading(false);
     };
 
-    const handleDelete = async (id: string) => {
-        if (confirm('Are you sure you want to delete this supplier?')) {
-            const result = await deleteSupplier(id);
-            if (result.success) {
-                toast.success('Supplier purged');
-                router.refresh();
-            } else {
-                toast.error(result.error);
-            }
+    const handleDelete = async () => {
+        if (!deleteId) return;
+        const result = await deleteSupplier(deleteId);
+        if (result.success) {
+            toast.success('Supplier purged');
+            router.refresh();
+        } else {
+            toast.error(result.error);
         }
+        setDeleteId(null);
     };
 
     return (
@@ -212,7 +214,7 @@ export default function SupplierClient({ suppliers }: SupplierClientProps) {
                                         <Edit2 size={20} />
                                     </button>
                                     <button
-                                        onClick={() => handleDelete(supplier.id)}
+                                        onClick={() => setDeleteId(supplier.id)}
                                         className="p-3.5 text-blue-200 hover:text-red-500 bg-white rounded-xl shadow-sm border border-blue-50 transition-all"
                                         title="Purge Registry"
                                     >
@@ -258,6 +260,16 @@ export default function SupplierClient({ suppliers }: SupplierClientProps) {
                     ))
                 )}
             </div>
+
+            <ConfirmDialog
+                isOpen={deleteId !== null}
+                onClose={() => setDeleteId(null)}
+                onConfirm={handleDelete}
+                title="Delete Supplier"
+                description="Are you sure you want to delete this supplier? This action cannot be undone."
+                confirmText="Delete Supplier"
+                variant="danger"
+            />
         </div>
     );
 }

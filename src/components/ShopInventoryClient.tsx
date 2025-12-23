@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Package, Search, Filter, ArrowUpDown } from 'lucide-react';
+import { Package, Search, ArrowUpDown, Printer } from 'lucide-react';
+import JsBarcode from 'jsbarcode';
 
 interface ShopInventoryClientProps {
     inventory: any[];
@@ -47,6 +48,84 @@ export default function ShopInventoryClient({ inventory }: ShopInventoryClientPr
             setSortBy(field);
             setSortOrder('asc');
         }
+    };
+
+    const printBarcode = (product: any) => {
+        const printWindow = window.open('', '_blank', 'width=400,height=300');
+        if (!printWindow) return;
+
+        const barcodeValue = product.barcode || product.sku;
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Print Barcode - ${product.name}</title>
+                <style>
+                    @page {
+                        size: 2.5in 1.5in;
+                        margin: 0;
+                    }
+                    body {
+                        margin: 0;
+                        padding: 12px;
+                        font-family: Arial, sans-serif;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100vh;
+                    }
+                    .product-name {
+                        font-size: 11px;
+                        font-weight: bold;
+                        text-align: center;
+                        margin-bottom: 6px;
+                        max-width: 100%;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                    .barcode-container {
+                        margin: 8px 0;
+                    }
+                    .price {
+                        font-size: 16px;
+                        font-weight: bold;
+                        text-align: center;
+                        margin-top: 6px;
+                    }
+                    svg {
+                        max-width: 100%;
+                        height: auto;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="product-name">${product.name}</div>
+                <div class="barcode-container">
+                    <svg id="barcode"></svg>
+                </div>
+                <div class="price">$${Number(product.price).toFixed(2)}</div>
+                <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+                <script>
+                    JsBarcode("#barcode", "${barcodeValue}", {
+                        format: "CODE128",
+                        width: 2,
+                        height: 50,
+                        displayValue: true,
+                        fontSize: 12,
+                        margin: 5
+                    });
+                    setTimeout(() => {
+                        window.print();
+                        setTimeout(() => window.close(), 100);
+                    }, 500);
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     };
 
     return (
@@ -128,12 +207,13 @@ export default function ShopInventoryClient({ inventory }: ShopInventoryClientPr
                                     <div className="flex items-center justify-end gap-3">NET WORTH <ArrowUpDown size={14} /></div>
                                 </th>
                                 <th className="px-10 py-6 text-center text-[11px] font-black uppercase tracking-widest text-blue-300">NODE STATUS</th>
+                                <th className="px-10 py-6 text-center text-[11px] font-black uppercase tracking-widest text-blue-300">ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y border-t border-blue-50">
                             {filteredInventory.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-10 py-24 text-center">
+                                    <td colSpan={7} className="px-10 py-24 text-center">
                                         <div className="flex flex-col items-center gap-6">
                                             <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center">
                                                 <Search size={36} className="text-blue-200" />
@@ -185,6 +265,15 @@ export default function ShopInventoryClient({ inventory }: ShopInventoryClientPr
                                                     }`}>
                                                     {isOutOfStock ? 'Depleted' : isLowStock ? 'Critical' : 'Operational'}
                                                 </span>
+                                            </td>
+                                            <td className="px-10 py-8 text-center">
+                                                <button
+                                                    onClick={() => printBarcode(item.product)}
+                                                    className="p-3 bg-blue-50 text-blue-500 rounded-xl hover:bg-blue-500 hover:text-white transition-all shadow-sm border border-blue-100 hover:border-blue-500"
+                                                    title="Print Barcode Label"
+                                                >
+                                                    <Printer size={18} />
+                                                </button>
                                             </td>
                                         </tr>
                                     );

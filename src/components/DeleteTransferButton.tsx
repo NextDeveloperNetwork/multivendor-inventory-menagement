@@ -1,23 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { deleteTransfer } from '@/app/actions/transfer';
 import { Trash2 } from 'lucide-react';
+import { deleteTransfer } from '@/app/actions/transfer';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
-interface DeleteTransferButtonProps {
-    id: string;
-}
-
-export default function DeleteTransferButton({ id }: DeleteTransferButtonProps) {
+export default function DeleteTransferButton({ id }: { id: string }) {
     const [loading, setLoading] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
     const router = useRouter();
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!confirm('Are you sure you want to delete this transfer and revert inventory counts?')) return;
-
+    const handleDelete = async () => {
         setLoading(true);
         const result = await deleteTransfer(id);
 
@@ -25,19 +20,31 @@ export default function DeleteTransferButton({ id }: DeleteTransferButtonProps) 
             toast.success('Transfer deleted and inventory reverted');
             router.refresh();
         } else {
-            toast.error(result.error || 'Failed to delete transfer');
+            toast.error(result.error);
         }
         setLoading(false);
     };
 
     return (
-        <button
-            onClick={handleDelete}
-            disabled={loading}
-            className="p-3 rounded-xl bg-slate-50 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all border border-slate-100 hover:border-red-100 disabled:opacity-50"
-            title="Purge & Rollback"
-        >
-            <Trash2 size={20} className={loading ? 'animate-pulse' : ''} />
-        </button>
+        <>
+            <button
+                onClick={() => setShowConfirm(true)}
+                disabled={loading}
+                className="p-3.5 text-blue-200 hover:text-red-500 bg-white rounded-xl shadow-sm border border-blue-50 transition-all disabled:opacity-50"
+                title="Delete Transfer"
+            >
+                <Trash2 size={20} className={loading ? 'animate-pulse' : ''} />
+            </button>
+
+            <ConfirmDialog
+                isOpen={showConfirm}
+                onClose={() => setShowConfirm(false)}
+                onConfirm={handleDelete}
+                title="Delete Transfer"
+                description="Are you sure you want to delete this transfer? This will revert the inventory counts and cannot be undone."
+                confirmText="Delete Transfer"
+                variant="danger"
+            />
+        </>
     );
 }
