@@ -15,6 +15,7 @@ export default async function AdminDashboard() {
     let recentSales: any[] = [];
     let shopSalesData: any[] = [];
 
+
     try {
         totalProducts = await prisma.product.count();
         totalShops = await prisma.shop.count();
