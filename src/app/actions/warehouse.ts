@@ -25,3 +25,16 @@ export async function createWarehouse(formData: FormData) {
         return { error: "Failed to create warehouse" };
     }
 }
+
+export async function deleteWarehouse(id: string) {
+    try {
+        await prisma.warehouse.delete({
+            where: { id }
+        });
+        revalidatePath('/admin/warehouses');
+        revalidatePath('/admin/inventory');
+        return { success: true };
+    } catch (error) {
+        return { error: 'Failed to delete warehouse. Ensure it has no inventory.' };
+    }
+}

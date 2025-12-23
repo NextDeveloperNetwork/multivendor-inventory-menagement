@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { Warehouse, Plus, MapPin, Calendar, Package, ArrowRight } from 'lucide-react';
 import WarehouseForm from '../../../../components/WarehouseForm';
+import DeleteWarehouseButton from '../../../../components/DeleteWarehouseButton';
 
 export default async function WarehousesPage() {
     const warehouses = await prisma.warehouse.findMany({
@@ -92,6 +93,7 @@ export default async function WarehousesPage() {
                                         <Link href={`/admin/inventory?filter=specific_warehouse&warehouseId=${wh.id}`} className="h-14 px-8 bg-black text-white rounded-2xl font-bold shadow-xl shadow-blue-500/10 hover:bg-blue-600 transition-all active:scale-[0.98] flex items-center gap-3 uppercase tracking-widest text-xs border-2 border-black">
                                             Telemetry <ArrowRight size={18} />
                                         </Link>
+                                        <DeleteWarehouseButton id={wh.id} />
                                     </div>
                                 </div>
                             );
