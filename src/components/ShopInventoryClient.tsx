@@ -1,0 +1,199 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import { Package, Search, Filter, ArrowUpDown } from 'lucide-react';
+
+interface ShopInventoryClientProps {
+    inventory: any[];
+}
+
+export default function ShopInventoryClient({ inventory }: ShopInventoryClientProps) {
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('name');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+    const filteredInventory = useMemo(() => {
+        return inventory
+            .filter(item => {
+                const matchesSearch = item.product.name.toLowerCase().includes(search.toLowerCase()) ||
+                    item.product.sku.toLowerCase().includes(search.toLowerCase());
+
+                const isOutOfStock = item.quantity === 0;
+                const isLowStock = item.quantity > 0 && item.quantity < 10;
+
+                let matchesStatus = true;
+                if (statusFilter === 'out') matchesStatus = isOutOfStock;
+                else if (statusFilter === 'low') matchesStatus = isLowStock;
+                else if (statusFilter === 'in') matchesStatus = !isOutOfStock && !isLowStock;
+
+                return matchesSearch && matchesStatus;
+            })
+            .sort((a, b) => {
+                let comparison = 0;
+                if (sortBy === 'name') comparison = a.product.name.localeCompare(b.product.name);
+                else if (sortBy === 'quantity') comparison = a.quantity - b.quantity;
+                else if (sortBy === 'price') comparison = Number(a.product.price) - Number(b.product.price);
+                else if (sortBy === 'value') comparison = (a.quantity * Number(a.product.price)) - (b.quantity * Number(b.product.price));
+
+                return sortOrder === 'asc' ? comparison : -comparison;
+            });
+    }, [inventory, search, statusFilter, sortBy, sortOrder]);
+
+    const toggleSort = (field: string) => {
+        if (sortBy === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setSortOrder('asc');
+        }
+    };
+
+    return (
+        <div className="space-y-12 bg-white p-4">
+            {/* Filters Bar */}
+            <div className="bg-blue-50 p-8 border-2 border-blue-100 shadow-xl shadow-blue-500/5 rounded-3xl flex flex-col lg:flex-row gap-8 items-center">
+                <div className="relative flex-1 w-full group">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-blue-500 transition-colors" size={24} />
+                    <input
+                        type="text"
+                        placeholder="Search assets by identifier or SKU..."
+                        className="w-full pl-14 pr-6 h-16 bg-white border-2 border-blue-100 rounded-2xl text-sm font-bold placeholder:text-blue-200 focus:border-blue-400 transition-all outline-none text-black"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-6 w-full lg:w-auto">
+                    <select
+                        className="h-16 px-8 bg-white border-2 border-blue-100 rounded-2xl text-[11px] font-black uppercase tracking-widest outline-none focus:border-blue-400 appearance-none min-w-[220px] text-black"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                        <option value="all">ALL NODES</option>
+                        <option value="in">OPERATIONAL</option>
+                        <option value="low">CRITICAL</option>
+                        <option value="out">DEPLETED</option>
+                    </select>
+
+                    <div className="flex bg-white p-1.5 rounded-2xl border-2 border-blue-100 shadow-sm">
+                        {[
+                            { id: 'name', label: 'NAME' },
+                            { id: 'quantity', label: 'QTY' },
+                            { id: 'value', label: 'VALUE' }
+                        ].map((btn) => (
+                            <button
+                                key={btn.id}
+                                onClick={() => toggleSort(btn.id)}
+                                className={`px-6 py-3 rounded-xl text-[10px] font-black transition-all tracking-widest ${sortBy === btn.id ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-blue-300 hover:text-blue-500'}`}
+                            >
+                                {btn.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Inventory Table */}
+            <div className="bg-white border-2 border-blue-100 rounded-[2.5rem] shadow-2xl shadow-blue-500/5 overflow-hidden">
+                <div className="p-10 border-b border-blue-50 bg-blue-50/50 flex flex-col sm:flex-row justify-between items-center gap-6">
+                    <h3 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-4 text-black italic">
+                        <Package size={28} className="text-blue-500" />
+                        Asset Inventory ({filteredInventory.length})
+                    </h3>
+                    {filteredInventory.length !== inventory.length && (
+                        <button
+                            onClick={() => { setSearch(''); setStatusFilter('all'); }}
+                            className="text-[10px] font-black uppercase tracking-widest bg-white border-2 border-blue-100 text-blue-400 px-6 py-3 rounded-xl hover:border-blue-400 hover:text-blue-500 transition-all shadow-sm"
+                        >
+                            Reset Registry
+                        </button>
+                    )}
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                        <thead>
+                            <tr className="bg-white border-b-2 border-blue-50">
+                                <th className="px-10 py-6 text-left text-[11px] font-black uppercase tracking-widest text-blue-300 cursor-pointer hover:text-black transition-colors" onClick={() => toggleSort('name')}>
+                                    <div className="flex items-center gap-3">ASSET IDENTIFIER <ArrowUpDown size={14} /></div>
+                                </th>
+                                <th className="px-10 py-6 text-left text-[11px] font-black uppercase tracking-widest text-blue-300">REGISTRY ID</th>
+                                <th className="px-10 py-6 text-right text-[11px] font-black uppercase tracking-widest text-blue-300 cursor-pointer hover:text-black transition-colors" onClick={() => toggleSort('price')}>
+                                    <div className="flex items-center justify-end gap-3">UNIT VAL <ArrowUpDown size={14} /></div>
+                                </th>
+                                <th className="px-10 py-6 text-right text-[11px] font-black uppercase tracking-widest text-blue-300 cursor-pointer hover:text-black transition-colors" onClick={() => toggleSort('quantity')}>
+                                    <div className="flex items-center justify-end gap-3">QUANTITY <ArrowUpDown size={14} /></div>
+                                </th>
+                                <th className="px-10 py-6 text-right text-[11px] font-black uppercase tracking-widest text-blue-300 cursor-pointer hover:text-black transition-colors" onClick={() => toggleSort('value')}>
+                                    <div className="flex items-center justify-end gap-3">NET WORTH <ArrowUpDown size={14} /></div>
+                                </th>
+                                <th className="px-10 py-6 text-center text-[11px] font-black uppercase tracking-widest text-blue-300">NODE STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y border-t border-blue-50">
+                            {filteredInventory.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-10 py-24 text-center">
+                                        <div className="flex flex-col items-center gap-6">
+                                            <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center">
+                                                <Search size={36} className="text-blue-200" />
+                                            </div>
+                                            <p className="text-xs font-bold text-blue-200 uppercase tracking-[0.3em]">No Assets Found</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredInventory.map((item) => {
+                                    const itemValue = item.quantity * Number(item.product.price);
+                                    const isLowStock = item.quantity < 10 && item.quantity > 0;
+                                    const isOutOfStock = item.quantity === 0;
+
+                                    return (
+                                        <tr key={item.id} className="hover:bg-blue-50/30 transition-all group">
+                                            <td className="px-10 py-8">
+                                                <div className="font-bold text-black uppercase tracking-tight text-sm leading-tight hover:translate-x-1 transition-transform">{item.product.name}</div>
+                                                {item.product.category && (
+                                                    <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest mt-2">
+                                                        {item.product.category}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-10 py-8">
+                                                <span className="text-[10px] font-black bg-blue-50 px-3 py-1.5 rounded-lg text-blue-400 font-mono tracking-wider">
+                                                    {item.product.sku}
+                                                </span>
+                                            </td>
+                                            <td className="px-10 py-8 text-right font-black text-black font-mono tracking-tighter">
+                                                ${Number(item.product.price).toFixed(2)}
+                                            </td>
+                                            <td className="px-10 py-8 text-right">
+                                                <span className={`text-2xl font-black font-mono tracking-tighter ${isOutOfStock ? 'text-blue-100' : 'text-black'}`}>
+                                                    {item.quantity}
+                                                </span>
+                                            </td>
+                                            <td className="px-10 py-8 text-right">
+                                                <div className="text-xl font-black text-black font-mono tracking-tighter italic underline decoration-blue-500 decoration-1 underline-offset-8">
+                                                    ${itemValue.toFixed(2)}
+                                                </div>
+                                            </td>
+                                            <td className="px-10 py-8 text-center">
+                                                <span className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${isOutOfStock
+                                                    ? 'bg-red-50 text-red-500 border border-red-100'
+                                                    : isLowStock
+                                                        ? 'bg-amber-50 text-amber-500 border border-amber-100'
+                                                        : 'bg-emerald-50 text-emerald-500 border border-emerald-100'
+                                                    }`}>
+                                                    {isOutOfStock ? 'Depleted' : isLowStock ? 'Critical' : 'Operational'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+}
