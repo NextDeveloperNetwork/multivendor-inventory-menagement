@@ -46,22 +46,29 @@ export default async function ShopHistoryPage({ searchParams }: ShopHistoryPageP
         ];
     }
 
-    const rawSales = await prisma.sale.findMany({
-        where,
-        include: {
-            items: {
-                include: {
-                    product: true,
+    const [rawSales, shop] = await Promise.all([
+        prisma.sale.findMany({
+            where,
+            include: {
+                items: {
+                    include: {
+                        product: true,
+                    },
                 },
+                user: true,
             },
-            user: true,
-        },
-        orderBy: {
-            date: 'desc',
-        },
-    });
+            orderBy: {
+                date: 'desc',
+            },
+        }),
+        prisma.shop.findUnique({
+            where: { id: session.user.shopId },
+            include: { currency: true }
+        })
+    ]);
 
     const sales = sanitizeData(rawSales);
+    const symbol = shop?.currency?.symbol || '$';
 
     const totalRevenue = sales.reduce((sum: number, sale: any) => sum + Number(sale.total), 0);
     const totalTransactions = sales.length;
@@ -168,7 +175,7 @@ export default async function ShopHistoryPage({ searchParams }: ShopHistoryPageP
                                             {sale.items.slice(0, 3).map((item: any) => (
                                                 <div key={item.id} className="flex justify-between items-center text-sm p-3 rounded-xl hover:bg-slate-50 transition-colors">
                                                     <span className="text-slate-600 font-medium truncate flex-1 mr-4">{item.product.name} <span className="text-slate-400">x{item.quantity}</span></span>
-                                                    <span className="text-slate-900 font-bold font-mono">${(Number(item.price) * item.quantity).toFixed(2)}</span>
+                                                    <span className="text-slate-900 font-bold font-mono">{symbol}{(Number(item.price) * item.quantity).toFixed(2)}</span>
                                                 </div>
                                             ))}
                                             {sale.items.length > 3 && (
@@ -179,7 +186,7 @@ export default async function ShopHistoryPage({ searchParams }: ShopHistoryPageP
                                         <div className="mt-8 pt-6 border-t border-slate-100 flex items-end justify-between">
                                             <div>
                                                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Amount</div>
-                                                <div className="text-3xl font-black text-emerald-500 tracking-tighter">${Number(sale.total).toFixed(2)}</div>
+                                                <div className="text-3xl font-black text-emerald-500 tracking-tighter">{symbol}{Number(sale.total).toFixed(2)}</div>
                                             </div>
                                             <button className="w-12 h-12 rounded-full border-2 border-slate-100 flex items-center justify-center text-slate-300 hover:text-blue-500 hover:border-blue-200 hover:bg-blue-50 transition-all">
                                                 <ChevronRight size={24} />

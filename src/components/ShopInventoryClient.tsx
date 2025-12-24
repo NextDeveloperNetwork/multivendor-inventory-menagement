@@ -2,12 +2,20 @@
 
 import { useState, useMemo } from 'react';
 import { Package, Search, ArrowUpDown, Printer } from 'lucide-react';
+import JsBarcode from 'jsbarcode';
 
 interface ShopInventoryClientProps {
     inventory: any[];
+    currency: {
+        symbol: string;
+        rate: number;
+    };
 }
 
-export default function ShopInventoryClient({ inventory }: ShopInventoryClientProps) {
+export default function ShopInventoryClient({ inventory, currency }: ShopInventoryClientProps) {
+    const rate = currency?.rate || 1;
+    const symbol = currency?.symbol || '$';
+
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [sortBy, setSortBy] = useState('name');
@@ -50,81 +58,100 @@ export default function ShopInventoryClient({ inventory }: ShopInventoryClientPr
     };
 
     const printBarcode = (product: any) => {
-        const printWindow = window.open('', '_blank', 'width=400,height=300');
-        if (!printWindow) return;
+        try {
+            const canvas = document.createElement('canvas');
+            const barcodeValue = product.barcode || product.sku;
 
-        const barcodeValue = product.barcode || product.sku;
+            JsBarcode(canvas, barcodeValue, {
+                format: "CODE128",
+                width: 2,
+                height: 50,
+                displayValue: true,
+                fontSize: 14,
+                margin: 0
+            });
 
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Print Barcode - ${product.name}</title>
-                <style>
-                    @page {
-                        size: 2.5in 1.5in;
-                        margin: 0;
-                    }
-                    body {
-                        margin: 0;
-                        padding: 12px;
-                        font-family: Arial, sans-serif;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-center;
-                        height: 100vh;
-                    }
-                    .product-name {
-                        font-size: 11px;
-                        font-weight: bold;
-                        text-align: center;
-                        margin-bottom: 6px;
-                        max-width: 100%;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                        white-space: nowrap;
-                    }
-                    .barcode-container {
-                        margin: 8px 0;
-                    }
-                    .price {
-                        font-size: 16px;
-                        font-weight: bold;
-                        text-align: center;
-                        margin-top: 6px;
-                    }
-                    svg {
-                        max-width: 100%;
-                        height: auto;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="product-name">${product.name}</div>
-                <div class="barcode-container">
-                    <svg id="barcode"></svg>
-                </div>
-                <div class="price">$${Number(product.price).toFixed(2)}</div>
-                <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-                <script>
-                    JsBarcode("#barcode", "${barcodeValue}", {
-                        format: "CODE128",
-                        width: 2,
-                        height: 50,
-                        displayValue: true,
-                        fontSize: 12,
-                        margin: 5
-                    });
-                    setTimeout(() => {
-                        window.print();
-                        setTimeout(() => window.close(), 100);
-                    }, 500);
-                </script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
+            const imageUrl = canvas.toDataURL("image/png");
+
+            const printWindow = window.open('', '_blank', 'width=400,height=300');
+            if (!printWindow) {
+                alert('Please allow popups to print labels');
+                return;
+            }
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Print Label - ${product.name}</title>
+                    <style>
+                        @page {
+                            size: 2.25in 1.25in;
+                            margin: 0;
+                        }
+                        body {
+                            margin: 0;
+                            padding: 8px;
+                            font-family: sans-serif;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                            box-sizing: border-box;
+                        }
+                        .label-container {
+                            width: 100%;
+                            height: 100%;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            text-align: center;
+                        }
+                        .product-name {
+                            font-size: 10px;
+                            font-weight: bold;
+                            line-height: 1.2;
+                            margin-bottom: 4px;
+                            max-height: 2.4em;
+                            overflow: hidden;
+                            word-break: break-all;
+                        }
+                        img {
+                            max-width: 95%;
+                            height: auto;
+                            display: block;
+                        }
+                        .price {
+                            font-size: 14px;
+                            font-weight: 900;
+                            margin-top: 4px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="label-container">
+                        <div class="product-name">${product.name}</div>
+                        <img src="${imageUrl}" />
+                        <div class="price">$${Number(product.price).toFixed(2)}</div>
+                    </div>
+                    <script>
+                        // Auto-print when loaded
+                        window.onload = function() {
+                            window.print();
+                            // Optional: close after print (some browsers block this if not user triggered)
+                            // setTimeout(() => window.close(), 1000);
+                        }
+                    </script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        } catch (e) {
+            console.error('Barcode generation exceeded:', e);
+            alert('Failed to generate barcode');
+        }
     };
 
     return (
@@ -317,7 +344,7 @@ export default function ShopInventoryClient({ inventory }: ShopInventoryClientPr
                                                 </span>
                                             </td>
                                             <td className="px-10 py-8 text-right font-black text-black font-mono tracking-tighter">
-                                                ${Number(item.product.price).toFixed(2)}
+                                                {symbol}{(Number(item.product.price) * rate).toFixed(2)}
                                             </td>
                                             <td className="px-10 py-8 text-right">
                                                 <span className={`text-2xl font-black font-mono tracking-tighter ${isOutOfStock ? 'text-blue-100' : 'text-black'}`}>
@@ -326,7 +353,7 @@ export default function ShopInventoryClient({ inventory }: ShopInventoryClientPr
                                             </td>
                                             <td className="px-10 py-8 text-right">
                                                 <div className="text-xl font-black text-black font-mono tracking-tighter italic underline decoration-blue-500 decoration-1 underline-offset-8">
-                                                    ${itemValue.toFixed(2)}
+                                                    {symbol}{(itemValue * rate).toFixed(2)}
                                                 </div>
                                             </td>
                                             <td className="px-10 py-8 text-center">

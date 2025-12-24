@@ -24,9 +24,11 @@ import { format } from 'date-fns';
 interface InvoiceDetailsDialogProps {
     invoice: any;
     children: React.ReactNode;
+    currency: { symbol: string };
 }
 
-export default function InvoiceDetailsDialog({ invoice, children }: InvoiceDetailsDialogProps) {
+export default function InvoiceDetailsDialog({ invoice, children, currency }: InvoiceDetailsDialogProps) {
+    const symbol = currency?.symbol || '$';
     const totalAmount = invoice.items.reduce((sum: number, item: any) => sum + (Number(item.cost) * item.quantity), 0);
 
     const downloadPDF = () => {
@@ -47,8 +49,8 @@ export default function InvoiceDetailsDialog({ invoice, children }: InvoiceDetai
             { content: item.product?.name, styles: { fontStyle: 'bold' } },
             item.product?.sku,
             item.quantity.toString(),
-            formatCurrency(item.cost),
-            formatCurrency(Number(item.cost) * item.quantity)
+            formatCurrency(item.cost, symbol),
+            formatCurrency(Number(item.cost) * item.quantity, symbol)
         ]);
 
         autoTable(doc, {
@@ -68,7 +70,7 @@ export default function InvoiceDetailsDialog({ invoice, children }: InvoiceDetai
         doc.setFontSize(14);
         doc.setTextColor(0);
         doc.setFont('helvetica', 'bold');
-        doc.text(`Total Valuation: ${formatCurrency(totalAmount)}`, 200, finalY, { align: 'right' });
+        doc.text(`Total Valuation: ${formatCurrency(totalAmount, symbol)}`, 200, finalY, { align: 'right' });
 
         doc.save(`invoice_${invoice.number}.pdf`);
     };
@@ -168,10 +170,10 @@ export default function InvoiceDetailsDialog({ invoice, children }: InvoiceDetai
                                                 {item.quantity}
                                             </TableCell>
                                             <TableCell className="px-6 py-4 text-right text-slate-500 font-medium">
-                                                {formatCurrency(item.cost)}
+                                                {formatCurrency(item.cost, symbol)}
                                             </TableCell>
                                             <TableCell className="px-6 py-4 text-right font-black text-slate-900 text-base">
-                                                {formatCurrency(Number(item.cost) * item.quantity)}
+                                                {formatCurrency(Number(item.cost) * item.quantity, symbol)}
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -184,7 +186,7 @@ export default function InvoiceDetailsDialog({ invoice, children }: InvoiceDetai
                     <div className="mt-8 flex justify-end">
                         <div className="bg-slate-900 rounded-2xl p-6 text-white text-right min-w-[200px] shadow-xl shadow-slate-200">
                             <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1 italic">Vetted Valuation</p>
-                            <p className="text-3xl font-black italic">{formatCurrency(totalAmount)}</p>
+                            <p className="text-3xl font-black italic">{formatCurrency(totalAmount, symbol)}</p>
                         </div>
                     </div>
                 </div>

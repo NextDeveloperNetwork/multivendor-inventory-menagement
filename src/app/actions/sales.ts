@@ -30,18 +30,27 @@ export async function processSale(items: CartItem[]) {
 
     try {
         await prisma.$transaction(async (tx) => {
+            // Fetch shop currency for snapshot
+            const shop = await tx.shop.findUnique({
+                where: { id: shopId },
+                include: { currency: true }
+            });
+
             // Generate numerical transaction number (YYMMDD + random 4 digits + sequence)
             const count = await tx.sale.count();
             const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
             const trxNumber = `${dateStr}${String(count + 1).padStart(4, '0')}`;
 
-            // 1. Create Sale
+            // 1. Create Sale with currency snapshot
             const sale = await tx.sale.create({
                 data: {
                     number: trxNumber,
                     shopId,
                     userId,
                     total,
+                    currencyCode: shop?.currency?.code,
+                    currencySymbol: shop?.currency?.symbol,
+                    currencyRate: shop?.currency?.rate,
                     items: {
                         create: items.map(item => ({
                             productId: item.productId,

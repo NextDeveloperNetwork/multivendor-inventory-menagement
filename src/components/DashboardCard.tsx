@@ -72,7 +72,7 @@ export function CardValue({
                     <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full ${trendUp ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                         {trendUp ? '↑' : '↓'} {trend}
                     </span>
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Variance Delta</span>
+
                 </div>
             )}
         </div>

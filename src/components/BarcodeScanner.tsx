@@ -47,16 +47,16 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
     }, [onScan]);
 
     return (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-lg bg-white rounded-[2.5rem] overflow-hidden relative shadow-2xl">
-                <div className="p-6 bg-black text-white flex justify-between items-center">
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+            <div className="w-full max-w-lg bg-white rounded-[2.5rem] overflow-hidden relative shadow-2xl border-2 border-blue-100">
+                <div className="p-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <Camera size={20} className="text-blue-500" />
-                        <h3 className="font-black uppercase tracking-tight italic">Optical Asset Scanner</h3>
+                        <Camera size={20} className="text-white" />
+                        <h3 className="font-black uppercase tracking-tight">Barcode Scanner</h3>
                     </div>
                     <button
                         onClick={onClose}
-                        className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-colors"
+                        className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-colors backdrop-blur-sm"
                     >
                         <X size={20} />
                     </button>
@@ -64,9 +64,9 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
 
                 <div id="reader" className="w-full"></div>
 
-                <div className="p-6 bg-slate-50 border-t border-slate-100 text-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Position barcode within the frame to synchronize
+                <div className="p-6 bg-gradient-to-r from-blue-50 to-purple-50 border-t-2 border-blue-100 text-center">
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                        Position barcode within the frame to scan
                     </p>
                 </div>
             </div>

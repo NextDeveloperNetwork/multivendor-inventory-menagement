@@ -21,15 +21,20 @@ export default async function SalesPage() {
         orderBy: { name: 'asc' }
     });
 
+    const shop = await prisma.shop.findUnique({
+        where: { id: session.user.shopId },
+        include: { currency: true }
+    });
+
     const products = sanitizeData(rawProducts);
 
     return (
         <div className="h-full">
-            {/* We generally hide the navbar/title for POS to maximize space, or keep it minimal */}
-            <div className="mb-4">
-                <h1 className="text-2xl font-bold">New Sale</h1>
-            </div>
-            <POSInterface products={products} shopId={session.user.shopId} />
+            <POSInterface
+                products={products}
+                shopId={session.user.shopId}
+                currency={shop?.currency ? JSON.parse(JSON.stringify(shop.currency)) : null}
+            />
         </div>
     );
 }

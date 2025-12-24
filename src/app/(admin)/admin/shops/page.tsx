@@ -1,10 +1,12 @@
 import { prisma } from '@/lib/prisma';
 import ShopsClient from '@/components/ShopsClient';
+import { sanitizeData } from '@/lib/utils';
 
 export default async function ShopsPage() {
     const shops = await prisma.shop.findMany({
         include: {
-            users: true
+            users: true,
+            currency: true
         },
         orderBy: { createdAt: 'desc' }
     });
@@ -12,8 +14,12 @@ export default async function ShopsPage() {
     const unassignedUsers = await prisma.user.findMany({
         where: {
             shopId: null,
-            role: 'USER' // Only assign regular users, typically
+            role: 'USER'
         }
+    });
+
+    const currencies = await prisma.currency.findMany({
+        orderBy: { code: 'asc' }
     });
 
     return (
@@ -39,7 +45,11 @@ export default async function ShopsPage() {
                 </div>
             </div>
 
-            <ShopsClient initialShops={shops} initialUnassignedUsers={unassignedUsers} />
+            <ShopsClient
+                initialShops={sanitizeData(shops)}
+                initialUnassignedUsers={sanitizeData(unassignedUsers)}
+                currencies={sanitizeData(currencies)}
+            />
         </div>
     );
 }

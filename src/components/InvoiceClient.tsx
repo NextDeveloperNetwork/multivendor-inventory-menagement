@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createInvoice, deleteInvoice } from '@/app/actions/invoice';
-import { Plus, Trash2, FileText, Calendar, Search, Package, Store, Eye, Hash, MapPin, AlertTriangle, ChevronDown, ShoppingCart } from 'lucide-react';
+import { Plus, Trash2, FileText, Calendar, Search, Package, Store, Eye, Hash, MapPin, AlertTriangle, ChevronDown, ShoppingCart, Activity } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import InvoiceDetailsDialog from './InvoiceDetailsDialog';
@@ -25,9 +25,11 @@ interface InvoiceClientProps {
     products: any[];
     suppliers: any[];
     warehouses: any[];
+    currency: { symbol: string; rate: number };
 }
 
-export default function InvoiceClient({ invoices, products, suppliers, warehouses }: InvoiceClientProps) {
+export default function InvoiceClient({ invoices, products, suppliers, warehouses, currency }: InvoiceClientProps) {
+    const symbol = currency?.symbol || '$';
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -156,16 +158,16 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
             </div>
 
             {showForm && (
-                <div className="bg-slate-50 border-2 border-slate-100 rounded-[3rem] shadow-2xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
+                <div className="bg-white border-2 border-blue-100 rounded-[3rem] shadow-2xl shadow-blue-500/10 overflow-hidden animate-in slide-in-from-top-4 duration-500">
                     {/* Form Header */}
-                    <div className="bg-black p-10 text-white flex justify-between items-center">
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-10 text-white flex justify-between items-center">
                         <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white shadow-xl">
                                 <FileText size={32} />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-black tracking-tighter uppercase italic">Genesis Procurement</h2>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-2">Initialize Direct Ledger Entry</p>
+                                <h2 className="text-3xl font-black tracking-tight uppercase">New Invoice</h2>
+                                <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-2">Create Procurement Record</p>
                             </div>
                         </div>
                         <button
@@ -176,7 +178,7 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                 setWarehouseId('');
                                 setItems([{ productId: '', quantity: '', cost: '' }]);
                             }}
-                            className="w-14 h-14 flex items-center justify-center rounded-2xl bg-slate-900 text-slate-400 hover:text-white transition-all"
+                            className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-sm"
                         >
                             <Plus size={24} className="rotate-45" />
                         </button>
@@ -185,71 +187,71 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                     <form onSubmit={handleSubmit} className="p-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
                         {/* Left Column: Metadata */}
                         <div className="space-y-8">
-                            <div className="bg-white p-8 rounded-[2rem] border-2 border-slate-100 space-y-8 shadow-sm">
-                                <h3 className="text-[11px] font-black text-blue-500 uppercase tracking-[0.2em] border-b border-slate-50 pb-4 italic">Ledger Configuration</h3>
+                            <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-[2rem] border-2 border-blue-100 space-y-8 shadow-sm">
+                                <h3 className="text-[11px] font-black text-blue-600 uppercase tracking-widest border-b-2 border-blue-200 pb-4">Invoice Details</h3>
 
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Manual Reference</label>
+                                    <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-2">Invoice Number</label>
                                     <div className="relative group">
-                                        <Hash className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={18} />
+                                        <Hash className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-blue-600 transition-colors" size={18} />
                                         <input
                                             type="text"
                                             value={invoiceNumber}
                                             onChange={(e) => setInvoiceNumber(e.target.value)}
-                                            placeholder="Invoice ID..."
-                                            className="w-full h-14 pl-14 pr-6 bg-slate-50 border-2 border-slate-50 rounded-xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none uppercase text-xs transition-all"
+                                            placeholder="INV-001"
+                                            className="w-full h-14 pl-14 pr-6 bg-white border-2 border-blue-200 rounded-xl font-bold text-slate-900 focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 outline-none uppercase text-sm transition-all"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center px-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Source Entity</label>
+                                        <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Supplier</label>
                                         <QuickAddSupplierDialog onAdd={(s) => {
                                             setSupplierId(s.id);
                                             router.refresh();
                                         }} />
                                     </div>
                                     <div className="relative group">
-                                        <Store className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={18} />
+                                        <Store className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-blue-600 transition-colors" size={18} />
                                         <select
                                             value={supplierId}
                                             onChange={(e) => setSupplierId(e.target.value)}
-                                            className="w-full h-14 pl-14 pr-12 bg-slate-50 border-2 border-slate-50 rounded-xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none uppercase text-xs appearance-none transition-all"
+                                            className="w-full h-14 pl-14 pr-12 bg-white border-2 border-blue-200 rounded-xl font-bold text-slate-900 focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 outline-none uppercase text-sm appearance-none transition-all"
                                             required
                                         >
-                                            <option value="">Origin Node...</option>
+                                            <option value="">Select Supplier...</option>
                                             {suppliers.map((s) => (
                                                 <option key={s.id} value={s.id}>{s.name}</option>
                                             ))}
                                         </select>
-                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
+                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-300 pointer-events-none" size={16} />
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Target Warehouse</label>
+                                    <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-2">Warehouse</label>
                                     <div className="relative group">
-                                        <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={18} />
+                                        <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-blue-600 transition-colors" size={18} />
                                         <select
                                             value={warehouseId}
                                             onChange={(e) => setWarehouseId(e.target.value)}
-                                            className="w-full h-14 pl-14 pr-12 bg-slate-50 border-2 border-slate-50 rounded-xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none uppercase text-xs appearance-none transition-all"
+                                            className="w-full h-14 pl-14 pr-12 bg-white border-2 border-blue-200 rounded-xl font-bold text-slate-900 focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 outline-none uppercase text-sm appearance-none transition-all"
                                             required
                                         >
-                                            <option value="">Destination...</option>
+                                            <option value="">Select Warehouse...</option>
                                             {warehouses.map((w) => (
                                                 <option key={w.id} value={w.id}>{w.name}</option>
                                             ))}
                                         </select>
-                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
+                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-300 pointer-events-none" size={16} />
                                     </div>
                                 </div>
-                                <div className="pt-6 border-t border-slate-50">
-                                    <div className="bg-blue-600 rounded-[1.5rem] p-6 text-white shadow-xl shadow-blue-500/20">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Total Asset Valuation</p>
-                                        <h4 className="text-3xl font-black mt-1 italic tracking-tighter">
-                                            {formatCurrency(totalValue)}
+                                <div className="pt-6 border-t-2 border-blue-200">
+                                    <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-[1.5rem] p-6 text-white shadow-xl shadow-emerald-500/20">
+                                        <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Total Amount</p>
+                                        <h4 className="text-3xl font-black mt-1 tracking-tight">
+                                            {formatCurrency(totalValue, symbol)}
                                         </h4>
                                     </div>
                                 </div>
@@ -258,112 +260,138 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                             <button
                                 disabled={loading}
                                 type="submit"
-                                className="w-full h-20 bg-black text-white rounded-[2rem] font-black uppercase tracking-[0.2em] hover:bg-blue-600 transition-all active:scale-95 disabled:opacity-30 shadow-xl"
+                                className="w-full h-20 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-[2rem] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30 shadow-xl shadow-blue-500/30 flex items-center justify-center gap-3"
                             >
-                                {loading ? 'Processing...' : 'Authorize Transaction'}
+                                {loading ? (
+                                    <>
+                                        <Activity className="animate-spin" size={20} />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FileText size={20} />
+                                        Create Invoice
+                                    </>
+                                )}
                             </button>
                         </div>
 
-                        {/* Right Column: Manifest */}
+                        {/* Right Column: Items */}
                         <div className="lg:col-span-2 space-y-6">
-                            <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] border-2 border-slate-100 shadow-sm">
+                            <div className="flex justify-between items-center bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-[2rem] border-2 border-blue-100 shadow-sm">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
                                         <ShoppingCart size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="text-xs font-black uppercase tracking-widest text-black">Article Manifest</h3>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight italic">Total Items: {items.length}</p>
+                                        <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Invoice Items</h3>
+                                        <p className="text-[10px] text-blue-400 font-bold uppercase tracking-tight">{items.filter(i => i.productId).length} Products Added</p>
                                     </div>
                                 </div>
-                                <AssetCatalogDialog
-                                    products={products}
-                                    selectedIds={items.map(i => i.productId)}
-                                    onSelect={selectFromCatalog}
-                                />
+                                <div className="flex gap-3">
+                                    <AssetCatalogDialog
+                                        products={products}
+                                        selectedIds={items.map(i => i.productId)}
+                                        onSelect={selectFromCatalog}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={addItem}
+                                        className="h-12 px-6 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-500/30 flex items-center gap-2 text-xs"
+                                    >
+                                        <Plus size={16} strokeWidth={3} />
+                                        Add Row
+                                    </button>
+                                </div>
                             </div>
-                            <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm">
-                                <Table>
-                                    <TableHeader className="bg-slate-50 border-b border-slate-100">
-                                        <TableRow className="hover:bg-transparent">
-                                            <TableHead className="py-6 px-10 text-[10px] font-black uppercase tracking-widest text-slate-400">Resource Selection / SKU</TableHead>
-                                            <TableHead className="py-6 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-32">Qty</TableHead>
-                                            <TableHead className="py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 w-48">Unit Cost</TableHead>
-                                            <TableHead className="py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 w-48">Subtotal</TableHead>
-                                            <TableHead className="py-6 px-10 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 w-24">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {items.map((item, index) => {
-                                            const subtotal = (parseFloat(item.cost) || 0) * (parseInt(item.quantity) || 0);
-                                            const product = products.find(p => p.id === item.productId);
 
-                                            return (
-                                                <TableRow key={index} className="group hover:bg-slate-50/50 transition-all border-b border-slate-50 last:border-0 h-24">
-                                                    <TableCell className="px-10">
-                                                        <div className="flex flex-col gap-1">
-                                                            <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest italic mb-1">Asset ID</div>
-                                                            <div className="font-bold text-xs text-black">
-                                                                {product ? product.name : 'No Asset Selected'}
+                            <div className="bg-white border-2 border-blue-100 rounded-[2.5rem] overflow-hidden shadow-sm">
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-100">
+                                            <TableRow className="hover:bg-transparent">
+                                                <TableHead className="py-6 px-10 text-[10px] font-black uppercase tracking-widest text-slate-600">Product</TableHead>
+                                                <TableHead className="py-6 text-center text-[10px] font-black uppercase tracking-widest text-slate-600 w-32">Quantity</TableHead>
+                                                <TableHead className="py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-600 w-48">Unit Cost</TableHead>
+                                                <TableHead className="py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-600 w-48">Subtotal</TableHead>
+                                                <TableHead className="py-6 px-10 text-right text-[10px] font-black uppercase tracking-widest text-slate-600 w-24">Action</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {items.map((item, index) => {
+                                                const subtotal = (parseFloat(item.cost) || 0) * (parseInt(item.quantity) || 0);
+                                                const product = products.find(p => p.id === item.productId);
+
+                                                return (
+                                                    <TableRow key={index} className="group hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all border-b border-blue-50 last:border-0 h-24">
+                                                        <TableCell className="px-10">
+                                                            <div className="flex flex-col gap-2">
+                                                                <div className="font-bold text-sm text-slate-900">
+                                                                    {product ? product.name : (
+                                                                        <span className="text-slate-400 italic">Select a product...</span>
+                                                                    )}
+                                                                </div>
+                                                                {product && (
+                                                                    <div className="text-[9px] font-mono text-blue-400 uppercase font-bold">
+                                                                        SKU: {product.sku}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <div className="text-[9px] font-mono text-slate-400 uppercase">
-                                                                {product ? product.sku : 'REF: NULL'}
-                                                            </div>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        <input
-                                                            type="number"
-                                                            value={item.quantity}
-                                                            onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                                                            className="w-20 h-12 bg-slate-50 border-2 border-slate-50 rounded-xl text-xs font-black text-black outline-none focus:border-blue-400 text-center transition-all mx-auto"
-                                                            placeholder="0"
-                                                            min="1"
-                                                            required
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <div className="relative inline-block w-full max-w-[160px]">
-                                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-bold text-[10px]">$</span>
+                                                        </TableCell>
+                                                        <TableCell className="text-center">
                                                             <input
                                                                 type="number"
-                                                                step="0.01"
-                                                                value={item.cost}
-                                                                onChange={(e) => updateItem(index, 'cost', e.target.value)}
-                                                                className="w-full h-12 pl-8 pr-4 bg-slate-50 border-2 border-slate-50 rounded-xl text-xs font-black text-black outline-none focus:border-blue-400 text-right transition-all font-mono"
-                                                                placeholder="0.00"
-                                                                min="0"
+                                                                value={item.quantity}
+                                                                onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                                                                className="w-24 h-12 bg-white border-2 border-blue-100 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 text-center transition-all"
+                                                                placeholder="0"
+                                                                min="1"
                                                                 required
                                                             />
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-right font-black text-slate-900 font-mono italic text-xs">
-                                                        {formatCurrency(subtotal)}
-                                                    </TableCell>
-                                                    <TableCell className="px-10 text-right">
-                                                        {items.length > 1 && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeItem(index)}
-                                                                className="w-12 h-12 flex items-center justify-center text-slate-300 hover:text-red-500 bg-slate-50 hover:bg-red-50 rounded-2xl transition-all border-2 border-slate-50 hover:border-red-100 shadow-sm"
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </button>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <div className="relative inline-block w-full max-w-[160px]">
+                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 font-bold text-sm">{symbol}</span>
+                                                                <input
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    value={item.cost}
+                                                                    onChange={(e) => updateItem(index, 'cost', e.target.value)}
+                                                                    className="w-full h-12 pl-10 pr-4 bg-white border-2 border-blue-100 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 text-right transition-all font-mono"
+                                                                    placeholder="0.00"
+                                                                    min="0"
+                                                                    required
+                                                                />
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-black text-emerald-600 font-mono text-base">
+                                                            {formatCurrency(subtotal, symbol)}
+                                                        </TableCell>
+                                                        <TableCell className="px-10 text-right">
+                                                            {items.length > 1 && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeItem(index)}
+                                                                    className="w-12 h-12 flex items-center justify-center text-rose-400 hover:text-white bg-rose-50 hover:bg-rose-500 rounded-xl transition-all border-2 border-rose-100 hover:border-rose-500 shadow-sm"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                                 {items.length === 0 && (
                                     <div className="p-20 text-center space-y-4">
-                                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
-                                            <ShoppingCart size={32} className="text-slate-200" />
+                                        <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto">
+                                            <ShoppingCart size={32} className="text-blue-400" />
                                         </div>
                                         <div>
-                                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No assets in manifest</p>
-                                            <p className="text-[10px] text-slate-300 font-bold uppercase italic mt-1">Add items from the catalog above</p>
+                                            <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No Items Added</p>
+                                            <p className="text-[10px] text-blue-300 font-bold uppercase mt-2">Click "Add Row" or browse the catalog</p>
                                         </div>
                                     </div>
                                 )}
@@ -394,82 +422,122 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                         <p className="text-blue-200 font-bold max-w-sm mx-auto text-xs uppercase tracking-widest opacity-80 leading-relaxed">No telemetry detected in current scope.</p>
                     </div>
                 ) : (
-                    <Table>
-                        <TableHeader className="bg-slate-50/50 border-b border-slate-100">
-                            <TableRow className="hover:bg-transparent border-none">
-                                <TableHead className="py-6 px-12 text-[10px] font-black uppercase tracking-widest text-slate-400">Ledger ID</TableHead>
-                                <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Timestamp</TableHead>
-                                <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Origin Node</TableHead>
-                                <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Manifest</TableHead>
-                                <TableHead className="py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Valuation</TableHead>
-                                <TableHead className="py-6 px-12 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                    <>
+                        <div className="hidden md:block">
+                            <Table>
+                                <TableHeader className="bg-slate-50/50 border-b border-slate-100">
+                                    <TableRow className="hover:bg-transparent border-none">
+                                        <TableHead className="py-6 px-12 text-[10px] font-black uppercase tracking-widest text-slate-400">Ledger ID</TableHead>
+                                        <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Timestamp</TableHead>
+                                        <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Origin Node</TableHead>
+                                        <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Manifest</TableHead>
+                                        <TableHead className="py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Valuation</TableHead>
+                                        <TableHead className="py-6 px-12 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {invoices.map((invoice) => (
+                                        <InvoiceDetailsDialog key={invoice.id} invoice={invoice} currency={currency}>
+                                            <TableRow className="group cursor-pointer hover:bg-blue-50/50 transition-all border-b border-slate-50 last:border-0 h-24">
+                                                <TableCell className="px-12 py-6">
+                                                    <div className="flex items-center gap-5">
+                                                        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                                            <FileText size={18} />
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-black text-slate-900 tracking-tight text-lg underline decoration-blue-500/10 underline-offset-4 group-hover:decoration-blue-500/30">
+                                                                {invoice.number}
+                                                            </div>
+                                                            <div className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1 opacity-60">CODE//INVC</div>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-slate-900 text-sm">
+                                                            {new Date(invoice.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                        </span>
+                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Validated</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-all">
+                                                            <Store size={14} />
+                                                        </div>
+                                                        <span className="font-bold text-slate-600 text-sm uppercase tracking-tight">{invoice.supplier?.name || 'External'}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                                            <Package size={12} className="text-blue-500" />
+                                                            {invoice.items.length} Article Segments
+                                                        </span>
+                                                        <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1.5 leading-none">Resource Entry</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="font-black text-slate-900 italic text-xl">
+                                                            {formatCurrency(invoice.items.reduce((sum: number, item: any) =>
+                                                                sum + (Number(item.cost) * item.quantity), 0
+                                                            ), symbol)}
+                                                        </span>
+                                                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">USD Asset</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="px-12 text-right">
+                                                    <div className="flex items-center justify-end gap-3" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 group-hover:text-blue-600 hover:bg-blue-50 transition-all">
+                                                            <Eye size={20} />
+                                                        </div>
+                                                        <DeleteInvoiceButton id={invoice.id} />
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        </InvoiceDetailsDialog>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        {/* Mobile View */}
+                        <div className="grid grid-cols-1 gap-4 md:hidden p-4">
                             {invoices.map((invoice) => (
-                                <InvoiceDetailsDialog key={invoice.id} invoice={invoice}>
-                                    <TableRow className="group cursor-pointer hover:bg-blue-50/50 transition-all border-b border-slate-50 last:border-0 h-24">
-                                        <TableCell className="px-12 py-6">
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                                    <FileText size={18} />
+                                <InvoiceDetailsDialog key={invoice.id} invoice={invoice} currency={currency}>
+                                    <div className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm space-y-4 hover:border-blue-200 transition-all active:scale-[0.98]">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 shrink-0">
+                                                    <FileText size={20} />
                                                 </div>
                                                 <div>
-                                                    <div className="font-black text-slate-900 tracking-tight text-lg underline decoration-blue-500/10 underline-offset-4 group-hover:decoration-blue-500/30">
-                                                        {invoice.number}
-                                                    </div>
-                                                    <div className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1 opacity-60">CODE//INVC</div>
+                                                    <div className="font-black text-slate-900 text-lg">#{invoice.number}</div>
+                                                    <div className="text-[10px] text-slate-400 font-bold font-mono uppercase tracking-widest">{new Date(invoice.date).toLocaleDateString()}</div>
                                                 </div>
                                             </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-slate-900 text-sm">
-                                                    {new Date(invoice.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-                                                </span>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Validated</span>
+                                            <div className="font-mono font-black text-slate-900 text-lg">
+                                                {formatCurrency(invoice.items.reduce((sum: number, item: any) => sum + (Number(item.cost) * item.quantity), 0), symbol)}
                                             </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-all">
-                                                    <Store size={14} />
-                                                </div>
-                                                <span className="font-bold text-slate-600 text-sm uppercase tracking-tight">{invoice.supplier?.name || 'External'}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                                    <Package size={12} className="text-blue-500" />
-                                                    {invoice.items.length} Article Segments
-                                                </span>
-                                                <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1.5 leading-none">Resource Entry</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex flex-col items-end">
-                                                <span className="font-black text-slate-900 italic text-xl">
-                                                    {formatCurrency(invoice.items.reduce((sum: number, item: any) =>
-                                                        sum + (Number(item.cost) * item.quantity), 0
-                                                    ))}
-                                                </span>
-                                                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">USD Asset</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="px-12 text-right">
-                                            <div className="flex items-center justify-end gap-3" onClick={(e) => e.stopPropagation()}>
-                                                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 group-hover:text-blue-600 hover:bg-blue-50 transition-all">
-                                                    <Eye size={20} />
-                                                </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                            <Store size={14} className="text-slate-400" />
+                                            <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">{invoice.supplier?.name || 'External'}</span>
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-2">
+                                            <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{invoice.items.length} Items</div>
+                                            <div onClick={(e) => e.stopPropagation()}>
                                                 <DeleteInvoiceButton id={invoice.id} />
                                             </div>
-                                        </TableCell>
-                                    </TableRow>
+                                        </div>
+                                    </div>
                                 </InvoiceDetailsDialog>
                             ))}
-                        </TableBody>
-                    </Table>
+                        </div>
+                    </>
                 )}
             </div>
         </div>

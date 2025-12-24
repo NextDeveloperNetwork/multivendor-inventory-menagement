@@ -8,6 +8,8 @@ export async function createSupplier(formData: FormData) {
     const email = formData.get('email') as string;
     const phone = formData.get('phone') as string;
     const address = formData.get('address') as string;
+    const latitude = parseFloat(formData.get('latitude') as string || '0') || null;
+    const longitude = parseFloat(formData.get('longitude') as string || '0') || null;
 
     try {
         const supplier = await (prisma as any).supplier.create({
@@ -16,6 +18,8 @@ export async function createSupplier(formData: FormData) {
                 email: email || null,
                 phone: phone || null,
                 address: address || null,
+                latitude,
+                longitude,
             },
         });
 
@@ -32,6 +36,8 @@ export async function updateSupplier(id: string, formData: FormData) {
     const email = formData.get('email') as string;
     const phone = formData.get('phone') as string;
     const address = formData.get('address') as string;
+    const latitude = parseFloat(formData.get('latitude') as string || '0') || null;
+    const longitude = parseFloat(formData.get('longitude') as string || '0') || null;
 
     try {
         const supplier = await (prisma as any).supplier.update({
@@ -41,6 +47,8 @@ export async function updateSupplier(id: string, formData: FormData) {
                 email: email || null,
                 phone: phone || null,
                 address: address || null,
+                latitude,
+                longitude,
             },
         });
 

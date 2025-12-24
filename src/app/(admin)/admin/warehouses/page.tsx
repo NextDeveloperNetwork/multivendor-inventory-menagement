@@ -80,6 +80,14 @@ export default async function WarehousesPage() {
                                                         <Calendar size={14} className="text-blue-400" />
                                                         <span className="text-[10px] font-black text-black uppercase tracking-widest font-mono">EST {new Date(wh.createdAt).getFullYear()}</span>
                                                     </div>
+                                                    {(wh.latitude || wh.longitude) && (
+                                                        <div className="flex items-center gap-2.5 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
+                                                            <MapPin size={14} className="text-slate-400" />
+                                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-mono">
+                                                                {wh.latitude?.toFixed(4)}, {wh.longitude?.toFixed(4)}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

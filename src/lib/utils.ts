@@ -23,9 +23,9 @@ export function formatDateTime(date: Date | string): string {
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
-export function formatCurrency(amount: number | string): string {
+export function formatCurrency(amount: number | string, symbol: string = '$'): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return `$${num.toFixed(2)}`;
+  return `${symbol}${num.toFixed(2)}`;
 }
 
 export function sanitizeData(data: any): any {

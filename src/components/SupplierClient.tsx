@@ -1,17 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createSupplier, updateSupplier, deleteSupplier } from '@/app/actions/supplier';
 import { Plus, Trash2, Edit2, Users, Mail, Phone, MapPin, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ConfirmDialog } from './ui/ConfirmDialog';
+import MapPicker from './MapPicker';
 
 interface SupplierClientProps {
     suppliers: any[];
 }
 
 export default function SupplierClient({ suppliers }: SupplierClientProps) {
+    const searchParams = useSearchParams();
+    const initialLat = searchParams.get('lat') || '';
+    const initialLng = searchParams.get('lng') || '';
+
     const [showForm, setShowForm] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState<any>(null);
     const [formData, setFormData] = useState({
@@ -19,13 +24,26 @@ export default function SupplierClient({ suppliers }: SupplierClientProps) {
         email: '',
         phone: '',
         address: '',
+        latitude: initialLat,
+        longitude: initialLng,
     });
     const [loading, setLoading] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const router = useRouter();
 
+    useEffect(() => {
+        if (initialLat || initialLng) {
+            setFormData(prev => ({
+                ...prev,
+                latitude: initialLat || prev.latitude,
+                longitude: initialLng || prev.longitude
+            }));
+            if (!showForm) setShowForm(true);
+        }
+    }, [initialLat, initialLng, showForm]);
+
     const resetForm = () => {
-        setFormData({ name: '', email: '', phone: '', address: '' });
+        setFormData({ name: '', email: '', phone: '', address: '', latitude: '', longitude: '' });
         setEditingSupplier(null);
         setShowForm(false);
     };
@@ -36,6 +54,8 @@ export default function SupplierClient({ suppliers }: SupplierClientProps) {
             email: supplier.email || '',
             phone: supplier.phone || '',
             address: supplier.address || '',
+            latitude: supplier.latitude?.toString() || '',
+            longitude: supplier.longitude?.toString() || '',
         });
         setEditingSupplier(supplier);
         setShowForm(true);
@@ -50,6 +70,8 @@ export default function SupplierClient({ suppliers }: SupplierClientProps) {
         formDataObj.append('email', formData.email);
         formDataObj.append('phone', formData.phone);
         formDataObj.append('address', formData.address);
+        formDataObj.append('latitude', formData.latitude);
+        formDataObj.append('longitude', formData.longitude);
 
         const result = editingSupplier
             ? await updateSupplier(editingSupplier.id, formDataObj)
@@ -154,16 +176,36 @@ export default function SupplierClient({ suppliers }: SupplierClientProps) {
                                 />
                             </div>
 
-                            {/* Address */}
+                            {/* Latitude */}
                             <div className="space-y-4">
-                                <label className="text-[10px] font-black text-black uppercase tracking-[0.3em] px-2">Geographic Coordinates</label>
+                                <label className="text-[10px] font-black text-black uppercase tracking-[0.3em] px-2">Global Latitude</label>
                                 <input
                                     type="text"
-                                    value={formData.address}
-                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                    value={formData.latitude}
+                                    onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
                                     className="w-full px-6 h-16 bg-white border-2 border-blue-100 rounded-2xl text-black font-bold focus:border-blue-400 transition-all outline-none text-sm placeholder:text-blue-100"
-                                    placeholder="e.g. Factory Sector 4, City Grid"
+                                    placeholder="e.g. 51.5074"
                                 />
+                            </div>
+
+                            {/* Longitude */}
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-black uppercase tracking-[0.3em] px-2">Global Longitude</label>
+                                <input
+                                    type="text"
+                                    value={formData.longitude}
+                                    onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                                    className="w-full px-6 h-16 bg-white border-2 border-blue-100 rounded-2xl text-black font-bold focus:border-blue-400 transition-all outline-none text-sm placeholder:text-blue-100"
+                                    placeholder="e.g. -0.1278"
+                                />
+                            </div>
+
+                            {/* Map Selector */}
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-black uppercase tracking-[0.3em] px-2">Spatial Matrix Selector</label>
+                                <MapPicker onSelect={(lat, lng) => {
+                                    setFormData({ ...formData, latitude: lat.toString(), longitude: lng.toString() });
+                                }} />
                             </div>
                         </div>
 

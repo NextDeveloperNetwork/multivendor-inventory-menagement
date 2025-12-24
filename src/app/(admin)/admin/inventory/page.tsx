@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import InventoryFilter from '@/components/InventoryFilter';
 import { sanitizeData } from '@/lib/utils';
 import InventoryClient from '@/components/InventoryClient';
+import BulkUploadDialog from '@/components/BulkUploadDialog';
 
 interface InventoryPageProps {
     searchParams: Promise<{
@@ -20,7 +21,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
     const { filter = 'all', shopId, warehouseId, q = '' } = params;
 
     // Fetch all needed data
-    const [rawProducts, rawShops, rawWarehouses] = await Promise.all([
+    const [rawProducts, rawShops, rawWarehouses, baseCurrency] = await Promise.all([
         prisma.product.findMany({
             where: q ? {
                 OR: [
@@ -34,12 +35,14 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             }
         }),
         prisma.shop.findMany({ orderBy: { name: 'asc' } }),
-        prisma.warehouse.findMany({ orderBy: { name: 'asc' } })
+        prisma.warehouse.findMany({ orderBy: { name: 'asc' } }),
+        prisma.currency.findFirst({ where: { isBase: true } })
     ]);
 
     const productsData = sanitizeData(rawProducts);
     const shops = sanitizeData(rawShops);
     const warehouses = sanitizeData(rawWarehouses);
+    const currency = sanitizeData(baseCurrency) || { symbol: '$', rate: 1 };
 
     type ProductWithInventory = Prisma.ProductGetPayload<{
         include: { inventory: true }
@@ -70,9 +73,14 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                             Full Catalog Visibility & Asset Control
                         </p>
                     </div>
-                    <Link href="/admin/inventory/new" className="h-16 px-10 bg-black text-white rounded-2xl font-bold shadow-2xl shadow-blue-500/10 hover:bg-blue-600 transition-all active:scale-[0.98] flex items-center gap-4 uppercase tracking-[0.2em] text-xs border-2 border-black">
-                        <Plus size={24} /> Add New Catalog Item
-                    </Link>
+
+                    <div className="flex gap-4">
+                        <BulkUploadDialog />
+                        <Link href="/admin/inventory/new" className="h-16 px-10 bg-black text-white rounded-2xl font-bold shadow-2xl shadow-blue-500/10 hover:bg-blue-600 transition-all active:scale-[0.98] flex items-center gap-4 uppercase tracking-[0.2em] text-xs border-2 border-black">
+                            <Plus size={24} /> Add New Catalog Item
+                        </Link>
+                    </div>
+
                 </div>
             </div>
 
@@ -107,6 +115,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                 filter={filter}
                 shopId={shopId}
                 warehouseId={warehouseId}
+                currency={currency}
             />
         </div>
     );

@@ -32,7 +32,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
         where.number = { contains: q };
     }
 
-    const [rawInvoices, rawProducts, rawSuppliers, rawWarehouses] = await Promise.all([
+    const [rawInvoices, rawProducts, rawSuppliers, rawWarehouses, baseCurrency] = await Promise.all([
         prisma.invoice.findMany({
             where,
             include: {
@@ -45,13 +45,15 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
         }),
         prisma.product.findMany({ orderBy: { name: 'asc' } }),
         getSuppliers(),
-        prisma.warehouse.findMany({ orderBy: { name: 'asc' } })
+        prisma.warehouse.findMany({ orderBy: { name: 'asc' } }),
+        prisma.currency.findFirst({ where: { isBase: true } })
     ]);
 
     const invoices = sanitizeData(rawInvoices);
     const products = sanitizeData(rawProducts);
     const suppliers = sanitizeData(rawSuppliers);
     const warehouses = sanitizeData(rawWarehouses);
+    const currency = sanitizeData(baseCurrency) || { symbol: '$', rate: 1 };
 
     return (
         <div className="space-y-12 fade-in relative pb-20">
@@ -76,8 +78,9 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                 {[
                     { label: 'MANIFEST COUNT', value: invoices.length, icon: FileText, sub: 'Total Procurement Scripts' },
                     { label: 'ACTIVE BATCHES', value: invoices.filter((inv: any) => new Date(inv.date).toDateString() === new Date().toDateString()).length, icon: Calendar, sub: 'Current Interval Cycles' },
-                    { label: 'ASSET VALUATION', value: `$${(invoices.reduce((sum: number, inv: any) => sum + inv.items.reduce((itemSum: number, item: any) => itemSum + (Number(item.cost) * item.quantity), 0), 0)).toLocaleString()}`, icon: DollarSign, sub: 'Net Inventory Worth' }
+                    { label: 'ASSET VALUATION', value: `${currency.symbol}${(invoices.reduce((sum: number, inv: any) => sum + inv.items.reduce((itemSum: number, item: any) => itemSum + (Number(item.cost) * item.quantity), 0), 0)).toLocaleString()}`, icon: DollarSign, sub: 'Net Inventory Worth' }
                 ].map((stat, idx) => (
+                    // ... (rest of stats render remains same)
                     <div key={idx} className="bg-white p-12 rounded-[2.5rem] border-2 border-blue-50 shadow-2xl shadow-blue-500/5 relative group hover:bg-blue-50 transition-all duration-500">
                         <div className="flex justify-between items-start mb-10">
                             <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
@@ -97,6 +100,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                     products={products}
                     suppliers={suppliers}
                     warehouses={warehouses}
+                    currency={currency}
                 />
             </div>
         </div>

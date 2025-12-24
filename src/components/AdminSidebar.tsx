@@ -12,6 +12,8 @@ import {
     Users,
     Warehouse,
     X,
+    Coins,
+    Map
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useEffect } from 'react';
@@ -24,6 +26,8 @@ const menuItems = [
     { href: '/admin/warehouses', label: 'Warehouses', icon: Warehouse },
     { href: '/admin/suppliers', label: 'Suppliers', icon: Users },
     { href: '/admin/shops', label: 'Shops & Users', icon: Store },
+    { href: '/admin/currencies', label: 'Currencies', icon: Coins },
+    { href: '/admin/map', label: 'Global Map', icon: Map },
 ];
 
 interface AdminSidebarProps {

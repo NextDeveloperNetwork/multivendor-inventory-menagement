@@ -36,9 +36,12 @@ interface InventoryClientProps {
     filter: string;
     shopId?: string;
     warehouseId?: string;
+    currency: { symbol: string; rate: number };
 }
 
-export default function InventoryClient({ products: initialProducts, filter, shopId, warehouseId }: InventoryClientProps) {
+export default function InventoryClient({ products: initialProducts, filter, shopId, warehouseId, currency }: InventoryClientProps) {
+    const symbol = currency?.symbol || '$';
+
     const [search, setSearch] = useState('');
     const [editingProduct, setEditingProduct] = useState<any>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -107,7 +110,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                 </button>
             </div>
 
-            <div className="bg-white border-2 border-slate-50 rounded-[2.5rem] overflow-hidden shadow-xl shadow-slate-200/40">
+            <div className="hidden md:block bg-white border-2 border-slate-50 rounded-[2.5rem] overflow-hidden shadow-xl shadow-slate-200/40">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead>
@@ -159,11 +162,11 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                             </button>
                                         </td>
                                         <td className="px-10 py-8">
-                                            <div className="text-black font-black text-lg font-mono tracking-tighter italic">{formatCurrency(product.price)}</div>
+                                            <div className="text-black font-black text-lg font-mono tracking-tighter italic">{formatCurrency(product.price, symbol)}</div>
                                             <div className="text-[9px] text-blue-500 font-black uppercase tracking-[0.2em] mt-1 italic">Selling Price</div>
                                         </td>
                                         <td className="px-10 py-8">
-                                            <div className="text-slate-900 font-black text-xs font-mono tracking-widest italic">{formatCurrency(product.cost)}</div>
+                                            <div className="text-slate-900 font-black text-xs font-mono tracking-widest italic">{formatCurrency(product.cost, symbol)}</div>
                                             <div className="text-[9px] text-blue-400 font-black uppercase tracking-[0.2em] mt-1 italic">Weighted Avg Cost</div>
                                         </td>
                                         <td className="px-10 py-8">
@@ -201,6 +204,74 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                 </div>
             </div>
 
+            {/* Mobile View */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+                {filteredProducts.map((product) => {
+                    let stock = 0;
+                    if (filter === 'all') {
+                        stock = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                    } else if (filter === 'warehouse') {
+                        stock = product.inventory
+                            .filter((inv: any) => inv.warehouseId !== null)
+                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                    } else if (filter === 'shops') {
+                        stock = product.inventory
+                            .filter((inv: any) => inv.shopId !== null)
+                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                    } else if (filter === 'specific_shop' && shopId) {
+                        stock = product.inventory
+                            .filter((inv: any) => inv.shopId === shopId)
+                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                    } else if (filter === 'specific_warehouse' && warehouseId) {
+                        stock = product.inventory
+                            .filter((inv: any) => inv.warehouseId === warehouseId)
+                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                    }
+
+                    return (
+                        <div key={product.id} className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm space-y-6">
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 shadow-inner shrink-0">
+                                        <Package size={24} />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="font-black text-slate-900 text-lg leading-tight truncate">{product.name}</div>
+                                        <div className="text-[10px] text-slate-400 font-bold font-mono uppercase tracking-widest mt-1">SKU: {product.sku}</div>
+                                    </div>
+                                </div>
+                                <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border shrink-0 ${stock > 10 ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                    stock > 0 ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                                        'bg-black text-white border-black'
+                                    }`}>
+                                    {stock} Units
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-50">
+                                <div>
+                                    <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Price</div>
+                                    <div className="font-mono font-black text-slate-900 text-lg">{formatCurrency(product.price, symbol)}</div>
+                                </div>
+                                <div>
+                                    <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Cost</div>
+                                    <div className="font-mono font-black text-slate-900 text-lg">{formatCurrency(product.cost, symbol)}</div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button onClick={() => setEditingProduct(product)} className="flex-1 h-12 flex items-center justify-center bg-white border-2 border-slate-100 rounded-xl text-xs font-black uppercase tracking-widest text-slate-500 hover:border-blue-500 hover:text-blue-500 transition-all">
+                                    Config
+                                </button>
+                                <button onClick={() => { setProductToDelete(product); setIsDeleteDialogOpen(true); }} className="w-12 h-12 flex items-center justify-center bg-red-50 text-red-500 rounded-xl border-2 border-transparent hover:border-red-200 transition-all">
+                                    <Trash2 size={20} />
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
             {/* Edit Dialog */}
             <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
                 <DialogContent className="max-w-2xl bg-white rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
@@ -220,7 +291,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                     </div>
 
                     <form onSubmit={handleUpdate} className="p-10 space-y-8">
-                        <div className="grid grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Product Name</label>
                                 <input name="name" defaultValue={editingProduct?.name} required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs" />
@@ -259,10 +330,14 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                             <textarea name="description" defaultValue={editingProduct?.description} className="w-full h-32 p-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs resize-none" />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Customer Price (USD)</label>
                                 <input name="price" type="number" step="0.01" defaultValue={editingProduct?.price} required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs font-mono" />
+                            </div>
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Discount Price (USD)</label>
+                                <input name="discountPrice" type="number" step="0.01" defaultValue={editingProduct?.discountPrice} className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs font-mono" placeholder="Optional" />
                             </div>
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Acquisition Cost (USD)</label>
