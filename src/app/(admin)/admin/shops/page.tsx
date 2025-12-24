@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma';
 import ShopsClient from '@/components/ShopsClient';
 import { sanitizeData } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ShopsPage() {
     const shops = await prisma.shop.findMany({
         include: {

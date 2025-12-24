@@ -3,6 +3,8 @@ import SupplierClient from '../../../../components/SupplierClient';
 import { Users, Phone, Mail, MapPin } from 'lucide-react';
 import { sanitizeData } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SuppliersPage() {
     const suppliersRaw = await getSuppliers();
     const suppliers = sanitizeData(suppliersRaw);

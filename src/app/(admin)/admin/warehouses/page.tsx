@@ -4,6 +4,8 @@ import { Warehouse, Plus, MapPin, Calendar, Package, ArrowRight } from 'lucide-r
 import WarehouseForm from '../../../../components/WarehouseForm';
 import DeleteWarehouseButton from '../../../../components/DeleteWarehouseButton';
 
+export const dynamic = 'force-dynamic';
+
 export default async function WarehousesPage() {
     const warehouses = await prisma.warehouse.findMany({
         orderBy: { name: 'asc' },
