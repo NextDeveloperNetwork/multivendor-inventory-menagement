@@ -399,5 +399,6 @@ export default function POSInterface({ products, shopId, currency }: SaleInterfa
                 <BarcodeScanner onScan={onScan} onClose={() => setShowScanner(false)} />
             )}
         </div>
+
     );
 }
