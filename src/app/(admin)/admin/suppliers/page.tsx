@@ -1,9 +1,11 @@
 import { getSuppliers } from '@/app/actions/supplier';
 import SupplierClient from '../../../../components/SupplierClient';
 import { Users, Phone, Mail, MapPin } from 'lucide-react';
+import { sanitizeData } from '@/lib/utils';
 
 export default async function SuppliersPage() {
-    const suppliers = await getSuppliers();
+    const suppliersRaw = await getSuppliers();
+    const suppliers = sanitizeData(suppliersRaw);
 
     return (
         <div className="space-y-12 fade-in relative pb-20">
