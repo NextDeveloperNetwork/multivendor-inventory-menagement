@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Package, Search, ArrowUpDown, Printer } from 'lucide-react';
-import JsBarcode from 'jsbarcode';
+import { Package, Search, ArrowUpDown, Copy } from 'lucide-react';
+
 
 interface ShopInventoryClientProps {
     inventory: any[];
@@ -57,100 +57,30 @@ export default function ShopInventoryClient({ inventory, currency }: ShopInvento
         }
     };
 
-    const printBarcode = (product: any) => {
+    const printBarcode = async (product: any) => {
+        const barcodeValue = product.barcode || product.sku;
+
         try {
-            const canvas = document.createElement('canvas');
-            const barcodeValue = product.barcode || product.sku;
-
-            JsBarcode(canvas, barcodeValue, {
-                format: "CODE128",
-                width: 2,
-                height: 50,
-                displayValue: true,
-                fontSize: 14,
-                margin: 0
-            });
-
-            const imageUrl = canvas.toDataURL("image/png");
-
-            const printWindow = window.open('', '_blank', 'width=400,height=300');
-            if (!printWindow) {
-                alert('Please allow popups to print labels');
-                return;
+            if (navigator.clipboard && window.isSecureContext) {
+                // Modern clipboard API (HTTPS)
+                await navigator.clipboard.writeText(barcodeValue);
+            } else {
+                // Fallback for older browsers / HTTP
+                const textArea = document.createElement('textarea');
+                textArea.value = barcodeValue;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
             }
 
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Print Label - ${product.name}</title>
-                    <style>
-                        @page {
-                            size: 2.25in 1.25in;
-                            margin: 0;
-                        }
-                        body {
-                            margin: 0;
-                            padding: 8px;
-                            font-family: sans-serif;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            height: 100vh;
-                            box-sizing: border-box;
-                        }
-                        .label-container {
-                            width: 100%;
-                            height: 100%;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            text-align: center;
-                        }
-                        .product-name {
-                            font-size: 10px;
-                            font-weight: bold;
-                            line-height: 1.2;
-                            margin-bottom: 4px;
-                            max-height: 2.4em;
-                            overflow: hidden;
-                            word-break: break-all;
-                        }
-                        img {
-                            max-width: 95%;
-                            height: auto;
-                            display: block;
-                        }
-                        .price {
-                            font-size: 14px;
-                            font-weight: 900;
-                            margin-top: 4px;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="label-container">
-                        <div class="product-name">${product.name}</div>
-                        <img src="${imageUrl}" />
-                        <div class="price">$${Number(product.price).toFixed(2)}</div>
-                    </div>
-                    <script>
-                        // Auto-print when loaded
-                        window.onload = function() {
-                            window.print();
-                            // Optional: close after print (some browsers block this if not user triggered)
-                            // setTimeout(() => window.close(), 1000);
-                        }
-                    </script>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        } catch (e) {
-            console.error('Barcode generation exceeded:', e);
-            alert('Failed to generate barcode');
+            alert(`Barcode copied:\n${barcodeValue}`);
+        } catch (err) {
+            console.error('Failed to copy barcode:', err);
+            alert('Failed to copy barcode');
         }
     };
 
@@ -250,7 +180,7 @@ export default function ShopInventoryClient({ inventory, currency }: ShopInvento
                                             className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-sm shrink-0"
                                             title="Print Barcode"
                                         >
-                                            <Printer size={16} />
+                                            <Copy size={16} />
                                         </button>
                                     </div>
 
@@ -372,7 +302,7 @@ export default function ShopInventoryClient({ inventory, currency }: ShopInvento
                                                     className="p-3 bg-blue-50 text-blue-500 rounded-xl hover:bg-blue-500 hover:text-white transition-all shadow-sm border border-blue-100 hover:border-blue-500"
                                                     title="Print Barcode"
                                                 >
-                                                    <Printer size={18} />
+                                                    <Copy size={18} />
                                                 </button>
                                             </td>
                                         </tr>
