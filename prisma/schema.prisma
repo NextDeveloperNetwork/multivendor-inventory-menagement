@@ -12,6 +12,13 @@ enum Role {
   USER
 }
 
+model Business {
+  id          String   @id @default(cuid())
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Currency {
   id            String      @id @default(cuid())
   code          String      @unique // e.g., USD, EUR
@@ -57,6 +64,7 @@ model Warehouse {
 
 model Shop {
   id            String      @id @default(cuid())
+  businessId    String?
   name          String
   location      String?
   latitude      Float?
@@ -70,6 +78,7 @@ model Shop {
   sales         Sale[]
   transfersFrom Transfer[]  @relation("TransferFromShop")
   transfersTo   Transfer[]  @relation("TransferToShop")
+  shifts        Shift[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -186,19 +195,65 @@ model TransferItem {
   quantity   Int
 }
 
+model ActivityLog {
+  id          String   @id @default(cuid())
+  businessId  String
+  userId      String?
+  action      String   // e.g., "SALE_CREATED", "TRANSFER_COMPLETED", "STOCK_ADJUSTED"
+  entityType  String   // e.g., "PRODUCT", "WAREHOUSE", "SHOP"
+  entityId    String?
+  details     String?  @db.Text
+  createdAt   DateTime @default(now())
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  businessId  String
+  name        String
+  phone       String?
+  email       String?
+  sales       Sale[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([businessId])
+}
+
+model Shift {
+  id            String    @id @default(cuid())
+  shopId        String
+  userId        String
+  openedAt      DateTime  @default(now())
+  closedAt      DateTime?
+  openingCash   Decimal   @default(0)
+  closingCash   Decimal?
+  actualCash    Decimal?
+  difference    Decimal?
+  status        String    @default("OPEN") // OPEN, CLOSED
+  shop          Shop      @relation(fields: [shopId], references: [id])
+  createdAt     DateTime  @default(now())
+
+  @@index([shopId])
+}
+
 model Sale {
-  id        String     @id @default(cuid())
-  number    String     @unique
-  date      DateTime   @default(now())
+  id             String     @id @default(cuid())
+  number         String     @unique
+  date           DateTime   @default(now())
   
-  shopId    String
-  shop      Shop       @relation(fields: [shopId], references: [id])
+  businessId     String
   
-  userId    String
-  user      User       @relation(fields: [userId], references: [id])
+  shopId         String
+  shop           Shop       @relation(fields: [shopId], references: [id])
   
-  items     SaleItem[]
-  total     Decimal    @db.Decimal(10, 2)
+  userId         String
+  user           User       @relation(fields: [userId], references: [id])
+  
+  items          SaleItem[]
+  total          Decimal    @db.Decimal(10, 2)
+  
+  customerId     String?
+  customer       Customer?  @relation(fields: [customerId], references: [id])
   
   // Currency snapshot at time of sale
   currencyCode   String?

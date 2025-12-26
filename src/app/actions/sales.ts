@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { logActivity } from './intelligence';
 import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -11,18 +12,47 @@ interface CartItem {
     price: number;
 }
 
-export async function processSale(items: CartItem[]) {
+export async function processSale(items: CartItem[], shopIdOverride?: string, customerId?: string) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.shopId || !session?.user?.id) {
         return { error: 'Unauthorized or Shop not assigned' };
     }
 
-    const shopId = session.user.shopId;
+    const shopId = shopIdOverride || session.user.shopId;
     const userId = session.user.id;
 
     if (items.length === 0) {
         return { error: 'Cart is empty' };
+    }
+
+    // 1. Get/Create Default Customer if none selected
+    let effectiveCustomerId = customerId;
+
+    if (!effectiveCustomerId) {
+        // Find or create a walk-in customer for this business context
+        const business = await (prisma as any).business.findFirst();
+        if (business) {
+            const walkIn = await (prisma as any).customer.findFirst({
+                where: {
+                    name: 'Walk-in Customer',
+                    businessId: business.id
+                }
+            });
+
+            if (walkIn) {
+                effectiveCustomerId = walkIn.id;
+            } else {
+                const newWalkIn = await (prisma as any).customer.create({
+                    data: {
+                        name: 'Walk-in Customer',
+                        businessId: business.id,
+                        email: 'walkin@system.local'
+                    }
+                });
+                effectiveCustomerId = newWalkIn.id;
+            }
+        }
     }
 
     // Calculate total server side to be safe, but for now trusting input price/quantity for speed
@@ -45,8 +75,10 @@ export async function processSale(items: CartItem[]) {
             const sale = await tx.sale.create({
                 data: {
                     number: trxNumber,
+                    businessId: shop?.businessId || (await (tx as any).business.findFirst())?.id,
                     shopId,
                     userId,
+                    customerId: effectiveCustomerId,
                     total,
                     currencyCode: shop?.currency?.code,
                     currencySymbol: shop?.currency?.symbol,
@@ -59,6 +91,16 @@ export async function processSale(items: CartItem[]) {
                         }))
                     }
                 }
+            });
+
+            // LOG TELEMETRY
+            await logActivity({
+                action: 'SALE_CREATED',
+                entityType: 'SALE',
+                entityId: sale.id,
+                details: `Sale #${sale.number}: ${items.length} items sold for a total of ${shop?.currency?.symbol || '$'}${total.toFixed(2)}`,
+                shopId: shopId,
+                userId: userId
             });
 
             // 2. Decrement Inventory

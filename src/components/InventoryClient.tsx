@@ -6,6 +6,7 @@ import { deleteProduct, updateProduct, quickAddStock } from '@/app/actions/inven
 import {
     Plus,
     Search,
+    Edit2,
     Trash2,
     Settings2,
     Package,
@@ -20,9 +21,11 @@ import {
     RefreshCw,
     Minus,
     Copy,
-    Barcode
+    Barcode,
+    AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logActivity } from '@/app/actions/intelligence';
 import { formatCurrency, generateEAN13 } from '@/lib/utils';
 import BarcodeScanner from './BarcodeScanner';
 import {
@@ -59,6 +62,31 @@ export default function InventoryClient({ products: initialProducts, filter, sho
         p.sku.toLowerCase().includes(search.toLowerCase()) ||
         (p.barcode && p.barcode.includes(search))
     );
+
+    const handleReportDamage = async (product: any) => {
+        const amount = window.prompt(`How many units of ${product.name} are damaged?`);
+        if (!amount) return;
+
+        const qty = parseInt(amount);
+        if (isNaN(qty) || qty <= 0) {
+            toast.error('Invalid quantity');
+            return;
+        }
+
+        try {
+            await logActivity({
+                action: 'DAMAGED_REPORTED',
+                entityType: 'PRODUCT',
+                entityId: product.id,
+                details: `QC NOTICE: ${qty} units of ${product.sku} marked as damaged/unsellable.`
+            });
+            toast.success(`Damage reported for ${qty} units. Audit log created.`, {
+                icon: <AlertTriangle className="text-amber-500" />
+            });
+        } catch (e) {
+            toast.error('Log failure');
+        }
+    };
 
     const handleDelete = async () => {
         if (!productToDelete) return;
@@ -213,21 +241,32 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                                         <Copy size={18} />
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={() => setEditingProduct(product)}
-                                                    className="w-10 h-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-400 transition-all shadow-sm"
-                                                >
-                                                    <Settings2 size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setProductToDelete(product);
-                                                        setIsDeleteDialogOpen(true);
-                                                    }}
-                                                    className="w-10 h-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-600 hover:border-red-400 transition-all shadow-sm"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setEditingProduct(product)}
+                                                        className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100 hover:border-blue-500"
+                                                        title="Edit Product"
+                                                    >
+                                                        <Edit2 size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReportDamage(product)}
+                                                        className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all shadow-sm border border-amber-100 hover:border-amber-500"
+                                                        title="Report Damage / QC"
+                                                    >
+                                                        <AlertTriangle size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setProductToDelete(product);
+                                                            setIsDeleteDialogOpen(true);
+                                                        }}
+                                                        className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm border border-rose-100 hover:border-rose-500"
+                                                        title="Delete Product"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>

@@ -16,12 +16,31 @@ import {
     Box,
     CreditCard,
     QrCode,
-    Sparkles
+    Sparkles,
+    Users,
+    Key,
+    Lock,
+    Unlock,
+    Receipt,
+    Share2,
+    MessageCircle,
+    DollarSign,
+    Heart,
+    UserPlus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { processSale } from '@/app/actions/sales';
+import { openShift, closeShift } from '@/app/actions/shifts';
+import { createCustomer } from '@/app/actions/intelligence';
 import { useRouter } from 'next/navigation';
 import BarcodeScanner from './BarcodeScanner';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription
+} from '@/components/ui/dialog';
 
 interface Inventory {
     id: string;
@@ -42,10 +61,13 @@ interface ProductWithInventory {
 interface SaleInterfaceProps {
     products: ProductWithInventory[];
     shopId: string;
+    userId: string;
     currency: {
         symbol: string;
         rate: string;
     } | null;
+    initialShift: any | null;
+    customers: any[];
 }
 
 interface CartItem {
@@ -54,7 +76,14 @@ interface CartItem {
     price: number;
 }
 
-export default function POSInterface({ products, shopId, currency }: SaleInterfaceProps) {
+export default function POSInterface({
+    products,
+    shopId,
+    userId,
+    currency,
+    initialShift,
+    customers
+}: SaleInterfaceProps) {
     const rate = currency?.rate ? Number(currency.rate) : 1;
     const symbol = currency?.symbol || '$';
 
@@ -71,6 +100,15 @@ export default function POSInterface({ products, shopId, currency }: SaleInterfa
     const [loading, setLoading] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
     const [activeTab, setActiveTab] = useState<'products' | 'cart'>('products');
+
+    // PREMIUM FEATURES STATE
+    const [shift, setShift] = useState(initialShift);
+    const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+    const [openingCash, setOpeningCash] = useState('');
+    const [closingCash, setClosingCash] = useState('');
+    const [isShiftModalOpen, setIsShiftModalOpen] = useState(!initialShift);
+    const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+
     const router = useRouter();
 
     const filteredProducts = products.filter(p => {
@@ -132,8 +170,56 @@ export default function POSInterface({ products, shopId, currency }: SaleInterfa
 
     const total = cart.reduce((sum: number, item: CartItem) => sum + (item.price * item.quantity), 0);
 
+    const handleOpenShift = async () => {
+        if (!openingCash) return;
+        setLoading(true);
+        const res = await openShift(shopId, Number(openingCash), userId);
+        if (res.success) {
+            setShift(res.shift);
+            setIsShiftModalOpen(false);
+            toast.success('Shift started successfully');
+        } else {
+            toast.error(res.error);
+        }
+        setLoading(false);
+    };
+
+    const handleCloseShift = async () => {
+        if (!closingCash) return;
+        setLoading(true);
+        const res = await closeShift(shift.id, Number(closingCash));
+        if (res.success) {
+            setShift(null);
+            setClosingCash('');
+            setOpeningCash('');
+            setIsShiftModalOpen(true);
+            toast.success('Shift closed & reconciled');
+            router.refresh();
+        } else {
+            toast.error(res.error);
+        }
+        setLoading(false);
+    };
+
+    const handleAddCustomer = async (formData: FormData) => {
+        const res = await createCustomer(formData);
+        if (res.success) {
+            toast.success("Customer added successfully!");
+            setIsAddCustomerModalOpen(false);
+            setSelectedCustomer(res.customer);
+            router.refresh();
+        } else {
+            toast.error(res.error || "Failed to add customer");
+        }
+    };
+
     const handleCheckout = async () => {
         if (cart.length === 0) return;
+        if (!shift) {
+            setIsShiftModalOpen(true);
+            toast.error("Please open a shift first");
+            return;
+        }
         setLoading(true);
 
         const saleItems = cart.map(item => ({
@@ -143,7 +229,7 @@ export default function POSInterface({ products, shopId, currency }: SaleInterfa
         }));
 
         try {
-            const res = await processSale(saleItems);
+            const res = await processSale(saleItems, shopId, selectedCustomer?.id);
             if (res.error) {
                 toast.error(res.error);
                 setLoading(false);
@@ -152,6 +238,7 @@ export default function POSInterface({ products, shopId, currency }: SaleInterfa
                     style: { background: '#d1fae5', color: '#065f46', border: '2px solid #6ee7b7' }
                 });
                 setCart([]);
+                setSelectedCustomer(null);
                 router.refresh();
                 setLoading(false);
                 setActiveTab('products');
@@ -306,9 +393,67 @@ export default function POSInterface({ products, shopId, currency }: SaleInterfa
                                 Shopping Cart
                             </h2>
                         </div>
-                        <div className="bg-white border-2 border-blue-200 px-5 py-3 rounded-2xl flex flex-col items-center shadow-sm">
-                            <span className="text-blue-400 text-[8px] font-black uppercase tracking-widest mb-1">Items</span>
-                            <span className="text-2xl font-black text-slate-900 tabular-nums">{cart.length}</span>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setIsShiftModalOpen(true)}
+                                className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${shift ? 'bg-emerald-50 text-emerald-600 border-2 border-emerald-100' : 'bg-rose-50 text-rose-600 border-2 border-rose-100'}`}
+                            >
+                                {shift ? <Unlock size={20} /> : <Lock size={20} />}
+                            </button>
+                            <div className="bg-white border-2 border-blue-200 px-5 py-3 rounded-2xl flex flex-col items-center shadow-sm">
+                                <span className="text-blue-400 text-[8px] font-black uppercase tracking-widest mb-1">Items</span>
+                                <span className="text-2xl font-black text-slate-900 tabular-nums">{cart.length}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Customer Selection */}
+                    <div className="px-6 py-4 bg-white border-b-2 border-blue-50">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1">
+                                {selectedCustomer ? (
+                                    <div className="bg-blue-50 p-4 rounded-2xl border-2 border-blue-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center font-black">
+                                                {selectedCustomer.name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <div className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Customer Profile</div>
+                                                <div className="text-sm font-black text-slate-900">{selectedCustomer.name}</div>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setSelectedCustomer(null)} className="text-slate-400 hover:text-rose-500">
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={selectedCustomer?.id || ''}
+                                            onChange={(e) => {
+                                                const c = customers.find(cust => cust.id === e.target.value);
+                                                setSelectedCustomer(c || null);
+                                            }}
+                                            className="flex-1 px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-black font-bold focus:border-blue-500 focus:bg-white transition-all appearance-none"
+                                        >
+                                            <option value="">Walk-in Customer</option>
+                                            {customers.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            onClick={() => setIsAddCustomerModalOpen(true)}
+                                            className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                                            title="Quick Register New Customer"
+                                        >
+                                            <UserPlus size={20} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            <button className="w-14 h-14 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-400 transition-all">
+                                <Users size={20} />
+                            </button>
                         </div>
                     </div>
 
@@ -398,6 +543,134 @@ export default function POSInterface({ products, shopId, currency }: SaleInterfa
             {showScanner && (
                 <BarcodeScanner onScan={onScan} onClose={() => setShowScanner(false)} />
             )}
+
+            {/* Shift Management Portal */}
+            <Dialog open={isShiftModalOpen} onOpenChange={setIsShiftModalOpen}>
+                <DialogContent className="max-w-md bg-white rounded-[3.5rem] p-0 overflow-hidden border-none shadow-2xl">
+                    <DialogHeader className="bg-slate-900 p-10 text-white relative">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full -mr-32 -mt-32 blur-[60px]"></div>
+                        <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter relative z-10 flex items-center gap-4">
+                            {shift ? <Unlock className="text-emerald-500" /> : <Lock className="text-rose-500" />}
+                            Shift <span className="text-blue-500">Portal</span>
+                        </DialogTitle>
+                        <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 relative z-10">
+                            Authorized Secure Access Entry
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {!shift ? (
+                        <div className="p-10 space-y-8">
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Starting Cash (Float)</label>
+                                <div className="relative">
+                                    <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                    <input
+                                        type="number"
+                                        value={openingCash}
+                                        onChange={(e) => setOpeningCash(e.target.value)}
+                                        className="w-full h-16 pl-16 pr-8 bg-slate-50 border-2 border-slate-50 rounded-2xl font-black text-2xl focus:border-blue-400 focus:bg-white outline-none transition-all font-mono"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleOpenShift}
+                                disabled={loading || !openingCash}
+                                className="w-full h-20 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-[2rem] font-black uppercase tracking-widest shadow-2xl shadow-blue-500/20 transition-all flex items-center justify-center gap-4"
+                            >
+                                {loading ? <Activity className="animate-spin" /> : <Key />}
+                                Activate Shift
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="p-10 space-y-8">
+                            <div className="space-y-1 border-b-2 border-slate-50 pb-6">
+                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active session since</div>
+                                <div className="text-lg font-black text-slate-900">{new Date(shift.openedAt).toLocaleString()}</div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Counted Cash @ Close</label>
+                                <div className="relative">
+                                    <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                    <input
+                                        type="number"
+                                        value={closingCash}
+                                        onChange={(e) => setClosingCash(e.target.value)}
+                                        className="w-full h-16 pl-16 pr-8 bg-slate-50 border-2 border-slate-50 rounded-2xl font-black text-2xl focus:border-blue-400 focus:bg-white outline-none transition-all font-mono"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-bold text-center italic">Digital totals will be reconciled upon termination</p>
+                            </div>
+                            <button
+                                onClick={handleCloseShift}
+                                disabled={loading || !closingCash}
+                                className="w-full h-20 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white rounded-[2rem] font-black uppercase tracking-widest shadow-2xl shadow-rose-500/20 transition-all flex items-center justify-center gap-4"
+                            >
+                                {loading ? <Activity className="animate-spin" /> : <Lock />}
+                                Terminate Shift
+                            </button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+            {/* REGISTRATION MODAL */}
+            <Dialog open={isAddCustomerModalOpen} onOpenChange={setIsAddCustomerModalOpen}>
+                <DialogContent className="max-w-md bg-white rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
+                    <div className="bg-gradient-to-br from-rose-500 to-rose-600 p-8 text-white relative">
+                        <div className="absolute top-0 right-0 p-8 opacity-10">
+                            <UserPlus size={120} />
+                        </div>
+                        <DialogHeader>
+                            <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">New Profile</DialogTitle>
+                            <DialogDescription className="text-rose-100 font-bold uppercase text-[10px] tracking-widest mt-2">
+                                Acquisition Mode Active
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+
+                    <form action={handleAddCustomer} className="p-8 space-y-6">
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block px-1">Full Name</label>
+                                <input
+                                    name="name"
+                                    required
+                                    className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-slate-900 font-bold focus:border-rose-500 focus:bg-white transition-all outline-none"
+                                    placeholder="e.g. JEFF DEAN"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block px-1">Mobile Core</label>
+                                <input
+                                    name="phone"
+                                    className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-slate-900 font-bold focus:border-rose-500 focus:bg-white transition-all outline-none"
+                                    placeholder="+1 (555) 000-0000"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block px-1">Email Node</label>
+                                <input
+                                    name="email"
+                                    type="email"
+                                    className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-slate-900 font-bold focus:border-rose-500 focus:bg-white transition-all outline-none"
+                                    placeholder="client@network.com"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4 pt-4">
+                            <button
+                                type="submit"
+                                className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-rose-200 uppercase tracking-widest text-xs italic"
+                            >
+                                Provision Profile
+                            </button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
 
     );

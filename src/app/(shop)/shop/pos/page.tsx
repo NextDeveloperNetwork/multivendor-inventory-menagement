@@ -26,14 +26,29 @@ export default async function SalesPage() {
         include: { currency: true }
     });
 
+    const activeShift = await prisma.shift.findFirst({
+        where: {
+            shopId: session.user.shopId,
+            userId: session.user.id,
+            status: 'OPEN'
+        }
+    });
+
+    const customers = await prisma.customer.findMany({
+        where: { businessId: (shop as any)?.businessId || '' }
+    });
+
     const products = sanitizeData(rawProducts);
 
     return (
-        <div className="h-full">
+        <div className="h-screen bg-slate-50">
             <POSInterface
                 products={products}
                 shopId={session.user.shopId}
+                userId={session.user.id}
                 currency={shop?.currency ? JSON.parse(JSON.stringify(shop.currency)) : null}
+                initialShift={activeShift ? JSON.parse(JSON.stringify(activeShift)) : null}
+                customers={JSON.parse(JSON.stringify(customers))}
             />
         </div>
     );

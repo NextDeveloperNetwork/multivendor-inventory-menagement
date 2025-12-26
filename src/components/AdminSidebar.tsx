@@ -13,19 +13,24 @@ import {
     Warehouse,
     X,
     Coins,
-    Map
+    Map,
+    Activity,
+    Heart
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useEffect } from 'react';
 
 const menuItems = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin/intelligence', label: 'Intelligence', icon: Activity },
     { href: '/admin/inventory', label: 'Global Inventory', icon: Package },
+    { href: '/admin/customers', label: 'Customers', icon: Heart },
     { href: '/admin/invoices', label: 'Invoices (In)', icon: FileText },
+    { href: '/admin/users', label: 'Personnel Hub', icon: Users },
     { href: '/admin/transfers', label: 'Stock Movements', icon: Send },
     { href: '/admin/warehouses', label: 'Warehouses', icon: Warehouse },
     { href: '/admin/suppliers', label: 'Suppliers', icon: Users },
-    { href: '/admin/shops', label: 'Shops & Users', icon: Store },
+    { href: '/admin/shops', label: 'Network Shops', icon: Store },
     { href: '/admin/currencies', label: 'Currencies', icon: Coins },
     { href: '/admin/map', label: 'Global Map', icon: Map },
 ];
