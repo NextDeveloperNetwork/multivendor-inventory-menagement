@@ -458,79 +458,90 @@ export default function POSInterface({
                     </div>
 
                     {/* Cart Items */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar relative">
+                    <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar relative bg-white">
                         {cart.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
-                                <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-6">
-                                    <ShoppingCart size={32} className="text-blue-400" />
+                            <div className="flex flex-col items-center justify-center h-full text-center opacity-30 py-20">
+                                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border-2 border-dashed border-slate-200">
+                                    <ShoppingCart size={32} className="text-slate-300" />
                                 </div>
-                                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Cart is Empty<br /><span className="text-xs">Add products to get started</span></p>
+                                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Registry Empty<br /><span className="text-[10px]">Awaiting node selection</span></p>
                             </div>
                         ) : (
-                            cart.map(item => (
-                                <div key={item.product.id} className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-[2rem] border-2 border-blue-100 group hover:shadow-lg hover:shadow-blue-500/10 transition-all">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex-1 pr-4">
-                                            <div className="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">{item.product.sku}</div>
-                                            <div className="font-black text-slate-900 text-base leading-tight uppercase">{item.product.name}</div>
+                            <div className="divide-y divide-slate-100">
+                                {cart.map(item => (
+                                    <div key={item.product.id} className="flex items-center gap-4 py-6 group transition-all">
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-blue-600 shrink-0 border border-slate-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                            <Box size={20} />
                                         </div>
-                                        <button
-                                            onClick={() => removeFromCart(item.product.id)}
-                                            className="w-8 h-8 bg-rose-100 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl flex items-center justify-center transition-all"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <h4 className="font-black text-slate-900 truncate uppercase text-sm tracking-tight">{item.product.name}</h4>
+                                                <span className="font-black text-slate-900 tabular-nums ml-4 text-sm">{symbol}{(item.price * item.quantity).toFixed(2)}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between h-8">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded-md">{item.product.sku}</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 italic">
+                                                        @{symbol}{item.price.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-slate-100">
+                                                        <button
+                                                            onClick={() => updateQuantity(item.product.id, -1)}
+                                                            className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
+                                                        >
+                                                            <Minus size={14} strokeWidth={3} />
+                                                        </button>
+                                                        <span className="w-8 text-center text-sm font-black text-slate-900 tabular-nums">{item.quantity}</span>
+                                                        <button
+                                                            onClick={() => updateQuantity(item.product.id, 1)}
+                                                            className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
+                                                        >
+                                                            <Plus size={14} strokeWidth={3} />
+                                                        </button>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeFromCart(item.product.id)}
+                                                        className="p-1.5 text-slate-200 hover:text-rose-500 transition-colors"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-
-                                    <div className="flex items-center justify-between pt-4 border-t-2 border-blue-100">
-                                        <div className="flex items-center gap-2 bg-white rounded-xl border-2 border-blue-200 p-1">
-                                            <button
-                                                onClick={() => updateQuantity(item.product.id, -1)}
-                                                className="w-8 h-8 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg flex items-center justify-center transition-all"
-                                            >
-                                                <Minus size={14} strokeWidth={3} />
-                                            </button>
-                                            <span className="w-12 text-center font-black text-slate-900 tabular-nums">{item.quantity}</span>
-                                            <button
-                                                onClick={() => updateQuantity(item.product.id, 1)}
-                                                className="w-8 h-8 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg flex items-center justify-center transition-all"
-                                            >
-                                                <Plus size={14} strokeWidth={3} />
-                                            </button>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Subtotal</div>
-                                            <div className="text-xl font-black text-slate-900 tabular-nums">{symbol}{(item.price * item.quantity).toFixed(2)}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
+                                ))}
+                            </div>
                         )}
                     </div>
 
                     {/* Cart Footer */}
-                    <div className="relative p-8 bg-gradient-to-r from-blue-50 to-purple-50 border-t-2 border-blue-100 shrink-0 space-y-6">
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm font-black text-slate-600 uppercase tracking-widest">Total Amount</span>
+                    <div className="relative p-10 bg-slate-900 shrink-0 mt-auto">
+                        <div className="flex justify-between items-center mb-8">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Validated Total</span>
                             <div className="text-right">
-                                <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent tabular-nums tracking-tighter">{symbol}{total.toFixed(2)}</div>
+                                <div className="text-5xl font-black text-white tabular-nums tracking-tighter italic">
+                                    <span className="text-blue-500 text-2xl mr-1 not-italic">{symbol}</span>
+                                    {total.toFixed(2)}
+                                </div>
                             </div>
                         </div>
 
                         <button
                             onClick={handleCheckout}
                             disabled={cart.length === 0 || loading}
-                            className="w-full h-20 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 disabled:from-slate-300 disabled:to-slate-300 text-white rounded-[2rem] font-black text-lg uppercase tracking-widest shadow-2xl shadow-blue-500/30 transition-all active:scale-95 disabled:cursor-not-allowed flex items-center justify-center gap-4 group"
+                            className="w-full h-20 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white rounded-[1.5rem] font-black text-lg uppercase tracking-widest shadow-2xl shadow-blue-500/20 transition-all active:scale-95 disabled:cursor-not-allowed flex items-center justify-center gap-4 group"
                         >
                             {loading ? (
                                 <>
                                     <Activity className="animate-spin" size={24} />
-                                    Processing...
+                                    Synchronizing...
                                 </>
                             ) : (
                                 <>
                                     <CreditCard size={24} className="group-hover:scale-110 transition-transform" />
-                                    Complete Sale
+                                    Finalize Transaction
                                     <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
