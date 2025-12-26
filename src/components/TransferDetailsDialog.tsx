@@ -77,7 +77,7 @@ export default function TransferDetailsDialog({ transfer, children }: TransferDe
             <DialogTrigger asChild>
                 {children}
             </DialogTrigger>
-            <DialogContent className="max-w-3xl p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+            <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden rounded-3xl border-none shadow-2xl flex flex-col">
                 {/* Header Section */}
                 <div className="px-8 py-6 bg-slate-50 border-b border-slate-100">
                     <div className="flex justify-between items-center">
@@ -104,7 +104,7 @@ export default function TransferDetailsDialog({ transfer, children }: TransferDe
                     </div>
                 </div>
 
-                <div className="p-8 bg-white">
+                <div className="p-8 bg-white overflow-y-auto">
                     {/* Vector Info Section */}
                     <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-8 bg-slate-50 p-8 rounded-2xl border border-slate-100 relative">
                         <div className="flex-1 flex flex-col items-center md:items-start">

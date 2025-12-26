@@ -59,7 +59,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
 
             <aside className={`h-screen w-80 bg-white border-r border-slate-200 p-8 flex flex-col fixed left-0 top-0 z-50 transition-all duration-500 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
                 }`}>
-                <div className="flex items-center justify-between mb-12">
+                <div className="flex items-center justify-between mb-12 shrink-0">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
                             <Store size={22} strokeWidth={3} />
@@ -77,7 +77,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
                     </button>
                 </div>
 
-                <nav className="flex flex-col gap-2 flex-1">
+                <nav className="flex flex-col gap-2 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     {menuItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = pathname === item.href;
@@ -98,7 +98,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
                     })}
                 </nav>
 
-                <button onClick={() => signOut()} className="mt-auto flex items-center gap-4 px-4 py-3.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all text-sm font-bold w-full text-left">
+                <button onClick={() => signOut()} className="mt-8 flex items-center gap-4 px-4 py-3.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all text-sm font-bold w-full text-left shrink-0">
                     <LogOut size={18} strokeWidth={2.5} />
                     <span>Terminate Session</span>
                 </button>

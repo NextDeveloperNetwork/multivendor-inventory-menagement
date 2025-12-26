@@ -293,28 +293,28 @@ export default function POSInterface({
                 <div className={`flex-1 flex flex-col gap-8 h-full transition-all duration-300 ${activeTab === 'cart' ? 'hidden md:flex' : 'flex'}`}>
 
                     {/* Search Bar */}
-                    <div className="flex gap-4 shrink-0">
+                    <div className="flex gap-3 sm:gap-4 shrink-0 px-2 sm:px-0">
                         <div className="relative flex-1 group">
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-100 to-purple-100 rounded-[2rem] blur-xl opacity-0 group-focus-within:opacity-50 transition-opacity"></div>
-                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={24} />
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl sm:rounded-[2rem] blur-xl opacity-0 group-focus-within:opacity-50 transition-opacity"></div>
+                            <Search className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors w-5 h-5 sm:w-6 sm:h-6" />
                             <input
-                                className="relative w-full pl-16 pr-6 h-20 bg-white border-2 border-blue-100 rounded-[2rem] font-bold text-lg placeholder:text-slate-300 focus:border-blue-600 outline-none transition-all shadow-sm focus:shadow-xl focus:shadow-blue-500/10"
-                                placeholder="Search products by name, SKU, or barcode..."
+                                className="relative w-full pl-12 sm:pl-16 pr-5 sm:pr-6 h-14 sm:h-20 bg-white border-2 border-blue-100 rounded-2xl sm:rounded-[2rem] font-bold text-base sm:text-lg placeholder:text-slate-300 focus:border-blue-600 outline-none transition-all shadow-sm focus:shadow-xl focus:shadow-blue-500/10"
+                                placeholder="Search products..."
                                 value={query}
                                 onChange={e => setQuery(e.target.value)}
                             />
                         </div>
                         <button
                             onClick={() => setShowScanner(true)}
-                            className="w-20 h-20 bg-gradient-to-br from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-[2rem] flex items-center justify-center transition-all active:scale-95 shadow-xl shadow-purple-500/30 group"
+                            className="w-14 h-14 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-2xl sm:rounded-[2rem] flex items-center justify-center transition-all active:scale-95 shadow-xl shadow-purple-500/30 group shrink-0"
                         >
-                            <Scan size={32} className="group-hover:scale-110 transition-transform" />
+                            <Scan className="group-hover:scale-110 transition-transform w-6 h-6 sm:w-8 sm:h-8" />
                         </button>
                     </div>
 
                     {/* Products Grid */}
-                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                        <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                    <div className="flex-1 overflow-y-auto px-2 sm:pr-2 custom-scrollbar">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
                             {filteredProducts.map(product => {
                                 const stock = product.inventory.find((inv: Inventory) => inv.shopId === shopId)?.quantity || 0;
                                 const originalPrice = Number(product.price);
@@ -325,24 +325,24 @@ export default function POSInterface({
                                     <button
                                         key={product.id}
                                         onClick={() => addToCart(product)}
-                                        className="group bg-white border-2 border-blue-100 p-6 rounded-[2.5rem] flex flex-col items-start hover:border-blue-600 hover:shadow-xl hover:shadow-blue-500/10 transition-all text-left relative active:scale-[0.98] overflow-hidden"
+                                        className="group bg-white border-2 border-blue-100 p-4 sm:p-6 rounded-3xl sm:rounded-[2.5rem] flex flex-col items-start hover:border-blue-600 hover:shadow-xl hover:shadow-blue-500/10 transition-all text-left relative active:scale-[0.98] overflow-hidden"
                                     >
-                                        <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                                                <Plus size={18} strokeWidth={3} />
+                                        <div className="absolute top-0 right-0 p-3 sm:p-4 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                                                <Plus size={20} strokeWidth={3} />
                                             </div>
                                         </div>
 
-                                        <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 sm:mb-3 flex items-center gap-2">
                                             <div className={`w-1.5 h-1.5 rounded-full ${stock < 10 ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
                                             {product.sku}
                                         </div>
 
-                                        <div className="font-black text-slate-900 mb-6 line-clamp-2 text-lg leading-tight uppercase tracking-tight flex-1">
+                                        <div className="font-black text-slate-900 mb-4 sm:mb-6 line-clamp-2 text-base sm:text-lg leading-tight uppercase tracking-tight flex-1">
                                             {product.name}
                                         </div>
 
-                                        <div className="w-full pt-5 border-t-2 border-blue-50 flex justify-between items-end">
+                                        <div className="w-full pt-4 sm:pt-5 border-t-2 border-blue-50 flex justify-between items-end">
                                             <div className="flex flex-col">
                                                 {hasDiscount && (
                                                     <span className="text-[10px] line-through text-slate-300 font-black mb-1">
@@ -350,15 +350,15 @@ export default function POSInterface({
                                                     </span>
                                                 )}
                                                 <div className="flex items-baseline gap-1">
-                                                    <span className="text-sm font-black text-blue-600">{symbol}</span>
-                                                    <span className={`text-3xl font-black tabular-nums tracking-tighter ${hasDiscount ? 'text-emerald-600' : 'text-slate-900'}`}>
-                                                        {currentPrice.toFixed(0)}<span className="text-sm opacity-40">.{currentPrice.toFixed(2).split('.')[1]}</span>
+                                                    <span className="text-xs sm:text-sm font-black text-blue-600">{symbol}</span>
+                                                    <span className={`text-2xl sm:text-3xl font-black tabular-nums tracking-tighter ${hasDiscount ? 'text-emerald-600' : 'text-slate-900'}`}>
+                                                        {currentPrice.toFixed(0)}<span className="text-xs sm:text-sm opacity-40">.{currentPrice.toFixed(2).split('.')[1]}</span>
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="bg-gradient-to-br from-blue-50 to-purple-50 px-4 py-2 rounded-2xl border-2 border-blue-100 flex flex-col items-center">
-                                                <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Stock</span>
-                                                <span className={`text-sm font-black ${stock < 10 ? 'text-amber-600' : 'text-slate-900'}`}>{stock}</span>
+                                            <div className="bg-gradient-to-br from-blue-50 to-purple-50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border-2 border-blue-100 flex flex-col items-center">
+                                                <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-0.5 sm:mb-1">Stock</span>
+                                                <span className={`text-xs sm:text-sm font-black ${stock < 10 ? 'text-amber-600' : 'text-slate-900'}`}>{stock}</span>
                                             </div>
                                         </div>
                                     </button>

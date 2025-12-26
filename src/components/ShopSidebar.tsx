@@ -43,7 +43,7 @@ export function ShopSidebar({ isOpen, setIsOpen }: ShopSidebarProps) {
                 <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-br from-blue-100 via-purple-50 to-transparent opacity-50 blur-3xl"></div>
 
                 {/* Brand Header */}
-                <div className="mb-12 relative z-10">
+                <div className="mb-12 relative z-10 shrink-0">
                     <div className="flex items-center gap-4 mb-8">
                         <div className="relative group">
                             <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl blur-md opacity-30 group-hover:opacity-50 transition-opacity"></div>
@@ -64,7 +64,7 @@ export function ShopSidebar({ isOpen, setIsOpen }: ShopSidebarProps) {
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 space-y-2 relative z-10">
+                <nav className="flex-1 space-y-2 relative z-10 overflow-y-auto pr-2 custom-scrollbar">
                     <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-6 px-4">Navigation</div>
                     {menuItems.map((item) => {
                         const Icon = item.icon;
@@ -95,7 +95,7 @@ export function ShopSidebar({ isOpen, setIsOpen }: ShopSidebarProps) {
                 </nav>
 
                 {/* Footer */}
-                <div className="mt-auto pt-8 border-t-2 border-blue-100 relative z-10">
+                <div className="mt-8 pt-8 border-t-2 border-blue-100 relative z-10 shrink-0">
                     <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-5 mb-6 border-2 border-blue-100">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">

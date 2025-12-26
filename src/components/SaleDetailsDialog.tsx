@@ -68,7 +68,7 @@ export default function SaleDetailsDialog({ sale, children }: SaleDetailsDialogP
             <DialogTrigger asChild>
                 {children}
             </DialogTrigger>
-            <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden rounded-3xl border-none shadow-2xl flex flex-col">
                 {/* Header Section */}
                 <div className="px-8 py-6 bg-slate-50 border-b border-slate-100">
                     <div className="flex justify-between items-center">
@@ -95,7 +95,7 @@ export default function SaleDetailsDialog({ sale, children }: SaleDetailsDialogP
                     </div>
                 </div>
 
-                <div className="p-8 bg-white">
+                <div className="p-8 bg-white overflow-y-auto">
                     {/* Meta Info Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-100">
                         <div className="flex items-center gap-3">

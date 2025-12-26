@@ -33,7 +33,7 @@ export default function QuickAddSupplierDialog({ onAdd }: { onAdd?: (supplier: a
                     <Plus size={12} /> New Node
                 </button>
             </DialogTrigger>
-            <DialogContent className="max-w-md p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl">
+            <DialogContent className="max-w-md max-h-[95vh] p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl flex flex-col">
                 <div className="bg-black p-8 text-white">
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
@@ -42,7 +42,7 @@ export default function QuickAddSupplierDialog({ onAdd }: { onAdd?: (supplier: a
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Initialize External Logic Node</p>
                     </DialogHeader>
                 </div>
-                <form onSubmit={handleSubmit} className="p-8 bg-white space-y-6">
+                <form onSubmit={handleSubmit} className="p-8 bg-white space-y-6 overflow-y-auto flex-1">
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2 italic">Supplier Entity Name</label>
                         <input name="name" required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold text-black outline-none focus:border-blue-400" placeholder="e.g. Global Dynamics Ltd." />
