@@ -2,6 +2,15 @@
 
 import { useState, useMemo } from 'react';
 import { Package, Search, ArrowUpDown, Copy } from 'lucide-react';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
 
 
 interface ShopInventoryClientProps {
@@ -15,6 +24,7 @@ interface ShopInventoryClientProps {
 export default function ShopInventoryClient({ inventory, currency }: ShopInventoryClientProps) {
     const rate = currency?.rate || 1;
     const symbol = currency?.symbol || '$';
+    const router = useRouter();
 
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -83,6 +93,8 @@ export default function ShopInventoryClient({ inventory, currency }: ShopInvento
             alert('Failed to copy barcode');
         }
     };
+
+
 
     return (
         <div className="space-y-6 md:space-y-12 bg-white p-2 md:p-4">
@@ -212,6 +224,16 @@ export default function ShopInventoryClient({ inventory, currency }: ShopInvento
                                             <div className="text-sm font-black text-black font-mono">${itemValue.toFixed(2)}</div>
                                         </div>
                                     </div>
+
+                                    <div className="pt-3 border-t border-blue-100">
+                                        <button
+                                            onClick={() => printBarcode(item.product)}
+                                            className="w-full h-10 bg-blue-50 text-blue-500 rounded-xl hover:bg-blue-100 transition-all shadow-sm border border-blue-100 flex items-center justify-center gap-2"
+                                        >
+                                            <Copy size={16} />
+                                            <span className="text-xs font-black uppercase tracking-widest">Copy Barcode</span>
+                                        </button>
+                                    </div>
                                 </div>
                             );
                         })
@@ -237,7 +259,7 @@ export default function ShopInventoryClient({ inventory, currency }: ShopInvento
                                     <div className="flex items-center justify-end gap-3">VALUE <ArrowUpDown size={14} /></div>
                                 </th>
                                 <th className="px-10 py-6 text-center text-[11px] font-black uppercase tracking-widest text-blue-300">STATUS</th>
-                                <th className="px-10 py-6 text-center text-[11px] font-black uppercase tracking-widest text-blue-300">ACTIONS</th>
+                                <th className="px-10 py-6 text-right text-[11px] font-black uppercase tracking-widest text-blue-300"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y border-t border-blue-50">
@@ -296,10 +318,10 @@ export default function ShopInventoryClient({ inventory, currency }: ShopInvento
                                                     {isOutOfStock ? 'Out' : isLowStock ? 'Low' : 'OK'}
                                                 </span>
                                             </td>
-                                            <td className="px-10 py-8 text-center">
+                                            <td className="px-10 py-8 text-right">
                                                 <button
                                                     onClick={() => printBarcode(item.product)}
-                                                    className="p-3 bg-blue-50 text-blue-500 rounded-xl hover:bg-blue-500 hover:text-white transition-all shadow-sm border border-blue-100 hover:border-blue-500"
+                                                    className="p-3 bg-blue-50 text-blue-500 rounded-xl hover:bg-blue-500 hover:text-white transition-all shadow-sm border border-blue-100 hover:border-blue-500 opacity-0 group-hover:opacity-100"
                                                     title="Print Barcode"
                                                 >
                                                     <Copy size={18} />
@@ -313,6 +335,8 @@ export default function ShopInventoryClient({ inventory, currency }: ShopInvento
                     </table>
                 </div>
             </div>
+
+
         </div>
     );
 }

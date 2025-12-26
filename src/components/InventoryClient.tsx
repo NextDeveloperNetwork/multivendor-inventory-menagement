@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { deleteProduct, updateProduct } from '@/app/actions/inventory';
+import { deleteProduct, updateProduct, quickAddStock } from '@/app/actions/inventory';
 import {
     Plus,
     Search,
@@ -17,7 +17,10 @@ import {
     Save,
     AlertCircle,
     Camera,
-    RefreshCw
+    RefreshCw,
+    Minus,
+    Copy,
+    Barcode
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency, generateEAN13 } from '@/lib/utils';
@@ -157,7 +160,26 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                                 </div>
                                                 <div>
                                                     <div className="font-black text-black uppercase tracking-tight italic text-base group-hover/name:text-blue-600 transition-colors underline decoration-transparent group-hover/name:decoration-blue-200 underline-offset-4">{product.name}</div>
-                                                    <div className="text-[10px] text-slate-400 font-bold font-mono mt-1 uppercase tracking-widest">SKU: {product.sku}</div>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <div className="text-[10px] text-slate-400 font-bold font-mono uppercase tracking-widest">SKU: {product.sku}</div>
+                                                        {product.barcode && (
+                                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-500 rounded-md border border-blue-100">
+                                                                <Barcode size={10} />
+                                                                <span className="text-[8px] font-black font-mono">{product.barcode}</span>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        navigator.clipboard.writeText(product.barcode);
+                                                                        toast.success('Barcode Copied: ' + product.barcode);
+                                                                    }}
+                                                                    className="hover:text-blue-700 transition-colors"
+                                                                    title="Copy Barcode"
+                                                                >
+                                                                    <Copy size={10} />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </button>
                                         </td>
@@ -178,7 +200,19 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                             </div>
                                         </td>
                                         <td className="px-10 py-8 text-right">
-                                            <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                                            <div className="flex items-center justify-end gap-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform translate-x-0 lg:translate-x-4 lg:group-hover:translate-x-0">
+                                                {product.barcode && (
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(product.barcode);
+                                                            toast.success('Barcode Copied: ' + product.barcode);
+                                                        }}
+                                                        className="w-10 h-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-400 transition-all shadow-sm"
+                                                        title="Copy Barcode"
+                                                    >
+                                                        <Copy size={18} />
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => setEditingProduct(product)}
                                                     className="w-10 h-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-400 transition-all shadow-sm"
@@ -237,7 +271,22 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                     </div>
                                     <div className="min-w-0">
                                         <div className="font-black text-slate-900 text-lg leading-tight truncate">{product.name}</div>
-                                        <div className="text-[10px] text-slate-400 font-bold font-mono uppercase tracking-widest mt-1">SKU: {product.sku}</div>
+                                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                                            <div className="text-[10px] text-slate-400 font-bold font-mono uppercase tracking-widest">SKU: {product.sku}</div>
+                                            {product.barcode && (
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(product.barcode);
+                                                        toast.success('Barcode Copied: ' + product.barcode);
+                                                    }}
+                                                    className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-500 rounded-md border border-blue-100"
+                                                >
+                                                    <Barcode size={10} />
+                                                    <span className="text-[8px] font-black font-mono">{product.barcode}</span>
+                                                    <Copy size={8} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border shrink-0 ${stock > 10 ? 'bg-blue-50 text-blue-600 border-blue-100' :
@@ -260,6 +309,18 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                             </div>
 
                             <div className="flex gap-3">
+                                {product.barcode && (
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(product.barcode);
+                                            toast.success('Barcode Copied: ' + product.barcode);
+                                        }}
+                                        className="flex-1 h-12 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl border-2 border-transparent hover:border-blue-200 transition-all gap-2"
+                                    >
+                                        <Copy size={16} />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Copy</span>
+                                    </button>
+                                )}
                                 <button onClick={() => setEditingProduct(product)} className="flex-1 h-12 flex items-center justify-center bg-white border-2 border-slate-100 rounded-xl text-xs font-black uppercase tracking-widest text-slate-500 hover:border-blue-500 hover:text-blue-500 transition-all">
                                     Config
                                 </button>
@@ -274,7 +335,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
 
             {/* Edit Dialog */}
             <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
-                <DialogContent className="max-w-2xl bg-white rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
+                <DialogContent className="max-w-2xl max-h-[90vh] bg-white rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
                     <div className="bg-black p-10 text-white flex justify-between items-center">
                         <div className="flex items-center gap-5">
                             <div className="w-14 h-14 bg-blue-600 rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -290,7 +351,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                         </button>
                     </div>
 
-                    <form onSubmit={handleUpdate} className="p-10 space-y-8">
+                    <form onSubmit={handleUpdate} className="p-10 space-y-8 overflow-y-auto max-h-[calc(90vh-120px)]">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Product Name</label>
@@ -344,6 +405,89 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                 <input name="cost" type="number" step="0.01" defaultValue={editingProduct?.cost} required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs font-mono" />
                             </div>
                         </div>
+
+                        {/* Inventory Quantities Section */}
+                        {editingProduct?.inventory && editingProduct.inventory.length > 0 && (
+                            <div className="space-y-4 pt-4 border-t-2 border-slate-100">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Inventory Levels</label>
+                                <div className="space-y-3">
+                                    {editingProduct.inventory.map((inv: any) => {
+                                        const locationName = inv.shop?.name || inv.warehouse?.name || 'Unknown Location';
+                                        const locationType = inv.shopId ? 'Shop' : 'Warehouse';
+                                        const locationId = inv.shopId || inv.warehouseId;
+
+                                        return (
+                                            <div key={inv.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border-2 border-slate-100">
+                                                <div className="flex-1">
+                                                    <div className="font-bold text-black text-sm">{locationName}</div>
+                                                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{locationType}</div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="text-center px-4">
+                                                        <div className="text-2xl font-black text-black font-mono">{inv.quantity}</div>
+                                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Units</div>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={async () => {
+                                                                if (!locationId) return;
+                                                                setLoading(true);
+                                                                const res = await quickAddStock(editingProduct.id, -1, locationId);
+                                                                if (res.success) {
+                                                                    toast.success('Quantity decreased');
+                                                                    router.refresh();
+                                                                    // Update local state
+                                                                    const updated = { ...editingProduct };
+                                                                    const invIndex = updated.inventory.findIndex((i: any) => i.id === inv.id);
+                                                                    if (invIndex !== -1) {
+                                                                        updated.inventory[invIndex].quantity = Math.max(0, updated.inventory[invIndex].quantity - 1);
+                                                                        setEditingProduct(updated);
+                                                                    }
+                                                                } else {
+                                                                    toast.error(res.error || 'Failed to adjust quantity');
+                                                                }
+                                                                setLoading(false);
+                                                            }}
+                                                            disabled={loading || inv.quantity === 0}
+                                                            className="w-10 h-10 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-all shadow-sm border border-red-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                                        >
+                                                            <Minus size={16} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={async () => {
+                                                                if (!locationId) return;
+                                                                setLoading(true);
+                                                                const res = await quickAddStock(editingProduct.id, 1, locationId);
+                                                                if (res.success) {
+                                                                    toast.success('Quantity increased');
+                                                                    router.refresh();
+                                                                    // Update local state
+                                                                    const updated = { ...editingProduct };
+                                                                    const invIndex = updated.inventory.findIndex((i: any) => i.id === inv.id);
+                                                                    if (invIndex !== -1) {
+                                                                        updated.inventory[invIndex].quantity += 1;
+                                                                        setEditingProduct(updated);
+                                                                    }
+                                                                } else {
+                                                                    toast.error(res.error || 'Failed to adjust quantity');
+                                                                }
+                                                                setLoading(false);
+                                                            }}
+                                                            disabled={loading}
+                                                            className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-lg hover:bg-emerald-100 transition-all shadow-sm border border-emerald-100 flex items-center justify-center"
+                                                        >
+                                                            <Plus size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="flex gap-4 pt-4">
                             <button type="button" onClick={() => setEditingProduct(null)} className="flex-1 h-16 border-2 border-slate-100 text-slate-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all">

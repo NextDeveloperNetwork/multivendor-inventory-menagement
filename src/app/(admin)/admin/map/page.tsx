@@ -1,21 +1,38 @@
 import { prisma } from '@/lib/prisma';
 import { Target, Zap, Activity, Map as MapIcon } from 'lucide-react';
 import MapPageClient from '@/components/MapPageClient';
+import { sanitizeData } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MapPage() {
     const [shops, warehouses, suppliers] = await Promise.all([
         prisma.shop.findMany({
-            select: { id: true, name: true, latitude: true, longitude: true },
+            select: {
+                id: true,
+                name: true,
+                latitude: true,
+                longitude: true
+            },
             orderBy: { createdAt: 'desc' }
         }),
         prisma.warehouse.findMany({
-            select: { id: true, name: true, latitude: true, longitude: true },
+            select: {
+                id: true,
+                name: true,
+                latitude: true,
+                longitude: true
+            },
             orderBy: { createdAt: 'desc' }
         }),
         prisma.supplier.findMany({
-            select: { id: true, name: true, latitude: true, longitude: true },
+            select: {
+                id: true,
+                name: true,
+                latitude: true,
+                longitude: true,
+                email: true
+            },
             orderBy: { createdAt: 'desc' }
         })
     ]);
@@ -26,8 +43,10 @@ export default async function MapPage() {
         ...suppliers.map(sup => ({ ...sup, type: 'supplier' as const }))
     ];
 
+    const serializedLocations = sanitizeData(locations);
+
     return (
-        <div className="space-y-6 md:space-y-12 animate-in fade-in duration-1000 h-[calc(100vh-120px)] flex flex-col pb-4 md:pb-10">
+        <div className="space-y-6 md:space-y-12 animate-in fade-in duration-1000 flex flex-col pb-4 md:pb-10">
             {/* Professional Header */}
             <div className="relative overflow-hidden bg-white rounded-[2rem] md:rounded-[40px] p-6 md:p-12 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] shrink-0 border border-slate-100 group/header">
                 <div className="absolute top-0 right-0 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-blue-500/5 rounded-full -mr-48 md:-mr-96 -mt-48 md:-mt-96 blur-[60px] md:blur-[120px]"></div>
@@ -48,7 +67,7 @@ export default async function MapPage() {
                                 Global <span className="text-blue-600">Map</span>
                             </h1>
                             <p className="mt-3 md:mt-6 text-slate-400 text-[10px] md:text-sm font-bold uppercase tracking-[0.3em] flex flex-wrap items-center gap-3 md:gap-6">
-                                <span className="flex items-center gap-2 md:gap-3 text-slate-600"><div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-emerald-500 rounded-full shadow-lg shadow-emerald-100"></div> {locations.length} Nodes</span>
+                                <span className="flex items-center gap-2 md:gap-3 text-slate-600"><span className="w-2 h-2 md:w-2.5 md:h-2.5 bg-emerald-500 rounded-full shadow-lg shadow-emerald-100"></span> {locations.length} Nodes</span>
                                 <span className="hidden md:block w-px h-4 bg-slate-200"></span>
                                 <span className="text-blue-500">Global Network</span>
                             </p>
@@ -69,7 +88,7 @@ export default async function MapPage() {
             </div>
 
             <MapPageClient
-                initialLocations={locations as any}
+                initialLocations={serializedLocations}
                 shopsCount={shops.length}
                 warehousesCount={warehouses.length}
                 suppliersCount={suppliers.length}

@@ -1,8 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { MapPin, X, Check } from 'lucide-react';
+import { MapPin, X, Check, Search, Crosshair } from 'lucide-react';
 import MapWrapper from './MapWrapper';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface MapPickerProps {
     onSelect: (lat: number, lng: number) => void;
@@ -25,70 +32,92 @@ export default function MapPicker({ onSelect, initialLocation }: MapPickerProps)
     };
 
     return (
-        <>
-            <button
-                type="button"
-                onClick={() => setIsOpen(true)}
-                className="flex items-center gap-3 px-6 h-16 bg-white border-2 border-slate-200 rounded-2xl text-slate-700 font-bold hover:bg-slate-50 hover:border-blue-500 transition-all group"
-            >
-                <MapPin className="text-blue-500 group-hover:scale-110 transition-transform" size={20} />
-                <span className="text-xs uppercase tracking-widest">Select Location</span>
-            </button>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <button
+                    type="button"
+                    className="w-full flex items-center justify-between gap-3 px-6 h-14 bg-white border-2 border-slate-100 rounded-2xl text-slate-600 font-bold hover:bg-blue-50 hover:border-blue-400 transition-all group shadow-sm"
+                >
+                    <div className="flex items-center gap-3">
+                        <MapPin className="text-blue-500 group-hover:scale-110 transition-transform" size={18} />
+                        <span className="text-[10px] uppercase tracking-widest">
+                            {selected
+                                ? `${selected.latitude.toFixed(4)}, ${selected.longitude.toFixed(4)}`
+                                : "Pinpoint Location"}
+                        </span>
+                    </div>
+                    <div className="text-[8px] font-black text-blue-400 uppercase tracking-tighter bg-blue-50 px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                        Open Map
+                    </div>
+                </button>
+            </DialogTrigger>
 
-            {isOpen && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="relative w-full max-w-5xl h-[80vh] bg-white border border-slate-200 rounded-[3rem] overflow-hidden flex flex-col shadow-2xl">
-                        {/* Header */}
-                        <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md relative z-10">
-                            <div>
-                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Location <span className="text-blue-600">Picker</span></h3>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Select the official position for this entity</p>
+            <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden border-none rounded-[2.5rem] shadow-2xl z-[9999]">
+                <div className="flex flex-col h-full bg-white">
+                    {/* Header */}
+                    <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md relative z-10 shrink-0">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+                                <Crosshair className="text-white" size={24} />
                             </div>
-                            <div className="flex items-center gap-4">
-                                {selected && (
-                                    <div className="px-5 py-2.5 bg-blue-50 border border-blue-100 rounded-xl flex flex-col items-center">
-                                        <span className="text-[8px] text-blue-400 font-black uppercase tracking-widest">Coordinates Locked</span>
-                                        <span className="text-[10px] text-slate-600 font-mono font-bold">{selected.latitude.toFixed(4)}, {selected.longitude.toFixed(4)}</span>
-                                    </div>
-                                )}
-                                <button
-                                    onClick={() => confirmSelection()}
-                                    disabled={!selected}
-                                    className="h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest text-[10px] disabled:opacity-30 disabled:grayscale shadow-lg shadow-blue-100"
-                                >
-                                    <Check size={16} /> Confirm Selection
-                                </button>
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all border border-slate-100"
-                                >
-                                    <X size={20} />
-                                </button>
+                            <div>
+                                <DialogTitle className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">
+                                    Node <span className="text-blue-600">Positioning</span>
+                                </DialogTitle>
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1">Establishing global coordinate reference</p>
                             </div>
                         </div>
 
-                        {/* Map Area */}
-                        <div className="flex-1 relative">
-                            <MapWrapper
-                                locations={[]}
-                                onLocationSelect={handleSelect}
-                                selectedLocation={selected}
-                            />
-
-                            {/* HUD Overlay */}
-                            <div className="absolute bottom-6 left-6 z-[500] pointer-events-none">
-                                <div className="bg-white/90 backdrop-blur-xl border border-slate-100 p-4 rounded-2xl space-y-2 shadow-lg ring-1 ring-black/5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
-                                        <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest">Selection Active</span>
-                                    </div>
-                                    <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">Click anywhere on the map to set the primary address node</p>
+                        <div className="flex items-center gap-4">
+                            {selected && (
+                                <div className="hidden sm:flex px-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl flex-col items-center">
+                                    <span className="text-[8px] text-blue-500 font-black uppercase tracking-[0.3em]">Coordinates Locked</span>
+                                    <span className="text-xs text-slate-900 font-mono font-bold tracking-tight">
+                                        {selected.latitude.toFixed(6)}, {selected.longitude.toFixed(6)}
+                                    </span>
                                 </div>
+                            )}
+                            <button
+                                onClick={confirmSelection}
+                                disabled={!selected}
+                                className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black transition-all active:scale-95 flex items-center gap-3 uppercase tracking-widest text-[10px] disabled:opacity-30 disabled:grayscale shadow-xl shadow-blue-500/20"
+                            >
+                                <Check size={18} /> Confirm Location
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Map Area */}
+                    <div className="flex-1 relative">
+                        <MapWrapper
+                            locations={[]}
+                            onLocationSelect={handleSelect}
+                            selectedLocation={selected}
+                        />
+
+                        {/* HUD Overlay */}
+                        <div className="absolute bottom-8 left-8 z-[500] pointer-events-none transition-all">
+                            <div className="bg-slate-900/95 backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] space-y-3 shadow-2xl ring-1 ring-white/10 max-w-xs transition-transform transform translate-y-0 translate-x-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-ping"></div>
+                                    <span className="text-[10px] font-black text-white px-2 py-0.5 bg-blue-500 rounded flex items-center gap-1 uppercase tracking-widest">
+                                        System Ready
+                                    </span>
+                                </div>
+                                <p className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.2em] leading-relaxed italic">
+                                    Deploy marker by interacting with the surface layer. Coordinates will update in real-time.
+                                </p>
+                                {selected && (
+                                    <div className="pt-2 flex items-center gap-2 text-[10px] font-mono font-bold text-blue-400">
+                                        <Crosshair size={12} />
+                                        LAT {selected.latitude.toFixed(4)} • LNG {selected.longitude.toFixed(4)}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
-            )}
-        </>
+            </DialogContent>
+        </Dialog>
     );
 }

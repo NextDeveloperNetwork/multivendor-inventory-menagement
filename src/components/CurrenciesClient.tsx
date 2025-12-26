@@ -148,7 +148,8 @@ export default function CurrenciesClient({ initialCurrencies }: CurrenciesClient
                             </div>
                         </div>
 
-                        <div className="overflow-x-auto">
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50 text-slate-400 text-[9px] font-black uppercase tracking-widest">
                                     <tr>
@@ -219,6 +220,66 @@ export default function CurrenciesClient({ initialCurrencies }: CurrenciesClient
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Mobile Card View */}
+                        <div className="md:hidden p-4 space-y-4">
+                            {currencies.map((c) => (
+                                <div key={c.id} className="bg-gradient-to-br from-blue-50 to-purple-50 p-5 rounded-2xl border-2 border-blue-100 space-y-4">
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-base shadow-lg shrink-0">
+                                                {c.code.slice(0, 2)}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="text-base font-black text-slate-900 uppercase tracking-tight truncate">{c.name}</div>
+                                                <div className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-0.5">{c.code}</div>
+                                            </div>
+                                        </div>
+                                        {c.isBase && (
+                                            <span className="inline-flex px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-[8px] font-black uppercase tracking-widest shrink-0">
+                                                Base
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Info Grid */}
+                                    <div className="grid grid-cols-2 gap-3 pt-3 border-t-2 border-blue-200">
+                                        <div className="space-y-1">
+                                            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Symbol</div>
+                                            <div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-xl flex items-center justify-center font-black text-lg text-slate-700 shadow-sm">
+                                                {c.symbol}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Exchange Rate</div>
+                                            <div className="text-lg font-black text-slate-900 tabular-nums tracking-tight font-mono">
+                                                {Number(c.rate).toFixed(6)}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex gap-2 pt-3 border-t-2 border-blue-200">
+                                        <button
+                                            onClick={() => startEdit(c)}
+                                            className="flex-1 h-11 bg-white text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl border-2 border-blue-200 transition-all flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest shadow-sm"
+                                        >
+                                            <Edit2 size={14} />
+                                            Edit
+                                        </button>
+                                        {!c.isBase && (
+                                            <button
+                                                onClick={() => handleDelete(c.id)}
+                                                className="w-11 h-11 bg-white text-rose-400 hover:bg-rose-500 hover:text-white rounded-xl border-2 border-rose-200 transition-all flex items-center justify-center shadow-sm"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

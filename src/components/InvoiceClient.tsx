@@ -158,9 +158,9 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
             </div>
 
             {showForm && (
-                <div className="bg-white border-2 border-blue-100 rounded-[3rem] shadow-2xl shadow-blue-500/10 overflow-hidden animate-in slide-in-from-top-4 duration-500">
+                <div className="bg-white border-2 border-blue-100 rounded-[3rem] shadow-2xl shadow-blue-500/10 overflow-hidden animate-in slide-in-from-top-4 duration-500 max-h-[90vh] flex flex-col">
                     {/* Form Header */}
-                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-10 text-white flex justify-between items-center">
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-10 text-white flex justify-between items-center shrink-0">
                         <div className="flex items-center gap-6">
                             <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white shadow-xl">
                                 <FileText size={32} />
@@ -184,7 +184,7 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="p-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
+                    <form onSubmit={handleSubmit} className="p-10 grid grid-cols-1 lg:grid-cols-3 gap-10 overflow-y-auto">
                         {/* Left Column: Metadata */}
                         <div className="space-y-8">
                             <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-[2rem] border-2 border-blue-100 space-y-8 shadow-sm">
@@ -278,7 +278,7 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
 
                         {/* Right Column: Items */}
                         <div className="lg:col-span-2 space-y-6">
-                            <div className="flex justify-between items-center bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-[2rem] border-2 border-blue-100 shadow-sm">
+                            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-[2rem] border-2 border-blue-100 shadow-sm">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
                                         <ShoppingCart size={20} />
@@ -288,7 +288,7 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                         <p className="text-[10px] text-blue-400 font-bold uppercase tracking-tight">{items.filter(i => i.productId).length} Products Added</p>
                                     </div>
                                 </div>
-                                <div className="flex gap-3">
+                                <div className="flex flex-col sm:flex-row gap-3">
                                     <AssetCatalogDialog
                                         products={products}
                                         selectedIds={items.map(i => i.productId)}
@@ -297,7 +297,7 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                     <button
                                         type="button"
                                         onClick={addItem}
-                                        className="h-12 px-6 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-500/30 flex items-center gap-2 text-xs"
+                                        className="h-12 px-6 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 text-xs"
                                     >
                                         <Plus size={16} strokeWidth={3} />
                                         Add Row
@@ -306,7 +306,8 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                             </div>
 
                             <div className="bg-white border-2 border-blue-100 rounded-[2.5rem] overflow-hidden shadow-sm">
-                                <div className="overflow-x-auto">
+                                {/* Desktop Table View */}
+                                <div className="hidden md:block overflow-x-auto">
                                     <Table>
                                         <TableHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-100">
                                             <TableRow className="hover:bg-transparent">
@@ -384,6 +385,84 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                         </TableBody>
                                     </Table>
                                 </div>
+
+                                {/* Mobile Card View */}
+                                <div className="md:hidden p-4 space-y-4">
+                                    {items.map((item, index) => {
+                                        const subtotal = (parseFloat(item.cost) || 0) * (parseInt(item.quantity) || 0);
+                                        const product = products.find(p => p.id === item.productId);
+
+                                        return (
+                                            <div key={index} className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 rounded-2xl border-2 border-blue-100 space-y-4">
+                                                {/* Product Info */}
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-bold text-sm text-slate-900 truncate">
+                                                            {product ? product.name : (
+                                                                <span className="text-slate-400 italic">Select product...</span>
+                                                            )}
+                                                        </div>
+                                                        {product && (
+                                                            <div className="text-[9px] font-mono text-blue-400 uppercase font-bold mt-1">
+                                                                SKU: {product.sku}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {items.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeItem(index)}
+                                                            className="w-10 h-10 flex items-center justify-center text-rose-400 hover:text-white bg-white hover:bg-rose-500 rounded-xl transition-all border-2 border-rose-100 hover:border-rose-500 shadow-sm shrink-0"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* Inputs Grid */}
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest px-1">Quantity</label>
+                                                        <input
+                                                            type="number"
+                                                            value={item.quantity}
+                                                            onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                                                            className="w-full h-12 bg-white border-2 border-blue-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 text-center transition-all"
+                                                            placeholder="0"
+                                                            min="1"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest px-1">Unit Cost</label>
+                                                        <div className="relative">
+                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 font-bold text-sm">{symbol}</span>
+                                                            <input
+                                                                type="number"
+                                                                step="0.01"
+                                                                value={item.cost}
+                                                                onChange={(e) => updateItem(index, 'cost', e.target.value)}
+                                                                className="w-full h-12 pl-8 pr-3 bg-white border-2 border-blue-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 text-right transition-all font-mono"
+                                                                placeholder="0.00"
+                                                                min="0"
+                                                                required
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Subtotal */}
+                                                <div className="flex justify-between items-center pt-3 border-t-2 border-blue-200">
+                                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Subtotal</span>
+                                                    <span className="text-lg font-black text-emerald-600 font-mono">
+                                                        {formatCurrency(subtotal, symbol)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
                                 {items.length === 0 && (
                                     <div className="p-20 text-center space-y-4">
                                         <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto">

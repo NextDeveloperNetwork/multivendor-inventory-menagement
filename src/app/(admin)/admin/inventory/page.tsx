@@ -31,7 +31,12 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             } : {},
             orderBy: { name: 'asc' },
             include: {
-                inventory: true
+                inventory: {
+                    include: {
+                        shop: true,
+                        warehouse: true
+                    }
+                }
             }
         }),
         prisma.shop.findMany({ orderBy: { name: 'asc' } }),

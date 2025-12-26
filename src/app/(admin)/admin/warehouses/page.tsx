@@ -94,14 +94,14 @@ export default async function WarehousesPage() {
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-5xl font-black text-black font-mono tracking-tighter italic">${totalStock.toLocaleString()}</div>
+                                            <div className="text-5xl font-black text-black font-mono tracking-tighter italic">{totalStock.toLocaleString()}</div>
                                             <div className="text-[10px] font-black uppercase tracking-widest text-blue-300 mt-2">UNITS IN RESERVE</div>
                                         </div>
                                     </div>
 
                                     <div className="mt-10 flex gap-4 relative z-10">
                                         <Link href={`/admin/inventory?filter=specific_warehouse&warehouseId=${wh.id}`} className="h-14 px-8 bg-black text-white rounded-2xl font-bold shadow-xl shadow-blue-500/10 hover:bg-blue-600 transition-all active:scale-[0.98] flex items-center gap-3 uppercase tracking-widest text-xs border-2 border-black">
-                                            Telemetry <ArrowRight size={18} />
+                                            Inventory <ArrowRight size={18} />
                                         </Link>
                                         <DeleteWarehouseButton id={wh.id} />
                                     </div>

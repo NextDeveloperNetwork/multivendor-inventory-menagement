@@ -57,9 +57,15 @@ export default function QuickAddProductDialog({ onAdd }: { onAdd?: (product: any
                             <input name="cost" type="number" step="0.01" required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold text-black outline-none focus:border-blue-400" placeholder="0.00" />
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2 italic">Selling Price (MSRP)</label>
-                        <input name="price" type="number" step="0.01" required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold text-black outline-none focus:border-blue-400" placeholder="0.00" />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2 italic">Selling Price (MSRP)</label>
+                            <input name="price" type="number" step="0.01" required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold text-black outline-none focus:border-blue-400" placeholder="0.00" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2 italic">Discount Price</label>
+                            <input name="discountPrice" type="number" step="0.01" className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold text-black outline-none focus:border-blue-400" placeholder="Optional" />
+                        </div>
                     </div>
                     <button disabled={loading} type="submit" className="w-full h-16 bg-black text-white rounded-2xl font-bold uppercase tracking-widest hover:bg-blue-600 transition-all active:scale-95 disabled:opacity-30">
                         {loading ? 'Initializing...' : 'Authorize Article Creation'}
