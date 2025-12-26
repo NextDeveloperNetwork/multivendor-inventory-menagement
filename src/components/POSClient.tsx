@@ -99,7 +99,7 @@ export default function POSInterface({
     const [cart, setCart] = useState<CartItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
-    const [activeTab, setActiveTab] = useState<'products' | 'cart'>('products');
+    const [activeTab, setActiveTab] = useState<'products' | 'cart' | 'checkout'>('products');
 
     // PREMIUM FEATURES STATE
     const [shift, setShift] = useState(initialShift);
@@ -269,7 +269,7 @@ export default function POSInterface({
                     className={`flex-1 py-4 flex flex-col items-center justify-center gap-2 rounded-2xl transition-all ${activeTab === 'products' ? 'bg-gradient-to-br from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600'}`}
                 >
                     <Box size={20} />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Products</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest">Select</span>
                 </button>
                 <button
                     onClick={() => setActiveTab('cart')}
@@ -285,12 +285,19 @@ export default function POSInterface({
                     </div>
                     <span className="text-[9px] font-black uppercase tracking-widest">Cart</span>
                 </button>
+                <button
+                    onClick={() => setActiveTab('checkout')}
+                    className={`flex-1 py-4 flex flex-col items-center justify-center gap-2 rounded-2xl transition-all relative ${activeTab === 'checkout' ? 'bg-gradient-to-br from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600'}`}
+                >
+                    <CreditCard size={20} />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Checkout</span>
+                </button>
             </div>
 
             <div className="flex-1 flex flex-col md:flex-row gap-8 p-6 overflow-hidden">
 
                 {/* Main Product Interface */}
-                <div className={`flex-1 flex flex-col gap-8 h-full transition-all duration-300 ${activeTab === 'cart' ? 'hidden md:flex' : 'flex'}`}>
+                <div className={`flex-1 flex flex-col gap-8 h-full transition-all duration-300 ${activeTab !== 'products' ? 'hidden md:flex' : 'flex'}`}>
 
                     {/* Search Bar */}
                     <div className="flex gap-3 sm:gap-4 shrink-0 px-2 sm:px-0">
@@ -378,37 +385,38 @@ export default function POSInterface({
                 </div>
 
                 {/* Cart Sidebar */}
-                <div className={`flex flex-col md:w-[480px] bg-white rounded-[3.5rem] shadow-2xl shadow-blue-500/10 overflow-hidden shrink-0 relative transition-all duration-500 border-2 border-blue-100 ${activeTab === 'cart' ? 'flex flex-1 h-full' : 'hidden md:flex'}`}>
+                <div className={`flex flex-col md:w-[480px] bg-white rounded-[3.5rem] shadow-2xl shadow-blue-500/10 overflow-hidden shrink-0 relative transition-all duration-500 border-2 border-blue-100 ${activeTab === 'products' ? 'hidden md:flex' : 'flex flex-1 h-full'}`}>
 
                     <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-br from-blue-100 to-purple-100 rounded-full -mr-48 -mt-48 blur-[100px] opacity-50"></div>
 
                     {/* Cart Header */}
-                    <div className="relative px-10 pt-10 pb-8 flex justify-between items-center shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-blue-100">
+                    <div className="relative px-8 sm:px-10 pt-8 sm:pt-10 pb-6 sm:pb-8 flex justify-between items-center shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-blue-100">
                         <div className="space-y-1">
                             <div className="flex items-center gap-3">
-                                <Sparkles size={18} className="text-blue-600 animate-pulse" />
-                                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Active Cart</span>
+                                <Sparkles size={16} className="text-blue-600 animate-pulse" />
+                                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Active session</span>
                             </div>
-                            <h2 className="text-3xl font-black bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent tracking-tighter uppercase leading-none">
-                                Shopping Cart
+                            <h2 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent tracking-tighter uppercase leading-none">
+                                {activeTab === 'checkout' ? 'Review & Pay' : 'Shopping Cart'}
                             </h2>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2 sm:gap-3">
                             <button
                                 onClick={() => setIsShiftModalOpen(true)}
-                                className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${shift ? 'bg-emerald-50 text-emerald-600 border-2 border-emerald-100' : 'bg-rose-50 text-rose-600 border-2 border-rose-100'}`}
+                                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all ${shift ? 'bg-emerald-50 text-emerald-600 border-2 border-emerald-100' : 'bg-rose-50 text-rose-600 border-2 border-rose-100'}`}
                             >
-                                {shift ? <Unlock size={20} /> : <Lock size={20} />}
+                                {shift ? <Unlock size={18} /> : <Lock size={18} />}
                             </button>
-                            <div className="bg-white border-2 border-blue-200 px-5 py-3 rounded-2xl flex flex-col items-center shadow-sm">
-                                <span className="text-blue-400 text-[8px] font-black uppercase tracking-widest mb-1">Items</span>
-                                <span className="text-2xl font-black text-slate-900 tabular-nums">{cart.length}</span>
+                            <div className="bg-white border-2 border-blue-200 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl flex flex-col items-center shadow-sm">
+                                <span className="text-blue-400 text-[8px] font-black uppercase tracking-widest mb-0.5 sm:mb-1">Items</span>
+                                <span className="text-xl sm:text-2xl font-black text-slate-900 tabular-nums">{cart.length}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Customer Selection */}
-                    <div className="px-6 py-4 bg-white border-b-2 border-blue-50">
+                    <div className={`px-6 py-6 bg-white border-b-2 border-blue-50 ${activeTab === 'products' ? 'hidden md:block' : activeTab === 'cart' ? 'hidden md:block' : 'block'}`}>
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-1">Customer Assignment</div>
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex-1">
                                 {selectedCustomer ? (
@@ -457,8 +465,8 @@ export default function POSInterface({
                         </div>
                     </div>
 
-                    {/* Cart Items */}
-                    <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar relative bg-white">
+                    {/* Cart Items List */}
+                    <div className={`flex-1 overflow-y-auto px-6 py-2 custom-scrollbar relative bg-white ${activeTab === 'checkout' ? 'md:block hidden' : ''}`}>
                         {cart.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center opacity-30 py-20">
                                 <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border-2 border-dashed border-slate-200">
@@ -514,15 +522,26 @@ export default function POSInterface({
                                 ))}
                             </div>
                         )}
+
+                        {activeTab === 'cart' && cart.length > 0 && (
+                            <div className="md:hidden mt-8 pb-10">
+                                <button
+                                    onClick={() => setActiveTab('checkout')}
+                                    className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] transition-all"
+                                >
+                                    Proceed to Checkout <ArrowRight size={16} />
+                                </button>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Cart Footer */}
-                    <div className="relative p-10 bg-slate-900 shrink-0 mt-auto">
+                    {/* Cart Footer / Checkout Controls */}
+                    <div className={`relative p-8 sm:p-10 bg-slate-900 shrink-0 mt-auto ${activeTab === 'products' ? 'hidden md:block' : activeTab === 'cart' ? 'hidden md:block' : 'block'}`}>
                         <div className="flex justify-between items-center mb-8">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Validated Total</span>
                             <div className="text-right">
-                                <div className="text-5xl font-black text-white tabular-nums tracking-tighter italic">
-                                    <span className="text-blue-500 text-2xl mr-1 not-italic">{symbol}</span>
+                                <div className="text-4xl sm:text-5xl font-black text-white tabular-nums tracking-tighter italic">
+                                    <span className="text-blue-500 text-xl sm:text-2xl mr-1 not-italic">{symbol}</span>
                                     {total.toFixed(2)}
                                 </div>
                             </div>
@@ -531,7 +550,7 @@ export default function POSInterface({
                         <button
                             onClick={handleCheckout}
                             disabled={cart.length === 0 || loading}
-                            className="w-full h-20 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white rounded-[1.5rem] font-black text-lg uppercase tracking-widest shadow-2xl shadow-blue-500/20 transition-all active:scale-95 disabled:cursor-not-allowed flex items-center justify-center gap-4 group"
+                            className="w-full h-16 sm:h-20 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white rounded-xl sm:rounded-[1.5rem] font-black text-base sm:text-lg uppercase tracking-widest shadow-2xl shadow-blue-500/20 transition-all active:scale-95 disabled:cursor-not-allowed flex items-center justify-center gap-4 group"
                         >
                             {loading ? (
                                 <>
