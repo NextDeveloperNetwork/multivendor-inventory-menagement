@@ -4,10 +4,16 @@ import { Warehouse, Plus, MapPin, Calendar, Package, ArrowRight } from 'lucide-r
 import WarehouseForm from '../../../../components/WarehouseForm';
 import DeleteWarehouseButton from '../../../../components/DeleteWarehouseButton';
 
+import { getBusinessFilter, getSelectedBusinessId } from '@/app/actions/business';
+
 export const dynamic = 'force-dynamic';
 
 export default async function WarehousesPage() {
+    const filter = await getBusinessFilter();
+    const selectedBusinessId = await getSelectedBusinessId();
+
     const warehouses = await prisma.warehouse.findMany({
+        where: filter as any,
         orderBy: { name: 'asc' },
         include: {
             inventory: true,
@@ -43,7 +49,7 @@ export default async function WarehousesPage() {
                             </h2>
                             <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mt-2">Append new distribution hub terminal</p>
                         </div>
-                        <WarehouseForm />
+                        <WarehouseForm selectedBusinessId={selectedBusinessId} />
                     </div>
                 </div>
 
@@ -58,9 +64,9 @@ export default async function WarehousesPage() {
                             <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mt-3">No active warehouse nodes detected in system telemetry.</p>
                         </div>
                     ) : (
-                        warehouses.map(wh => {
-                            const totalStock = wh.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
-                            const productCount = wh.inventory.filter(inv => inv.quantity > 0).length;
+                        (warehouses as any[]).map(wh => {
+                            const totalStock = wh.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                            const productCount = wh.inventory.filter((inv: any) => inv.quantity > 0).length;
 
                             return (
                                 <div key={wh.id} className="bg-white border-2 border-blue-50 p-10 rounded-[3rem] shadow-2xl shadow-blue-500/5 hover:bg-blue-50/30 transition-all group relative overflow-hidden">

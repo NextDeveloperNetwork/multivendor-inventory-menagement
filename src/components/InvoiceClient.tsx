@@ -26,9 +26,10 @@ interface InvoiceClientProps {
     suppliers: any[];
     warehouses: any[];
     currency: { symbol: string; rate: number };
+    selectedBusinessId: string | null;
 }
 
-export default function InvoiceClient({ invoices, products, suppliers, warehouses, currency }: InvoiceClientProps) {
+export default function InvoiceClient({ invoices, products, suppliers, warehouses, currency, selectedBusinessId }: InvoiceClientProps) {
     const symbol = currency?.symbol || '$';
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -83,6 +84,9 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
         formData.append('number', invoiceNumber);
         formData.append('supplierId', supplierId);
         formData.append('warehouseId', warehouseId);
+        if (selectedBusinessId) {
+            formData.append('businessId', selectedBusinessId);
+        }
         formData.append('items', JSON.stringify(items.filter(item => item.productId && item.quantity && item.cost)));
 
         const result = await createInvoice(formData);

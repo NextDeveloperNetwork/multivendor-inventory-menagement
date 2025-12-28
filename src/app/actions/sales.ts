@@ -26,32 +26,38 @@ export async function processSale(items: CartItem[], shopIdOverride?: string, cu
         return { error: 'Cart is empty' };
     }
 
-    // 1. Get/Create Default Customer if none selected
+    // 1. Get/Create Default Business if none exists
+    let business = await prisma.business.findFirst();
+    if (!business) {
+        business = await prisma.business.create({
+            data: { name: 'Main Business' }
+        });
+    }
+    const businessId = business.id;
+
+    // 2. Get/Create Default Customer if none selected
     let effectiveCustomerId = customerId;
 
     if (!effectiveCustomerId) {
         // Find or create a walk-in customer for this business context
-        const business = await (prisma as any).business.findFirst();
-        if (business) {
-            const walkIn = await (prisma as any).customer.findFirst({
-                where: {
+        const walkIn = await prisma.customer.findFirst({
+            where: {
+                name: 'Walk-in Customer',
+                businessId: businessId
+            }
+        });
+
+        if (walkIn) {
+            effectiveCustomerId = walkIn.id;
+        } else {
+            const newWalkIn = await prisma.customer.create({
+                data: {
                     name: 'Walk-in Customer',
-                    businessId: business.id
+                    businessId: businessId,
+                    email: 'walkin@system.local'
                 }
             });
-
-            if (walkIn) {
-                effectiveCustomerId = walkIn.id;
-            } else {
-                const newWalkIn = await (prisma as any).customer.create({
-                    data: {
-                        name: 'Walk-in Customer',
-                        businessId: business.id,
-                        email: 'walkin@system.local'
-                    }
-                });
-                effectiveCustomerId = newWalkIn.id;
-            }
+            effectiveCustomerId = newWalkIn.id;
         }
     }
 
@@ -66,6 +72,14 @@ export async function processSale(items: CartItem[], shopIdOverride?: string, cu
                 include: { currency: true }
             });
 
+            // Ensure shop is linked to a business
+            if (shop && !shop.businessId) {
+                await tx.shop.update({
+                    where: { id: shop.id },
+                    data: { businessId: businessId }
+                });
+            }
+
             // Generate numerical transaction number (YYMMDD + random 4 digits + sequence)
             const count = await tx.sale.count();
             const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
@@ -75,7 +89,7 @@ export async function processSale(items: CartItem[], shopIdOverride?: string, cu
             const sale = await tx.sale.create({
                 data: {
                     number: trxNumber,
-                    businessId: shop?.businessId || (await (tx as any).business.findFirst())?.id,
+                    businessId: shop?.businessId || businessId,
                     shopId,
                     userId,
                     customerId: effectiveCustomerId,

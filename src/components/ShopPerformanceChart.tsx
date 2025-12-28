@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
     PieChart,
     Pie,
@@ -26,9 +27,17 @@ export default function ShopPerformanceChart({
         percentage: number;
     }[];
 }) {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    if (!isMounted) return <div className="w-full h-[280px]" />;
+
     return (
         <div className="w-full h-[280px]">
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                     <Pie
                         data={data}

@@ -7,6 +7,7 @@ import { z } from 'zod';
 const shopSchema = z.object({
     name: z.string().min(1, "Name is required"),
     location: z.string().optional(),
+    businessId: z.string().min(1, "Business assignment is required"),
 });
 
 export async function createShop(formData: FormData) {
@@ -16,6 +17,7 @@ export async function createShop(formData: FormData) {
     const longitude = parseFloat(formData.get('longitude') as string || '0') || null;
 
     const currencyId = formData.get('currencyId') as string || null;
+    const businessId = formData.get('businessId') as string;
 
     try {
         await prisma.shop.create({
@@ -24,7 +26,8 @@ export async function createShop(formData: FormData) {
                 location,
                 latitude,
                 longitude,
-                currencyId
+                currencyId,
+                businessId
             }
         });
 
@@ -69,6 +72,7 @@ export async function updateShop(id: string, formData: FormData) {
     const latitude = parseFloat(formData.get('latitude') as string || '0') || null;
     const longitude = parseFloat(formData.get('longitude') as string || '0') || null;
     const currencyId = formData.get('currencyId') as string || null;
+    const businessId = formData.get('businessId') as string;
 
     try {
         await prisma.shop.update({
@@ -78,7 +82,8 @@ export async function updateShop(id: string, formData: FormData) {
                 location,
                 latitude,
                 longitude,
-                currencyId
+                currencyId,
+                businessId
             }
         });
 

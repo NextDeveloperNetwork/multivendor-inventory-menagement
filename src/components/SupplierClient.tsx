@@ -10,9 +10,10 @@ import MapPicker from './MapPicker';
 
 interface SupplierClientProps {
     suppliers: any[];
+    selectedBusinessId: string | null;
 }
 
-export default function SupplierClient({ suppliers }: SupplierClientProps) {
+export default function SupplierClient({ suppliers, selectedBusinessId }: SupplierClientProps) {
     const searchParams = useSearchParams();
     const initialLat = searchParams.get('lat') || '';
     const initialLng = searchParams.get('lng') || '';
@@ -72,6 +73,9 @@ export default function SupplierClient({ suppliers }: SupplierClientProps) {
         formDataObj.append('address', formData.address);
         formDataObj.append('latitude', formData.latitude);
         formDataObj.append('longitude', formData.longitude);
+        if (selectedBusinessId) {
+            formDataObj.append('businessId', selectedBusinessId);
+        }
 
         const result = editingSupplier
             ? await updateSupplier(editingSupplier.id, formDataObj)

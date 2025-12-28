@@ -27,9 +27,10 @@ import {
 
 interface CustomersClientProps {
     initialCustomers: any[];
+    selectedBusinessId: string | null;
 }
 
-export default function CustomersClient({ initialCustomers }: CustomersClientProps) {
+export default function CustomersClient({ initialCustomers, selectedBusinessId }: CustomersClientProps) {
     const [customers, setCustomers] = useState(initialCustomers);
     const [searchTerm, setSearchTerm] = useState('');
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -45,6 +46,9 @@ export default function CustomersClient({ initialCustomers }: CustomersClientPro
         e.preventDefault();
         setLoading(true);
         const formData = new FormData(e.currentTarget);
+        if (selectedBusinessId) {
+            formData.append('businessId', selectedBusinessId);
+        }
 
         const res = await createCustomer(formData);
         if (res.success) {

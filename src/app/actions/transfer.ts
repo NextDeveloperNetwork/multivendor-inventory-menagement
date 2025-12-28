@@ -9,10 +9,12 @@ export async function createTransfer(formData: FormData) {
     const toType = formData.get('toType') as 'warehouse' | 'shop';
     const toId = formData.get('toId') as string;
     const items = JSON.parse(formData.get('items') as string);
+    const businessId = formData.get('businessId') as string;
 
     try {
         const transferData: any = {
             status: 'COMPLETED',
+            businessId,
             items: {
                 create: items.map((item: any) => ({
                     productId: item.productId,
@@ -198,6 +200,7 @@ export async function updateTransfer(id: string, formData: FormData) {
     const toType = formData.get('toType') as 'warehouse' | 'shop';
     const toId = formData.get('toId') as string;
     const items = JSON.parse(formData.get('items') as string);
+    const businessId = formData.get('businessId') as string;
 
     try {
         await prisma.$transaction(async (tx) => {
@@ -246,6 +249,7 @@ export async function updateTransfer(id: string, formData: FormData) {
                 fromShopId: fromType === 'shop' ? fromId : null,
                 toWarehouseId: toType === 'warehouse' ? toId : null,
                 toShopId: toType === 'shop' ? toId : null,
+                businessId,
             };
 
             await tx.transfer.update({

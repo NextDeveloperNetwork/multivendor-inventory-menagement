@@ -3,10 +3,14 @@ import SupplierClient from '../../../../components/SupplierClient';
 import { Users, Phone, Mail, MapPin } from 'lucide-react';
 import { sanitizeData } from '@/lib/utils';
 
+import { getBusinessFilter, getSelectedBusinessId } from '@/app/actions/business';
+
 export const dynamic = 'force-dynamic';
 
 export default async function SuppliersPage() {
-    const suppliersRaw = await getSuppliers();
+    const filter = await getBusinessFilter();
+    const selectedBusinessId = await getSelectedBusinessId();
+    const suppliersRaw = await getSuppliers(filter);
     const suppliers = sanitizeData(suppliersRaw);
 
     return (
@@ -49,7 +53,7 @@ export default async function SuppliersPage() {
 
             {/* Supplier Management */}
             <div className="bg-white border-2 border-blue-50 rounded-[3rem] p-1 shadow-2xl shadow-blue-500/5 overflow-hidden">
-                <SupplierClient suppliers={suppliers} />
+                <SupplierClient suppliers={suppliers} selectedBusinessId={selectedBusinessId} />
             </div>
         </div>
     );

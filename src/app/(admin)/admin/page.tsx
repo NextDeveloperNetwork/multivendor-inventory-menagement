@@ -7,6 +7,9 @@ import MotionWrapper from '@/components/MotionWrapper';
 import SaleDetailsDialog from '@/components/SaleDetailsDialog';
 import { sanitizeData } from '@/lib/utils';
 import ShopPerformanceChart from '@/components/ShopPerformanceChart';
+import { getBusinessFilter } from '@/app/actions/business';
+
+export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboard() {
     let totalProducts = 0;
@@ -16,14 +19,17 @@ export default async function AdminDashboard() {
     let recentSales: any[] = [];
     let shopSalesData: any[] = [];
 
+    const filter = await getBusinessFilter();
+
     let baseCurrency: any = null;
 
     try {
         baseCurrency = await prisma.currency.findFirst({ where: { isBase: true } });
-        totalProducts = await prisma.product.count();
-        totalShops = await prisma.shop.count();
+        totalProducts = await prisma.product.count({ where: filter as any });
+        totalShops = await prisma.shop.count({ where: filter as any });
 
         const rawSales = await prisma.sale.findMany({
+            where: filter as any,
             include: { shop: true, user: true, items: { include: { product: true } } },
             orderBy: { date: 'desc' },
         });
@@ -33,7 +39,10 @@ export default async function AdminDashboard() {
         totalRevenue = sales.reduce((s: number, sale: any) => s + Number(sale.total), 0);
         recentSales = sales.slice(0, 10);
 
-        const rawShops = await prisma.shop.findMany({ include: { sales: true } });
+        const rawShops = await prisma.shop.findMany({
+            where: filter as any,
+            include: { sales: true }
+        });
         const shops = sanitizeData(rawShops);
         shopSalesData = shops.map((shop: any) => ({
             id: shop.id,

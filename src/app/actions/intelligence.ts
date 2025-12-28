@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+import { getBusinessFilter, getSelectedBusinessId } from './business';
+
 /**
  * TELEMETRY & AUDIT LOGGING
  * Records every significant action in the system for transparency and security.
@@ -15,14 +17,13 @@ export async function logActivity(data: {
     userId?: string;
     shopId?: string;
 }) {
-    // Note: in a real app, we'd get the businessId and userId from the session
-    const business = await (prisma as any).business.findFirst();
-    if (!business) return;
+    const businessId = await getSelectedBusinessId();
+    if (!businessId) return;
 
     try {
-        await (prisma as any).activityLog.create({
+        await prisma.activityLog.create({
             data: {
-                businessId: business.id,
+                businessId: businessId,
                 action: data.action,
                 entityType: data.entityType,
                 entityId: data.entityId,
@@ -44,7 +45,7 @@ export async function getStockPredictions(shopId: string) {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     // Get all sales for this shop in the last 30 days
-    const sales = await (prisma as any).sale.findMany({
+    const sales = await prisma.sale.findMany({
         where: {
             shopId,
             date: { gte: thirtyDaysAgo }
@@ -82,10 +83,12 @@ export async function getStockPredictions(shopId: string) {
 
 /**
  * FINANCIAL INTELLIGENCE
- * Calculates net profit by comparing sale price vs cost price.
+ * Calculates net profit by comparing sale price vs cost price for the active business.
  */
 export async function getProfitAnalytics() {
-    const sales = await (prisma as any).sale.findMany({
+    const filter = await getBusinessFilter();
+    const sales = await prisma.sale.findMany({
+        where: filter as any,
         include: {
             items: {
                 include: {
@@ -124,28 +127,27 @@ export async function getProfitAnalytics() {
  * CRM & LOYALTY
  */
 export async function getCustomers() {
-    const business = await (prisma as any).business.findFirst();
-    if (!business) return [];
+    const filter = await getBusinessFilter();
 
-    return (prisma as any).customer.findMany({
-        where: { businessId: business.id },
+    return prisma.customer.findMany({
+        where: filter as any,
         include: { sales: true },
         orderBy: { createdAt: 'desc' }
     });
 }
 
 export async function createCustomer(formData: FormData) {
-    const business = await (prisma as any).business.findFirst();
-    if (!business) return { error: 'No business context' };
-
     const name = formData.get('name') as string;
     const phone = formData.get('phone') as string;
     const email = formData.get('email') as string;
+    const businessId = formData.get('businessId') as string;
+
+    if (!businessId) return { error: 'Business context required' };
 
     try {
-        const customer = await (prisma as any).customer.create({
+        const customer = await prisma.customer.create({
             data: {
-                businessId: business.id,
+                businessId,
                 name,
                 phone,
                 email

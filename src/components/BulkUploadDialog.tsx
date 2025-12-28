@@ -6,7 +6,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Upload, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function BulkUploadDialog() {
+interface BulkUploadDialogProps {
+    selectedBusinessId: string | null;
+}
+
+export default function BulkUploadDialog({ selectedBusinessId }: BulkUploadDialogProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
@@ -15,6 +19,9 @@ export default function BulkUploadDialog() {
         e.preventDefault();
         setLoading(true);
         const formData = new FormData(e.currentTarget);
+        if (selectedBusinessId) {
+            formData.append('businessId', selectedBusinessId);
+        }
 
         try {
             const result = await bulkCreateProducts(formData);

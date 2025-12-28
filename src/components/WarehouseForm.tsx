@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MapPicker from './MapPicker';
 
-export default function WarehouseForm() {
+export default function WarehouseForm({ selectedBusinessId }: { selectedBusinessId: string | null }) {
     const searchParams = useSearchParams();
     const initialLat = searchParams.get('lat') || '';
     const initialLng = searchParams.get('lng') || '';
@@ -31,6 +31,9 @@ export default function WarehouseForm() {
         formData.append('name', name);
         formData.append('latitude', latitude);
         formData.append('longitude', longitude);
+        if (selectedBusinessId) {
+            formData.append('businessId', selectedBusinessId);
+        }
 
         const result = await createWarehouse(formData);
 

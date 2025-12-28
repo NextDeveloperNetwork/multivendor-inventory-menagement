@@ -1,11 +1,15 @@
 import { prisma } from '@/lib/prisma';
 import ShopsClient from '@/components/ShopsClient';
 import { sanitizeData } from '@/lib/utils';
+import { getBusinessFilter, getSelectedBusinessId } from '@/app/actions/business';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ShopsPage() {
+    const filter = await getBusinessFilter();
+
     const shops = await prisma.shop.findMany({
+        where: filter as any,
         include: {
             users: true,
             currency: true
@@ -23,6 +27,12 @@ export default async function ShopsPage() {
     const currencies = await prisma.currency.findMany({
         orderBy: { code: 'asc' }
     });
+
+    const businesses = await prisma.business.findMany({
+        orderBy: { name: 'asc' }
+    });
+
+    const selectedBusinessId = await getSelectedBusinessId();
 
     return (
         <div className="space-y-12 fade-in relative pb-20">
@@ -51,6 +61,8 @@ export default async function ShopsPage() {
                 initialShops={sanitizeData(shops)}
                 initialUnassignedUsers={sanitizeData(unassignedUsers)}
                 currencies={sanitizeData(currencies)}
+                businesses={sanitizeData(businesses)}
+                selectedBusinessId={selectedBusinessId}
             />
         </div>
     );

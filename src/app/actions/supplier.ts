@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+import { getBusinessFilter } from './business';
+
 export async function createSupplier(formData: FormData) {
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
@@ -10,9 +12,10 @@ export async function createSupplier(formData: FormData) {
     const address = formData.get('address') as string;
     const latitude = parseFloat(formData.get('latitude') as string || '0') || null;
     const longitude = parseFloat(formData.get('longitude') as string || '0') || null;
+    const businessId = formData.get('businessId') as string;
 
     try {
-        const supplier = await (prisma as any).supplier.create({
+        const supplier = await prisma.supplier.create({
             data: {
                 name,
                 email: email || null,
@@ -20,7 +23,8 @@ export async function createSupplier(formData: FormData) {
                 address: address || null,
                 latitude,
                 longitude,
-            },
+                businessId
+            } as any,
         });
 
         revalidatePath('/admin/suppliers');
@@ -40,7 +44,7 @@ export async function updateSupplier(id: string, formData: FormData) {
     const longitude = parseFloat(formData.get('longitude') as string || '0') || null;
 
     try {
-        const supplier = await (prisma as any).supplier.update({
+        const supplier = await prisma.supplier.update({
             where: { id },
             data: {
                 name,
@@ -62,7 +66,7 @@ export async function updateSupplier(id: string, formData: FormData) {
 
 export async function deleteSupplier(id: string) {
     try {
-        await (prisma as any).supplier.delete({
+        await prisma.supplier.delete({
             where: { id },
         });
 
@@ -74,9 +78,10 @@ export async function deleteSupplier(id: string) {
     }
 }
 
-export async function getSuppliers() {
+export async function getSuppliers(filter: any = {}) {
     try {
-        const suppliers = await (prisma as any).supplier.findMany({
+        const suppliers = await prisma.supplier.findMany({
+            where: filter as any,
             include: {
                 invoices: true,
             },

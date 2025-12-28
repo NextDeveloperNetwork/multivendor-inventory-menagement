@@ -15,14 +15,17 @@ import {
     Coins,
     Map,
     Activity,
-    Heart
+    Heart,
+    Briefcase
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useEffect } from 'react';
+import { BusinessSelector } from './BusinessSelector';
 
 const menuItems = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/intelligence', label: 'Intelligence', icon: Activity },
+    { href: '/admin/businesses', label: 'Businesses', icon: Briefcase },
     { href: '/admin/inventory', label: 'Global Inventory', icon: Package },
     { href: '/admin/customers', label: 'Customers', icon: Heart },
     { href: '/admin/invoices', label: 'Invoices (In)', icon: FileText },
@@ -59,7 +62,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
 
             <aside className={`h-screen w-80 bg-white border-r border-slate-200 p-8 flex flex-col fixed left-0 top-0 z-50 transition-all duration-500 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
                 }`}>
-                <div className="flex items-center justify-between mb-12 shrink-0">
+                <div className="flex items-center justify-between mb-8 shrink-0">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
                             <Store size={22} strokeWidth={3} />
@@ -76,6 +79,8 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
                         <X size={20} />
                     </button>
                 </div>
+
+                <BusinessSelector />
 
                 <nav className="flex flex-col gap-2 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     {menuItems.map((item) => {

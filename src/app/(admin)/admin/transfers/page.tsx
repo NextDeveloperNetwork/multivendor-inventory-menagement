@@ -3,6 +3,10 @@ import TransferClient from '../../../../components/TransferClient';
 import { TruckIcon, Package, Calendar } from 'lucide-react';
 import { sanitizeData } from '@/lib/utils';
 
+import { getBusinessFilter, getSelectedBusinessId } from '@/app/actions/business';
+
+export const dynamic = 'force-dynamic';
+
 interface TransfersPageProps {
     searchParams: Promise<{
         startDate?: string;
@@ -14,6 +18,9 @@ interface TransfersPageProps {
 export default async function TransfersPage({ searchParams }: TransfersPageProps) {
     const params = await searchParams;
     const { startDate, endDate, q } = params;
+
+    const businessFilter = await getBusinessFilter();
+    const selectedBusinessId = await getSelectedBusinessId();
 
     const dateFilter: any = {};
     if (startDate || endDate) {
@@ -28,7 +35,7 @@ export default async function TransfersPage({ searchParams }: TransfersPageProps
 
     const [rawTransfers, rawProducts, rawShops, rawWarehouses, rawInventory] = await Promise.all([
         prisma.transfer.findMany({
-            where: dateFilter,
+            where: { ...businessFilter, ...dateFilter } as any,
             include: {
                 items: { include: { product: true } },
                 fromWarehouse: true,
@@ -38,10 +45,18 @@ export default async function TransfersPage({ searchParams }: TransfersPageProps
             } as any,
             orderBy: { date: 'desc' },
         }),
-        prisma.product.findMany({ orderBy: { name: 'asc' } }),
-        prisma.shop.findMany({ orderBy: { name: 'asc' } }),
-        prisma.warehouse.findMany({ orderBy: { name: 'asc' } }),
-        prisma.inventory.findMany({ include: { product: true } })
+        prisma.product.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
+        prisma.shop.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
+        prisma.warehouse.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
+        prisma.inventory.findMany({
+            where: {
+                OR: [
+                    { shop: businessFilter as any },
+                    { warehouse: businessFilter as any }
+                ]
+            } as any,
+            include: { product: true }
+        })
     ]);
 
     const transfers = sanitizeData(rawTransfers);
@@ -94,6 +109,7 @@ export default async function TransfersPage({ searchParams }: TransfersPageProps
                 shops={shops}
                 warehouses={warehouses}
                 inventory={inventory}
+                selectedBusinessId={selectedBusinessId}
             />
         </div>
     );

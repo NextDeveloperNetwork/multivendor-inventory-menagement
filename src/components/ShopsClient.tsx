@@ -13,9 +13,11 @@ interface ShopsPageProps {
     initialShops: (Shop & { users: User[], currency?: any })[];
     initialUnassignedUsers: User[];
     currencies: any[];
+    businesses: any[];
+    selectedBusinessId?: string | null;
 }
 
-export default function ShopsClient({ initialShops, initialUnassignedUsers, currencies }: ShopsPageProps) {
+export default function ShopsClient({ initialShops, initialUnassignedUsers, currencies, businesses, selectedBusinessId }: ShopsPageProps) {
     const searchParams = useSearchParams();
     const initialLat = searchParams.get('lat') || '';
     const initialLng = searchParams.get('lng') || '';
@@ -31,6 +33,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
     const [lat, setLat] = useState(initialLat);
     const [lng, setLng] = useState(initialLng);
     const [currencyId, setCurrencyId] = useState('');
+    const [businessId, setBusinessId] = useState(selectedBusinessId || '');
 
     const router = useRouter();
 
@@ -46,6 +49,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
         setLat(shop.latitude?.toString() || '');
         setLng(shop.longitude?.toString() || '');
         setCurrencyId(shop.currencyId || '');
+        setBusinessId(shop.businessId || '');
 
         // Scroll to form
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -58,6 +62,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
         setLat('');
         setLng('');
         setCurrencyId('');
+        setBusinessId('');
     };
 
     const handleSubmit = async (formData: FormData) => {
@@ -181,6 +186,21 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                     <option value="">Select Currency...</option>
                                     {currencies.map(c => (
                                         <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="w-full md:w-1/3 space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Assignment</label>
+                                <select
+                                    name="businessId"
+                                    required
+                                    value={businessId}
+                                    onChange={(e) => setBusinessId(e.target.value)}
+                                    className="w-full px-6 h-16 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-blue-500 focus:bg-white transition-all outline-none appearance-none"
+                                >
+                                    <option value="">Select Business...</option>
+                                    {businesses.map(b => (
+                                        <option key={b.id} value={b.id}>{b.name}</option>
                                     ))}
                                 </select>
                             </div>

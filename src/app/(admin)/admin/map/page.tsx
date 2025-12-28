@@ -2,12 +2,16 @@ import { prisma } from '@/lib/prisma';
 import { Target, Zap, Activity, Map as MapIcon } from 'lucide-react';
 import MapPageClient from '@/components/MapPageClient';
 import { sanitizeData } from '@/lib/utils';
+import { getBusinessFilter } from '@/app/actions/business';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MapPage() {
+    const filter = await getBusinessFilter();
+
     const [shops, warehouses, suppliers] = await Promise.all([
         prisma.shop.findMany({
+            where: filter as any,
             select: {
                 id: true,
                 name: true,
@@ -17,6 +21,7 @@ export default async function MapPage() {
             orderBy: { createdAt: 'desc' }
         }),
         prisma.warehouse.findMany({
+            where: filter as any,
             select: {
                 id: true,
                 name: true,
@@ -26,6 +31,7 @@ export default async function MapPage() {
             orderBy: { createdAt: 'desc' }
         }),
         prisma.supplier.findMany({
+            where: filter as any,
             select: {
                 id: true,
                 name: true,

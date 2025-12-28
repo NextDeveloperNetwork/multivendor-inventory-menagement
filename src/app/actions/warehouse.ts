@@ -12,6 +12,7 @@ export async function createWarehouse(formData: FormData) {
     const name = formData.get('name') as string;
     const latitude = parseFloat(formData.get('latitude') as string || '0') || null;
     const longitude = parseFloat(formData.get('longitude') as string || '0') || null;
+    const businessId = formData.get('businessId') as string;
 
     if (!name) return { error: "Name is required" };
 
@@ -20,7 +21,8 @@ export async function createWarehouse(formData: FormData) {
             data: {
                 name,
                 latitude,
-                longitude
+                longitude,
+                businessId
             }
         });
 

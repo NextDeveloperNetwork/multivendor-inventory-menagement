@@ -15,6 +15,7 @@ const productSchema = z.object({
     cost: z.coerce.number().min(0, "Cost must be positive"),
     discountPrice: z.coerce.number().optional().nullable(),
     initialStock: z.coerce.number().optional(), // Added for convenience
+    businessId: z.string().optional().nullable(),
 });
 
 export async function createProduct(formData: FormData) {
@@ -52,7 +53,7 @@ export async function createProduct(formData: FormData) {
             }
         }
 
-        const product = await prisma.$transaction(async (tx) => {
+        const product = await prisma.$transaction(async (tx: any) => {
             const p = await tx.product.create({
                 data: {
                     name,
@@ -62,15 +63,21 @@ export async function createProduct(formData: FormData) {
                     price,
                     cost,
                     discountPrice,
+                    businessId: result.data.businessId,
                 }
             });
 
             // Put initial stock into Main Warehouse instead of shops
             if (initialStock && initialStock > 0) {
-                let warehouse = await tx.warehouse.findFirst();
+                let warehouse = await tx.warehouse.findFirst({
+                    where: { businessId: result.data.businessId } as any
+                });
                 if (!warehouse) {
                     warehouse = await tx.warehouse.create({
-                        data: { name: 'Main Warehouse' },
+                        data: {
+                            name: 'Main Warehouse',
+                            businessId: result.data.businessId
+                        } as any,
                     });
                 }
 
@@ -234,15 +241,17 @@ export async function bulkCreateProducts(formData: FormData) {
 
                 const { name, sku, barcode, description, price, cost, initialStock } = validation.data;
                 const finalBarcode = barcode || generateEAN13();
+                const businessId = formData.get('businessId') as string;
 
                 // Check for existing
                 const existing = await prisma.product.findFirst({
                     where: {
+                        businessId,
                         OR: [
                             { sku },
                             { barcode: finalBarcode }
                         ]
-                    }
+                    } as any
                 });
 
                 if (existing) {
@@ -251,7 +260,7 @@ export async function bulkCreateProducts(formData: FormData) {
                     continue;
                 }
 
-                await prisma.$transaction(async (tx) => {
+                await prisma.$transaction(async (tx: any) => {
                     const p = await tx.product.create({
                         data: {
                             name,
@@ -260,14 +269,20 @@ export async function bulkCreateProducts(formData: FormData) {
                             description,
                             price,
                             cost,
+                            businessId
                         }
                     });
 
                     if (initialStock && initialStock > 0) {
-                        let warehouse = await tx.warehouse.findFirst();
+                        let warehouse = await tx.warehouse.findFirst({
+                            where: { businessId }
+                        });
                         if (!warehouse) {
                             warehouse = await tx.warehouse.create({
-                                data: { name: 'Main Warehouse' },
+                                data: {
+                                    name: 'Main Warehouse',
+                                    businessId
+                                },
                             });
                         }
 

@@ -4,6 +4,10 @@ import { prisma } from '@/lib/prisma';
 import { Package, FileText, Calendar, DollarSign } from 'lucide-react';
 import { sanitizeData } from '@/lib/utils';
 
+import { getBusinessFilter, getSelectedBusinessId } from '@/app/actions/business';
+
+export const dynamic = 'force-dynamic';
+
 interface InvoicesPageProps {
     searchParams: Promise<{
         startDate?: string;
@@ -16,6 +20,9 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     const params = await searchParams;
     const { startDate, endDate, q } = params;
 
+    const businessFilter = await getBusinessFilter();
+    const selectedBusinessId = await getSelectedBusinessId();
+
     const dateFilter: any = {};
     if (startDate || endDate) {
         dateFilter.date = {};
@@ -27,14 +34,14 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
         }
     }
 
-    const where: any = { ...dateFilter };
+    const where: any = { ...businessFilter, ...dateFilter };
     if (q) {
-        where.number = { contains: q };
+        where.number = { contains: q, mode: 'insensitive' };
     }
 
     const [rawInvoices, rawProducts, rawSuppliers, rawWarehouses, baseCurrency] = await Promise.all([
         prisma.invoice.findMany({
-            where,
+            where: where as any,
             include: {
                 items: {
                     include: { product: true }
@@ -43,9 +50,9 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
             } as any,
             orderBy: { date: 'desc' },
         }),
-        prisma.product.findMany({ orderBy: { name: 'asc' } }),
-        getSuppliers(),
-        prisma.warehouse.findMany({ orderBy: { name: 'asc' } }),
+        prisma.product.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
+        getSuppliers(businessFilter as any),
+        prisma.warehouse.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
         prisma.currency.findFirst({ where: { isBase: true } })
     ]);
 
@@ -101,6 +108,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                     suppliers={suppliers}
                     warehouses={warehouses}
                     currency={currency}
+                    selectedBusinessId={selectedBusinessId}
                 />
             </div>
         </div>

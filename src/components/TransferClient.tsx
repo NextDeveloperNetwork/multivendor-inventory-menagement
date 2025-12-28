@@ -23,9 +23,10 @@ interface TransferClientProps {
     shops: any[];
     warehouses: any[];
     inventory: any[];
+    selectedBusinessId: string | null;
 }
 
-export default function TransferClient({ transfers, products, shops, warehouses, inventory }: TransferClientProps) {
+export default function TransferClient({ transfers, products, shops, warehouses, inventory, selectedBusinessId }: TransferClientProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [showForm, setShowForm] = useState(false);
@@ -137,6 +138,9 @@ export default function TransferClient({ transfers, products, shops, warehouses,
         formData.append('fromId', fromId);
         formData.append('toType', toType);
         formData.append('toId', toId);
+        if (selectedBusinessId) {
+            formData.append('businessId', selectedBusinessId);
+        }
         formData.append('items', JSON.stringify(items.filter(item => item.productId && item.quantity)));
 
         let result;

@@ -7,6 +7,10 @@ import { sanitizeData } from '@/lib/utils';
 import InventoryClient from '@/components/InventoryClient';
 import BulkUploadDialog from '@/components/BulkUploadDialog';
 
+import { getBusinessFilter, getSelectedBusinessId } from '@/app/actions/business';
+
+export const dynamic = 'force-dynamic';
+
 interface InventoryPageProps {
     searchParams: Promise<{
         filter?: string;
@@ -20,15 +24,21 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
     const params = await searchParams;
     const { filter = 'all', shopId, warehouseId, q = '' } = params;
 
+    const businessFilter = await getBusinessFilter();
+    const selectedBusinessId = await getSelectedBusinessId();
+
     // Fetch all needed data
     const [rawProducts, rawShops, rawWarehouses, baseCurrency] = await Promise.all([
         prisma.product.findMany({
-            where: q ? {
-                OR: [
-                    { name: { contains: q } },
-                    { sku: { contains: q } }
-                ]
-            } : {},
+            where: {
+                ...businessFilter,
+                ...(q ? {
+                    OR: [
+                        { name: { contains: q, mode: 'insensitive' } },
+                        { sku: { contains: q, mode: 'insensitive' } }
+                    ]
+                } : {})
+            } as any,
             orderBy: { name: 'asc' },
             include: {
                 inventory: {
@@ -39,8 +49,8 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                 }
             }
         }),
-        prisma.shop.findMany({ orderBy: { name: 'asc' } }),
-        prisma.warehouse.findMany({ orderBy: { name: 'asc' } }),
+        prisma.shop.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
+        prisma.warehouse.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
         prisma.currency.findFirst({ where: { isBase: true } })
     ]);
 
@@ -80,7 +90,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                     </div>
 
                     <div className="flex gap-4">
-                        <BulkUploadDialog />
+                        <BulkUploadDialog selectedBusinessId={selectedBusinessId} />
                         <Link href="/admin/inventory/new" className="h-16 px-10 bg-black text-white rounded-2xl font-bold shadow-2xl shadow-blue-500/10 hover:bg-blue-600 transition-all active:scale-[0.98] flex items-center gap-4 uppercase tracking-[0.2em] text-xs border-2 border-black">
                             <Plus size={24} /> Add New Catalog Item
                         </Link>
