@@ -16,6 +16,7 @@ const productSchema = z.object({
     discountPrice: z.coerce.number().optional().nullable(),
     initialStock: z.coerce.number().optional(), // Added for convenience
     businessId: z.string().optional().nullable(),
+    imageUrl: z.string().optional().nullable(),
 });
 
 export async function createProduct(formData: FormData) {
@@ -33,7 +34,7 @@ export async function createProduct(formData: FormData) {
     }
 
     try {
-        const { name, sku, barcode, description, price, cost, discountPrice, initialStock } = result.data;
+        const { name, sku, barcode, description, price, cost, discountPrice, initialStock, imageUrl } = result.data;
         const finalBarcode = barcode || generateEAN13();
 
         const existing = await prisma.product.findFirst({
@@ -63,6 +64,7 @@ export async function createProduct(formData: FormData) {
                     price,
                     cost,
                     discountPrice,
+                    imageUrl,
                     businessId: result.data.businessId,
                 }
             });

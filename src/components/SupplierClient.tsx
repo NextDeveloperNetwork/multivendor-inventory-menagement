@@ -109,7 +109,7 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
             {!showForm && (
                 <button
                     onClick={() => setShowForm(true)}
-                    className="bg-black text-white px-10 py-5 rounded-2xl font-bold uppercase tracking-[0.2em] shadow-2xl hover:bg-blue-600 transition-all active:scale-95 flex items-center gap-4 text-sm"
+                    className="bg-primary text-white px-10 py-5 rounded-2xl font-bold uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:opacity-90 transition-all active:scale-95 flex items-center gap-4 text-sm"
                 >
                     <Plus size={20} />
                     Register New Supplier
@@ -118,17 +118,17 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
 
             {/* Supplier Form */}
             {showForm && (
-                <div className="bg-blue-50 border-2 border-blue-100 rounded-[2.5rem] shadow-2xl shadow-blue-500/5 p-12 lg:p-16 animate-in slide-in-from-top-4 duration-500">
-                    <div className="flex justify-between items-center mb-12 pb-8 border-b border-blue-100">
+                <div className="bg-primary/[0.02] border-2 border-primary/10 rounded-[2.5rem] shadow-sm p-12 lg:p-16 animate-in slide-in-from-top-4 duration-500">
+                    <div className="flex justify-between items-center mb-12 pb-8 border-b border-primary/10">
                         <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 bg-white border-2 border-blue-100 rounded-2xl flex items-center justify-center text-blue-500 shadow-sm">
+                            <div className="w-16 h-16 bg-white border border-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-sm">
                                 <Users size={32} />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-black text-black tracking-tighter uppercase italic">
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic line-through decoration-primary/30">
                                     {editingSupplier ? 'Modify Registry' : 'Supplier Interface'}
                                 </h2>
-                                <p className="text-[11px] font-bold text-blue-400 uppercase tracking-widest mt-2">
+                                <p className="text-[11px] font-bold text-primary uppercase tracking-widest mt-1 opacity-60">
                                     {editingSupplier ? 'Synchronizing existing node parameters' : 'Initializing new external resource node'}
                                 </p>
                             </div>
@@ -150,7 +150,7 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
                                     type="text"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-6 h-16 bg-white border-2 border-blue-100 rounded-2xl text-black font-bold focus:border-blue-400 transition-all outline-none text-sm placeholder:text-blue-100"
+                                    className="w-full px-6 h-16 bg-white border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary transition-all outline-none text-sm placeholder:text-slate-200"
                                     placeholder="e.g. Global Logistics Corp"
                                     required
                                 />
@@ -163,7 +163,7 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full px-6 h-16 bg-white border-2 border-blue-100 rounded-2xl text-black font-bold focus:border-blue-400 transition-all outline-none text-sm placeholder:text-blue-100"
+                                    className="w-full px-6 h-16 bg-white border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary transition-all outline-none text-sm placeholder:text-slate-200"
                                     placeholder="contact@entity-node.com"
                                 />
                             </div>
@@ -175,7 +175,7 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
                                     type="tel"
                                     value={formData.phone}
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    className="w-full px-6 h-16 bg-white border-2 border-blue-100 rounded-2xl text-black font-bold focus:border-blue-400 transition-all outline-none text-sm placeholder:text-blue-100"
+                                    className="w-full px-6 h-16 bg-white border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary transition-all outline-none text-sm placeholder:text-slate-200"
                                     placeholder="+1-800-SUPPLY-OPS"
                                 />
                             </div>
@@ -187,7 +187,7 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
                                     type="text"
                                     value={formData.latitude}
                                     onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                                    className="w-full px-6 h-16 bg-white border-2 border-blue-100 rounded-2xl text-black font-bold focus:border-blue-400 transition-all outline-none text-sm placeholder:text-blue-100"
+                                    className="w-full px-6 h-16 bg-white border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary transition-all outline-none text-sm placeholder:text-slate-200"
                                     placeholder="e.g. 51.5074"
                                 />
                             </div>
@@ -199,7 +199,7 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
                                     type="text"
                                     value={formData.longitude}
                                     onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                                    className="w-full px-6 h-16 bg-white border-2 border-blue-100 rounded-2xl text-black font-bold focus:border-blue-400 transition-all outline-none text-sm placeholder:text-blue-100"
+                                    className="w-full px-6 h-16 bg-white border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary transition-all outline-none text-sm placeholder:text-slate-200"
                                     placeholder="e.g. -0.1278"
                                 />
                             </div>
@@ -218,14 +218,14 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex-1 h-20 bg-black text-white rounded-[2rem] font-bold shadow-2xl hover:bg-blue-600 transition-all active:scale-[0.98] uppercase tracking-[0.3em] text-sm disabled:opacity-30 border-2 border-black"
+                                className="flex-1 h-16 bg-primary text-white rounded-2xl font-bold shadow-xl shadow-primary/20 hover:opacity-90 transition-all active:scale-[0.98] uppercase tracking-widest text-xs disabled:opacity-30"
                             >
                                 {loading ? 'SYNCHRONIZING...' : editingSupplier ? 'Commit Updates' : 'Initialize Registry Entry'}
                             </button>
                             <button
                                 type="button"
                                 onClick={resetForm}
-                                className="px-12 h-20 bg-white text-blue-300 rounded-[2rem] font-bold hover:text-black border-2 border-blue-100 hover:border-black transition-all uppercase tracking-widest text-xs shadow-sm hover:shadow-xl hover:shadow-black/5"
+                                className="px-12 h-16 bg-white text-slate-400 rounded-2xl font-bold hover:text-rose-500 border border-slate-200 hover:border-rose-100 transition-all uppercase tracking-widest text-[10px] shadow-sm"
                             >
                                 Abort
                             </button>
@@ -246,22 +246,22 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
                     </div>
                 ) : (
                     suppliers.map((supplier) => (
-                        <div key={supplier.id} className="bg-blue-50 border-2 border-blue-100 rounded-[2rem] p-10 hover:shadow-[0_30px_60px_-15px_rgba(59,130,246,0.1)] hover:border-blue-400 hover:bg-white transition-all group relative overflow-hidden">
+                        <div key={supplier.id} className="bg-white border border-slate-100 rounded-[2rem] p-10 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20 transition-all group relative overflow-hidden">
                             <div className="flex justify-between items-start mb-10 relative z-10">
-                                <div className="w-16 h-16 bg-white border-2 border-blue-100 rounded-2xl flex items-center justify-center group-hover:bg-blue-500 group-hover:border-blue-500 transition-all shadow-sm">
-                                    <Users className="text-blue-400 group-hover:text-white" size={28} />
+                                <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all shadow-sm">
+                                    <Users className="text-slate-400 group-hover:text-white" size={28} />
                                 </div>
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => handleEdit(supplier)}
-                                        className="p-3.5 text-blue-200 hover:text-black bg-white rounded-xl shadow-sm border border-blue-50 transition-all"
+                                        className="p-3.5 text-slate-300 hover:text-primary bg-white rounded-xl shadow-sm border border-slate-100 transition-all"
                                         title="Edit Entity"
                                     >
                                         <Edit2 size={20} />
                                     </button>
                                     <button
                                         onClick={() => setDeleteId(supplier.id)}
-                                        className="p-3.5 text-blue-200 hover:text-red-500 bg-white rounded-xl shadow-sm border border-blue-50 transition-all"
+                                        className="p-3.5 text-slate-300 hover:text-rose-500 bg-white rounded-xl shadow-sm border border-slate-100 transition-all"
                                         title="Purge Registry"
                                     >
                                         <Trash2 size={20} />

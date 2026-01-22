@@ -8,7 +8,7 @@ interface CardProps {
 
 export function Card({ children, className = '', hover = true }: CardProps) {
     return (
-        <div className={`bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm ${hover ? 'transition-all duration-300 hover:border-blue-600/50 hover:shadow-xl hover:shadow-blue-900/5 hover:-translate-y-1' : ''} ${className}`}>
+        <div className={`bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm ${hover ? 'transition-all duration-300 hover:border-primary/50 hover:shadow-xl hover:shadow-black/5' : ''} ${className}`}>
             {children}
         </div>
     );
@@ -34,16 +34,6 @@ export function CardTitle({
     return <h3 className={`text-xs font-bold tracking-widest text-slate-500 uppercase ${className}`}>{children}</h3>;
 }
 
-export function CardContent({
-    children,
-    className = '',
-}: {
-    children: React.ReactNode;
-    className?: string;
-}) {
-    return <div className={`p-6 ${className}`}>{children}</div>;
-}
-
 export function CardValue({
     value,
     trend,
@@ -61,7 +51,7 @@ export function CardValue({
                 <div className="text-3xl font-black text-slate-900 tracking-tight">{value}</div>
 
                 {Icon && (
-                    <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-blue-600">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-primary">
                         <Icon className="w-6 h-6" />
                     </div>
                 )}
@@ -77,4 +67,14 @@ export function CardValue({
             )}
         </div>
     );
+}
+
+export function CardContent({
+    children,
+    className = '',
+}: {
+    children: React.ReactNode;
+    className?: string;
+}) {
+    return <div className={`p-6 ${className}`}>{children}</div>;
 }

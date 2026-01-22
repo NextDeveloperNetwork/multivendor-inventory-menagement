@@ -75,20 +75,25 @@ export default async function AdminDashboard() {
             {/* Header */}
             <MotionWrapper className="flex flex-col md:flex-row justify-between items-start gap-6">
                 <div>
-                    <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
-                        Admin <span className="text-blue-600">Command</span>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+                        Dashboard
                     </h1>
-                    <p className="mt-3 text-slate-500 max-w-xl">
-                        Operational visibility across inventory, revenue, and terminals.
+                    <p className="mt-2 text-slate-400 font-medium text-sm italic">
+                        Real-time operational intelligence
                     </p>
                 </div>
 
-                <Link
-                    href="/admin/inventory/new"
-                    className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition"
-                >
-                    + New Asset
-                </Link>
+                <div className="flex gap-4">
+                    <button className="px-4 py-2 bg-slate-50 text-slate-500 font-bold rounded-xl border border-slate-100 text-xs uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center gap-2">
+                        <Package size={14} /> Add Widget
+                    </button>
+                    <Link
+                        href="/admin/inventory/new"
+                        className="px-6 py-2 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all flex items-center gap-2 text-xs uppercase tracking-widest"
+                    >
+                        <ShoppingCart size={14} /> New Asset
+                    </Link>
+                </div>
             </MotionWrapper>
 
             {/* Top Metrics */}
@@ -126,8 +131,8 @@ export default async function AdminDashboard() {
                 <div className="lg:col-span-1 flex flex-col gap-6">
                     <Card className="rounded-2xl">
                         <CardHeader className="flex justify-between items-center">
-                            <CardTitle>Shops</CardTitle>
-                            <Link href="/admin/shops" className="text-sm text-blue-600 hover:underline">View all</Link>
+                            <CardTitle>Partner Shops</CardTitle>
+                            <Link href="/admin/shops" className="text-xs font-bold text-primary hover:underline uppercase tracking-widest">Global View</Link>
                         </CardHeader>
                         <CardContent className="space-y-2">
                             {shopSalesData.map(shop => (
@@ -162,9 +167,9 @@ export default async function AdminDashboard() {
                             ) : (
                                 recentSales.map(sale => (
                                     <SaleDetailsDialog key={sale.id} sale={sale}>
-                                        <div className="flex flex-col sm:flex-row justify-between p-6 hover:bg-slate-50 transition border-l-4 border-l-transparent hover:border-l-blue-600 group">
+                                        <div className="flex flex-col sm:flex-row justify-between p-6 hover:bg-slate-50/50 transition border-l-4 border-l-transparent hover:border-l-primary group">
                                             <div className="flex items-start gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                                <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all transform group-hover:rotate-6">
                                                     <ShoppingCart size={20} />
                                                 </div>
                                                 <div>
@@ -209,9 +214,9 @@ export default async function AdminDashboard() {
 // Metric Component
 function Metric({ label, value, icon: Icon }: { label: string; value: any; icon: any }) {
     return (
-        <Card className="rounded-3xl">
-            <CardContent className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+        <Card className="rounded-[2rem]">
+            <CardContent className="flex items-center gap-4 py-8">
+                <div className="w-12 h-12 rounded-2xl bg-primary/5 text-primary flex items-center justify-center">
                     <Icon size={20} />
                 </div>
                 <div>

@@ -22,10 +22,15 @@ import {
     Minus,
     Copy,
     Barcode,
-    AlertTriangle
+    AlertTriangle,
+    LayoutGrid,
+    List,
+    HelpCircle,
+    Image as ImageIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logActivity } from '@/app/actions/intelligence';
+import ImageUpload from './ImageUpload';
 import { formatCurrency, generateEAN13 } from '@/lib/utils';
 import BarcodeScanner from './BarcodeScanner';
 import {
@@ -55,6 +60,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
     const [historyProduct, setHistoryProduct] = useState<any>(null);
     const [showScanner, setShowScanner] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [viewMode, setViewMode] = useState<'table' | 'catalog'>('catalog');
     const router = useRouter();
 
     const filteredProducts = initialProducts.filter(p =>
@@ -120,162 +126,258 @@ export default function InventoryClient({ products: initialProducts, filter, sho
 
     return (
         <div className="space-y-8">
-            {/* Search Bar */}
-            <div className="flex gap-4 max-w-xl mx-auto xl:mx-0">
-                <div className="relative group flex-1">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search global assets..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full h-16 pl-16 pr-6 bg-white border-2 border-slate-100 rounded-[1.5rem] font-bold text-black focus:border-blue-400 outline-none transition-all shadow-sm placeholder:text-slate-300"
-                    />
+            {/* Search Bar & View Toggle */}
+            <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+                <div className="flex gap-4 w-full md:max-w-xl">
+                    <div className="relative group flex-1">
+                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Search global assets..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full h-14 pl-16 pr-6 bg-white border border-slate-200 rounded-2xl font-bold text-black focus:border-primary outline-none transition-all shadow-sm placeholder:text-slate-300"
+                        />
+                    </div>
+                    <button
+                        onClick={() => setShowScanner(true)}
+                        className="h-14 px-6 bg-slate-100 text-slate-900 border border-slate-200 rounded-2xl shadow-sm hover:bg-slate-200 transition-all flex items-center gap-3 active:scale-95"
+                    >
+                        <Camera size={20} />
+                        <span className="hidden sm:inline font-bold text-xs uppercase tracking-widest">Scan</span>
+                    </button>
                 </div>
-                <button
-                    onClick={() => setShowScanner(true)}
-                    className="h-16 px-6 bg-blue-600 text-white rounded-[1.5rem] shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center gap-3 active:scale-95"
-                >
-                    <Camera size={24} />
-                    <span className="hidden sm:inline font-black uppercase text-[10px] tracking-widest">Scan</span>
-                </button>
+
+                <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shrink-0">
+                    <button
+                        onClick={() => setViewMode('catalog')}
+                        className={`px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-all ${viewMode === 'catalog' ? 'bg-white text-primary shadow-sm shadow-black/5' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                        <LayoutGrid size={16} />
+                        <span>Catalog</span>
+                    </button>
+                    <button
+                        onClick={() => setViewMode('table')}
+                        className={`px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-all ${viewMode === 'table' ? 'bg-white text-primary shadow-sm shadow-black/5' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                        <List size={16} />
+                        <span>Table</span>
+                    </button>
+                </div>
             </div>
 
-            <div className="hidden md:block bg-white border-2 border-slate-50 rounded-[2.5rem] overflow-hidden shadow-xl shadow-slate-200/40">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-100">
-                                <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Component / identifier</th>
-                                <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Valuation</th>
-                                <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Avg Unit Cost</th>
-                                <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Registry Stock</th>
-                                <th className="px-10 py-8 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Command</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {filteredProducts.map((product) => {
-                                let stock = 0;
-                                if (filter === 'all') {
-                                    stock = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                                } else if (filter === 'warehouse') {
-                                    stock = product.inventory
-                                        .filter((inv: any) => inv.warehouseId !== null)
-                                        .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                                } else if (filter === 'shops') {
-                                    stock = product.inventory
-                                        .filter((inv: any) => inv.shopId !== null)
-                                        .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                                } else if (filter === 'specific_shop' && shopId) {
-                                    stock = product.inventory
-                                        .filter((inv: any) => inv.shopId === shopId)
-                                        .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                                } else if (filter === 'specific_warehouse' && warehouseId) {
-                                    stock = product.inventory
-                                        .filter((inv: any) => inv.warehouseId === warehouseId)
-                                        .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                                }
+            {viewMode === 'table' ? (
+                <div className="hidden md:block bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead>
+                                <tr className="bg-slate-50/50 border-b border-slate-100">
+                                    <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Component / identifier</th>
+                                    <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Valuation</th>
+                                    <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Avg Unit Cost</th>
+                                    <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Registry Stock</th>
+                                    <th className="px-10 py-8 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Command</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {filteredProducts.map((product) => {
+                                    let stock = 0;
+                                    if (filter === 'all') {
+                                        stock = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                                    } else if (filter === 'warehouse') {
+                                        stock = product.inventory
+                                            .filter((inv: any) => inv.warehouseId !== null)
+                                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                                    } else if (filter === 'shops') {
+                                        stock = product.inventory
+                                            .filter((inv: any) => inv.shopId !== null)
+                                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                                    } else if (filter === 'specific_shop' && shopId) {
+                                        stock = product.inventory
+                                            .filter((inv: any) => inv.shopId === shopId)
+                                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                                    } else if (filter === 'specific_warehouse' && warehouseId) {
+                                        stock = product.inventory
+                                            .filter((inv: any) => inv.warehouseId === warehouseId)
+                                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                                    }
 
-                                return (
-                                    <tr key={product.id} className="hover:bg-slate-50/50 transition-all group">
-                                        <td className="px-10 py-8">
-                                            <button
-                                                onClick={() => setHistoryProduct(product)}
-                                                className="flex items-center gap-4 text-left group/name"
-                                            >
-                                                <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner">
-                                                    <Package size={20} />
-                                                </div>
-                                                <div>
-                                                    <div className="font-black text-black uppercase tracking-tight italic text-base group-hover/name:text-blue-600 transition-colors underline decoration-transparent group-hover/name:decoration-blue-200 underline-offset-4">{product.name}</div>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <div className="text-[10px] text-slate-400 font-bold font-mono uppercase tracking-widest">SKU: {product.sku}</div>
-                                                        {product.barcode && (
-                                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-500 rounded-md border border-blue-100">
-                                                                <Barcode size={10} />
-                                                                <span className="text-[8px] font-black font-mono">{product.barcode}</span>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        navigator.clipboard.writeText(product.barcode);
-                                                                        toast.success('Barcode Copied: ' + product.barcode);
-                                                                    }}
-                                                                    className="hover:text-blue-700 transition-colors"
-                                                                    title="Copy Barcode"
-                                                                >
-                                                                    <Copy size={10} />
-                                                                </button>
-                                                            </div>
+                                    return (
+                                        <tr key={product.id} className="hover:bg-slate-50/50 transition-all group">
+                                            <td className="px-10 py-8">
+                                                <button
+                                                    onClick={() => setHistoryProduct(product)}
+                                                    className="flex items-center gap-4 text-left group/name"
+                                                >
+                                                    <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner overflow-hidden border border-slate-100">
+                                                        {product.imageUrl ? (
+                                                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Package size={20} />
                                                         )}
                                                     </div>
+                                                    <div>
+                                                        <div className="font-black text-black uppercase tracking-tight italic text-base group-hover/name:text-blue-600 transition-colors underline decoration-transparent group-hover/name:decoration-blue-200 underline-offset-4">{product.name}</div>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <div className="text-[10px] text-slate-400 font-bold font-mono uppercase tracking-widest">SKU: {product.sku}</div>
+                                                            {product.barcode && (
+                                                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-500 rounded-md border border-blue-100">
+                                                                    <Barcode size={10} />
+                                                                    <span className="text-[8px] font-black font-mono">{product.barcode}</span>
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            navigator.clipboard.writeText(product.barcode);
+                                                                            toast.success('Barcode Copied: ' + product.barcode);
+                                                                        }}
+                                                                        className="hover:text-blue-700 transition-colors"
+                                                                        title="Copy Barcode"
+                                                                    >
+                                                                        <Copy size={10} />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            </td>
+                                            <td className="px-10 py-8">
+                                                <div className="text-black font-black text-lg font-mono tracking-tighter italic">{formatCurrency(product.price, symbol)}</div>
+                                                <div className="text-[9px] text-blue-500 font-black uppercase tracking-[0.2em] mt-1 italic">Selling Price</div>
+                                            </td>
+                                            <td className="px-10 py-8">
+                                                <div className="text-slate-900 font-black text-xs font-mono tracking-widest italic">{formatCurrency(product.cost, symbol)}</div>
+                                                <div className="text-[9px] text-blue-400 font-black uppercase tracking-[0.2em] mt-1 italic">Weighted Avg Cost</div>
+                                            </td>
+                                            <td className="px-10 py-8">
+                                                <div className={`inline-flex px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 shadow-sm ${stock > 10 ? 'bg-white text-blue-600 border-blue-100' :
+                                                    stock > 0 ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                                                        'bg-black text-white border-black'
+                                                    }`}>
+                                                    {stock} Units
                                                 </div>
-                                            </button>
-                                        </td>
-                                        <td className="px-10 py-8">
-                                            <div className="text-black font-black text-lg font-mono tracking-tighter italic">{formatCurrency(product.price, symbol)}</div>
-                                            <div className="text-[9px] text-blue-500 font-black uppercase tracking-[0.2em] mt-1 italic">Selling Price</div>
-                                        </td>
-                                        <td className="px-10 py-8">
-                                            <div className="text-slate-900 font-black text-xs font-mono tracking-widest italic">{formatCurrency(product.cost, symbol)}</div>
-                                            <div className="text-[9px] text-blue-400 font-black uppercase tracking-[0.2em] mt-1 italic">Weighted Avg Cost</div>
-                                        </td>
-                                        <td className="px-10 py-8">
-                                            <div className={`inline-flex px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 shadow-sm ${stock > 10 ? 'bg-white text-blue-600 border-blue-100' :
-                                                stock > 0 ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                                                    'bg-black text-white border-black'
-                                                }`}>
-                                                {stock} Units
-                                            </div>
-                                        </td>
-                                        <td className="px-10 py-8 text-right">
-                                            <div className="flex items-center justify-end gap-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform translate-x-0 lg:translate-x-4 lg:group-hover:translate-x-0">
-                                                {product.barcode && (
-                                                    <button
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(product.barcode);
-                                                            toast.success('Barcode Copied: ' + product.barcode);
-                                                        }}
-                                                        className="w-10 h-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-400 transition-all shadow-sm"
-                                                        title="Copy Barcode"
-                                                    >
-                                                        <Copy size={18} />
-                                                    </button>
-                                                )}
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => setEditingProduct(product)}
-                                                        className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100 hover:border-blue-500"
-                                                        title="Edit Product"
-                                                    >
-                                                        <Edit2 size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleReportDamage(product)}
-                                                        className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all shadow-sm border border-amber-100 hover:border-amber-500"
-                                                        title="Report Damage / QC"
-                                                    >
-                                                        <AlertTriangle size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setProductToDelete(product);
-                                                            setIsDeleteDialogOpen(true);
-                                                        }}
-                                                        className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm border border-rose-100 hover:border-rose-500"
-                                                        title="Delete Product"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
+                                            </td>
+                                            <td className="px-10 py-8 text-right">
+                                                <div className="flex items-center justify-end gap-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform translate-x-0 lg:translate-x-4 lg:group-hover:translate-x-0">
+                                                    {product.barcode && (
+                                                        <button
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(product.barcode);
+                                                                toast.success('Barcode Copied: ' + product.barcode);
+                                                            }}
+                                                            className="w-10 h-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-400 transition-all shadow-sm"
+                                                            title="Copy Barcode"
+                                                        >
+                                                            <Copy size={18} />
+                                                        </button>
+                                                    )}
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => setEditingProduct(product)}
+                                                            className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100 hover:border-blue-500"
+                                                            title="Edit Product"
+                                                        >
+                                                            <Edit2 size={18} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleReportDamage(product)}
+                                                            className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all shadow-sm border border-amber-100 hover:border-amber-500"
+                                                            title="Report Damage / QC"
+                                                        >
+                                                            <AlertTriangle size={18} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setProductToDelete(product);
+                                                                setIsDeleteDialogOpen(true);
+                                                            }}
+                                                            className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm border border-rose-100 hover:border-rose-500"
+                                                            title="Delete Product"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredProducts.map((product) => {
+                        let stock = 0;
+                        if (filter === 'all') {
+                            stock = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                        } else if (filter === 'warehouse') {
+                            stock = product.inventory.filter((inv: any) => inv.warehouseId !== null).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                        } else if (filter === 'shops') {
+                            stock = product.inventory.filter((inv: any) => inv.shopId !== null).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                        } else if (filter === 'specific_shop' && shopId) {
+                            stock = product.inventory.filter((inv: any) => inv.shopId === shopId).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                        } else if (filter === 'specific_warehouse' && warehouseId) {
+                            stock = product.inventory.filter((inv: any) => inv.warehouseId === warehouseId).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                        }
+
+                        return (
+                            <div key={product.id} className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group/card flex flex-col">
+                                <div className="aspect-[4/3] bg-slate-50 relative overflow-hidden flex items-center justify-center group-hover/card:scale-105 transition-transform duration-500">
+                                    {product.imageUrl ? (
+                                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-2 text-slate-300">
+                                            <ImageIcon size={48} strokeWidth={1} />
+                                            <span className="text-[10px] font-bold uppercase tracking-widest">No Image</span>
+                                        </div>
+                                    )}
+                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                        <button onClick={() => setEditingProduct(product)} className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-600 hover:text-primary shadow-sm border border-slate-200/50">
+                                            <Edit2 size={16} />
+                                        </button>
+                                        <button onClick={() => { setProductToDelete(product); setIsDeleteDialogOpen(true); }} className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-600 hover:text-rose-500 shadow-sm border border-slate-200/50">
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                    <div className="absolute bottom-4 left-4">
+                                        <div className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm ${stock > 10 ? 'bg-white text-emerald-600 border-emerald-100' :
+                                            stock > 0 ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                                                'bg-black text-white border-black'
+                                            }`}>
+                                            {stock} Units
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-6 space-y-4 flex-1 flex flex-col">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <div className="min-w-0">
+                                            <h3 className="font-bold text-slate-900 leading-tight uppercase truncate">{product.name}</h3>
+                                            <p className="text-[10px] text-slate-400 font-mono font-bold mt-1 uppercase tracking-widest">SKU: {product.sku}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="font-mono font-black text-primary text-xl tracking-tighter italic">{formatCurrency(product.price, symbol)}</div>
+                                            <div className="text-[8px] text-slate-400 font-bold uppercase">MSRP</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 mt-auto border-t border-slate-50 flex items-center justify-between">
+                                        <button onClick={() => setHistoryProduct(product)} className="text-[10px] font-bold text-slate-400 hover:text-primary flex items-center gap-1.5 uppercase tracking-widest transition-colors">
+                                            <TrendingUp size={14} />
+                                            <span>History</span>
+                                        </button>
+                                        <button onClick={() => handleReportDamage(product)} className="text-[10px] font-bold text-slate-400 hover:text-amber-600 flex items-center gap-1.5 uppercase tracking-widest transition-colors">
+                                            <AlertTriangle size={14} />
+                                            <span>Log Damage</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Mobile View */}
             <div className="grid grid-cols-1 gap-4 md:hidden">
@@ -428,6 +530,15 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                         <div className="space-y-3">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Telemetry Description</label>
                             <textarea name="description" defaultValue={editingProduct?.description} className="w-full h-32 p-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs resize-none" />
+                        </div>
+
+                        <div className="bg-slate-50 p-6 rounded-[2rem] border-2 border-slate-50">
+                            <ImageUpload
+                                value={editingProduct?.imageUrl || ''}
+                                onChange={(url) => setEditingProduct({ ...editingProduct!, imageUrl: url })}
+                                label="Update Visual Meta"
+                            />
+                            <input type="hidden" name="imageUrl" value={editingProduct?.imageUrl || ''} />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

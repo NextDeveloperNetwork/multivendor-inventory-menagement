@@ -75,24 +75,24 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-2">
-                    <h1 className="text-6xl font-black uppercase tracking-tighter italic text-black">
-                        Personnel <span className="text-blue-600">Registry</span>
+                    <h1 className="text-6xl font-black uppercase tracking-tighter italic text-slate-900">
+                        Personnel <span className="text-primary">Registry</span>
                     </h1>
-                    <p className="text-slate-400 font-bold uppercase text-xs tracking-widest pl-2 border-l-4 border-blue-500">
+                    <p className="text-slate-400 font-bold uppercase text-xs tracking-widest pl-2 border-l-4 border-primary">
                         Managing {users.length} Active Node Operators
                     </p>
                 </div>
 
                 <div className="relative group w-full md:w-96">
                     <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                        <Search className="h-5 w-5 text-slate-300 group-focus-within:text-primary transition-colors" />
                     </div>
                     <input
                         type="text"
                         placeholder="SEARCH OPERATORS..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-14 pr-8 py-5 bg-white border-2 border-slate-100 rounded-3xl text-sm font-black uppercase tracking-widest outline-none focus:border-blue-500 shadow-xl shadow-slate-200/50 transition-all"
+                        className="w-full pl-14 pr-8 py-5 bg-white border border-slate-200 rounded-3xl text-sm font-black uppercase tracking-widest outline-none focus:border-primary shadow-sm focus:shadow-xl focus:shadow-primary/5 transition-all"
                     />
                 </div>
             </div>
@@ -106,13 +106,13 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                         </div>
 
                         <div className="flex items-start justify-between relative">
-                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
+                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-primary shadow-inner group-hover:bg-primary group-hover:text-white transition-all duration-500">
                                 {user.role === 'ADMIN' ? <ShieldCheck size={32} /> : <User size={32} />}
                             </div>
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setEditingUser(user)}
-                                    className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-all"
+                                    className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-primary/5 hover:text-primary transition-all"
                                 >
                                     <Edit2 size={18} />
                                 </button>
@@ -138,7 +138,7 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                             </div>
 
                             <div className="pt-4 flex flex-wrap gap-2">
-                                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${user.role === 'ADMIN' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
+                                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${user.role === 'ADMIN' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-primary/5 text-primary border border-primary/10'
                                     }`}>
                                     <Shield size={10} />
                                     {user.role}
@@ -157,13 +157,13 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
             {/* EDIT MODAL */}
             <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
                 <DialogContent className="max-w-md bg-white rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
-                    <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-8 text-white relative">
+                    <div className="bg-gradient-to-br from-primary to-primary/80 p-8 text-white relative">
                         <div className="absolute top-0 right-0 p-8 opacity-10">
                             <ShieldAlert size={120} />
                         </div>
                         <DialogHeader>
                             <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">Identity Management</DialogTitle>
-                            <DialogDescription className="text-blue-100 font-bold uppercase text-[10px] tracking-widest mt-2 px-1 border-l-4 border-white/30">
+                            <DialogDescription className="text-white/70 font-bold uppercase text-[10px] tracking-widest mt-2 px-1 border-l-4 border-white/30">
                                 Updating Node Permissions
                             </DialogDescription>
                         </DialogHeader>

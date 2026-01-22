@@ -114,46 +114,46 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
     return (
         <div className="space-y-12 bg-white p-4">
             {/* Controls Bar */}
-            <div className="flex flex-col md:flex-row gap-8 items-center justify-between bg-blue-50 p-8 rounded-[2.5rem] border-2 border-blue-100 shadow-xl shadow-blue-500/5">
-                <div className="flex flex-wrap items-center gap-6">
+            <div className="flex flex-col md:flex-row gap-8 items-center justify-between bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+                <div className="relative z-10 flex flex-wrap items-center gap-6">
                     {!showForm && (
                         <button
                             onClick={() => setShowForm(true)}
-                            className="bg-black text-white px-10 py-4 rounded-2xl font-bold uppercase tracking-widest shadow-2xl hover:bg-blue-600 transition-all active:scale-95 flex items-center gap-4 text-sm"
+                            className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-primary transition-all active:scale-95 flex items-center gap-4 text-sm"
                         >
                             <Plus size={20} />
                             Log New Invoice
                         </button>
                     )}
 
-                    <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border-2 border-blue-100 shadow-sm">
-                        <div className="flex items-center gap-4 px-4">
-                            <Calendar size={20} className="text-blue-300" />
+                    <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-200 shadow-inner font-mono">
+                        <div className="flex items-center gap-4 px-4 border-r border-slate-200">
+                            <Calendar size={20} className="text-slate-400" />
                             <input
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => updateFilters('startDate', e.target.value)}
-                                className="bg-transparent border-none text-xs font-bold focus:ring-0 text-black uppercase"
+                                className="bg-transparent border-none text-[10px] font-black focus:ring-0 text-slate-900 uppercase tracking-widest"
                             />
                         </div>
-                        <div className="text-blue-100 font-black text-xs">—</div>
                         <div className="flex items-center gap-4 px-4">
                             <input
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => updateFilters('endDate', e.target.value)}
-                                className="bg-transparent border-none text-xs font-bold focus:ring-0 text-black uppercase"
+                                className="bg-transparent border-none text-[10px] font-black focus:ring-0 text-slate-900 uppercase tracking-widest"
                             />
                         </div>
                     </div>
                 </div>
 
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-300" size={24} />
+                <div className="relative group w-full md:w-96 z-10">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={24} />
                     <input
                         type="text"
                         placeholder="Search Ledger ID..."
-                        className="w-full pl-14 pr-6 h-14 bg-white border-2 border-blue-100 rounded-2xl text-sm font-bold placeholder:text-blue-200 focus:border-blue-400 transition-all outline-none shadow-sm text-black"
+                        className="w-full pl-14 pr-6 h-14 bg-white border border-slate-200 rounded-2xl text-sm font-bold placeholder:text-slate-300 focus:border-primary transition-all outline-none shadow-sm text-slate-900"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') updateFilters('q', (e.target as HTMLInputElement).value);
                         }}
@@ -162,16 +162,16 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
             </div>
 
             {showForm && (
-                <div className="bg-white border-2 border-blue-100 rounded-[3rem] shadow-2xl shadow-blue-500/10 overflow-hidden animate-in slide-in-from-top-4 duration-500 max-h-[90vh] flex flex-col">
+                <div className="bg-white border border-slate-100 rounded-[3rem] shadow-2xl shadow-primary/5 overflow-hidden animate-in slide-in-from-top-4 duration-500 max-h-[90vh] flex flex-col">
                     {/* Form Header */}
-                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-10 text-white flex justify-between items-center shrink-0">
+                    <div className="bg-gradient-to-r from-primary to-primary/80 p-10 text-white flex justify-between items-center shrink-0">
                         <div className="flex items-center gap-6">
                             <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white shadow-xl">
                                 <FileText size={32} />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-black tracking-tight uppercase">New Invoice</h2>
-                                <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-2">Create Procurement Record</p>
+                                <h2 className="text-3xl font-black tracking-tight uppercase italic">New Invoice</h2>
+                                <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-2 px-1 border-l-4 border-white/30">Create Procurement Record</p>
                             </div>
                         </div>
                         <button
@@ -191,37 +191,37 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                     <form onSubmit={handleSubmit} className="p-10 grid grid-cols-1 lg:grid-cols-3 gap-10 overflow-y-auto">
                         {/* Left Column: Metadata */}
                         <div className="space-y-8">
-                            <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-[2rem] border-2 border-blue-100 space-y-8 shadow-sm">
-                                <h3 className="text-[11px] font-black text-blue-600 uppercase tracking-widest border-b-2 border-blue-200 pb-4">Invoice Details</h3>
+                            <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 space-y-8 shadow-sm">
+                                <h3 className="text-[11px] font-black text-primary uppercase tracking-widest border-b border-slate-200 pb-4">Invoice Details</h3>
 
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-2">Invoice Number</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Invoice Number</label>
                                     <div className="relative group">
-                                        <Hash className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-blue-600 transition-colors" size={18} />
+                                        <Hash className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={18} />
                                         <input
                                             type="text"
                                             value={invoiceNumber}
                                             onChange={(e) => setInvoiceNumber(e.target.value)}
                                             placeholder="INV-001"
-                                            className="w-full h-14 pl-14 pr-6 bg-white border-2 border-blue-200 rounded-xl font-bold text-slate-900 focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 outline-none uppercase text-sm transition-all"
+                                            className="w-full h-14 pl-14 pr-6 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-primary focus:shadow-lg focus:shadow-primary/5 outline-none uppercase text-sm transition-all"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center px-2">
-                                        <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Supplier</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Supplier</label>
                                         <QuickAddSupplierDialog onAdd={(s) => {
                                             setSupplierId(s.id);
                                             router.refresh();
                                         }} />
                                     </div>
                                     <div className="relative group">
-                                        <Store className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-blue-600 transition-colors" size={18} />
+                                        <Store className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={18} />
                                         <select
                                             value={supplierId}
                                             onChange={(e) => setSupplierId(e.target.value)}
-                                            className="w-full h-14 pl-14 pr-12 bg-white border-2 border-blue-200 rounded-xl font-bold text-slate-900 focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 outline-none uppercase text-sm appearance-none transition-all"
+                                            className="w-full h-14 pl-14 pr-12 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-primary focus:shadow-lg focus:shadow-primary/5 outline-none uppercase text-sm appearance-none transition-all"
                                             required
                                         >
                                             <option value="">Select Supplier...</option>
@@ -229,18 +229,18 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                                 <option key={s.id} value={s.id}>{s.name}</option>
                                             ))}
                                         </select>
-                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-300 pointer-events-none" size={16} />
+                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-2">Warehouse</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Warehouse</label>
                                     <div className="relative group">
-                                        <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-blue-600 transition-colors" size={18} />
+                                        <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={18} />
                                         <select
                                             value={warehouseId}
                                             onChange={(e) => setWarehouseId(e.target.value)}
-                                            className="w-full h-14 pl-14 pr-12 bg-white border-2 border-blue-200 rounded-xl font-bold text-slate-900 focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 outline-none uppercase text-sm appearance-none transition-all"
+                                            className="w-full h-14 pl-14 pr-12 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 focus:border-primary focus:shadow-lg focus:shadow-primary/5 outline-none uppercase text-sm appearance-none transition-all"
                                             required
                                         >
                                             <option value="">Select Warehouse...</option>
@@ -248,7 +248,7 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                                 <option key={w.id} value={w.id}>{w.name}</option>
                                             ))}
                                         </select>
-                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-blue-300 pointer-events-none" size={16} />
+                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={16} />
                                     </div>
                                 </div>
                                 <div className="pt-6 border-t-2 border-blue-200">
@@ -309,17 +309,17 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                 </div>
                             </div>
 
-                            <div className="bg-white border-2 border-blue-100 rounded-[2.5rem] overflow-hidden shadow-sm">
+                            <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm">
                                 {/* Desktop Table View */}
                                 <div className="hidden md:block overflow-x-auto">
                                     <Table>
-                                        <TableHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-100">
+                                        <TableHeader className="bg-slate-50 border-b border-slate-100">
                                             <TableRow className="hover:bg-transparent">
-                                                <TableHead className="py-6 px-10 text-[10px] font-black uppercase tracking-widest text-slate-600">Product</TableHead>
-                                                <TableHead className="py-6 text-center text-[10px] font-black uppercase tracking-widest text-slate-600 w-32">Quantity</TableHead>
-                                                <TableHead className="py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-600 w-48">Unit Cost</TableHead>
-                                                <TableHead className="py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-600 w-48">Subtotal</TableHead>
-                                                <TableHead className="py-6 px-10 text-right text-[10px] font-black uppercase tracking-widest text-slate-600 w-24">Action</TableHead>
+                                                <TableHead className="py-6 px-10 text-[10px] font-black uppercase tracking-widest text-slate-400">Product</TableHead>
+                                                <TableHead className="py-6 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-32">Quantity</TableHead>
+                                                <TableHead className="py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 w-48">Unit Cost</TableHead>
+                                                <TableHead className="py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 w-48">Subtotal</TableHead>
+                                                <TableHead className="py-6 px-10 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 w-24">Action</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -328,16 +328,16 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                                 const product = products.find(p => p.id === item.productId);
 
                                                 return (
-                                                    <TableRow key={index} className="group hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all border-b border-blue-50 last:border-0 h-24">
+                                                    <TableRow key={index} className="group hover:bg-slate-50 transition-all border-b border-slate-100 last:border-0 h-24">
                                                         <TableCell className="px-10">
                                                             <div className="flex flex-col gap-2">
-                                                                <div className="font-bold text-sm text-slate-900">
+                                                                <div className="font-bold text-sm text-slate-900 uppercase">
                                                                     {product ? product.name : (
-                                                                        <span className="text-slate-400 italic">Select a product...</span>
+                                                                        <span className="text-slate-300 italic">Select a product...</span>
                                                                     )}
                                                                 </div>
                                                                 {product && (
-                                                                    <div className="text-[9px] font-mono text-blue-400 uppercase font-bold">
+                                                                    <div className="text-[9px] font-mono text-primary uppercase font-black">
                                                                         SKU: {product.sku}
                                                                     </div>
                                                                 )}
@@ -348,7 +348,7 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                                                 type="number"
                                                                 value={item.quantity}
                                                                 onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                                                                className="w-24 h-12 bg-white border-2 border-blue-100 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 text-center transition-all"
+                                                                className="w-24 h-12 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-primary focus:shadow-lg focus:shadow-primary/5 text-center transition-all"
                                                                 placeholder="0"
                                                                 min="1"
                                                                 required
@@ -356,20 +356,20 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                                         </TableCell>
                                                         <TableCell className="text-right">
                                                             <div className="relative inline-block w-full max-w-[160px]">
-                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 font-bold text-sm">{symbol}</span>
+                                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-bold text-sm">{symbol}</span>
                                                                 <input
                                                                     type="number"
                                                                     step="0.01"
                                                                     value={item.cost}
                                                                     onChange={(e) => updateItem(index, 'cost', e.target.value)}
-                                                                    className="w-full h-12 pl-10 pr-4 bg-white border-2 border-blue-100 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 text-right transition-all font-mono"
+                                                                    className="w-full h-12 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-primary focus:shadow-lg focus:shadow-primary/5 text-right transition-all font-mono"
                                                                     placeholder="0.00"
                                                                     min="0"
                                                                     required
                                                                 />
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell className="text-right font-black text-emerald-600 font-mono text-base">
+                                                        <TableCell className="text-right font-black text-slate-900 font-mono text-lg italic">
                                                             {formatCurrency(subtotal, symbol)}
                                                         </TableCell>
                                                         <TableCell className="px-10 text-right">
@@ -397,17 +397,17 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                         const product = products.find(p => p.id === item.productId);
 
                                         return (
-                                            <div key={index} className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 rounded-2xl border-2 border-blue-100 space-y-4">
+                                            <div key={index} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4">
                                                 {/* Product Info */}
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="font-bold text-sm text-slate-900 truncate">
+                                                        <div className="font-bold text-sm text-slate-900 uppercase">
                                                             {product ? product.name : (
-                                                                <span className="text-slate-400 italic">Select product...</span>
+                                                                <span className="text-slate-300 italic">Select product...</span>
                                                             )}
                                                         </div>
                                                         {product && (
-                                                            <div className="text-[9px] font-mono text-blue-400 uppercase font-bold mt-1">
+                                                            <div className="text-[9px] font-mono text-primary uppercase font-black mt-1">
                                                                 SKU: {product.sku}
                                                             </div>
                                                         )}
@@ -416,7 +416,7 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                                         <button
                                                             type="button"
                                                             onClick={() => removeItem(index)}
-                                                            className="w-10 h-10 flex items-center justify-center text-rose-400 hover:text-white bg-white hover:bg-rose-500 rounded-xl transition-all border-2 border-rose-100 hover:border-rose-500 shadow-sm shrink-0"
+                                                            className="w-10 h-10 flex items-center justify-center text-rose-400 hover:text-white bg-white hover:bg-rose-500 rounded-xl transition-all border border-slate-200 hover:border-rose-500 shadow-sm shrink-0"
                                                         >
                                                             <Trash2 size={16} />
                                                         </button>
@@ -426,27 +426,27 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                                 {/* Inputs Grid */}
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <div className="space-y-2">
-                                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest px-1">Quantity</label>
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Quantity</label>
                                                         <input
                                                             type="number"
                                                             value={item.quantity}
                                                             onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                                                            className="w-full h-12 bg-white border-2 border-blue-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 text-center transition-all"
+                                                            className="w-full h-12 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-primary focus:shadow-lg focus:shadow-primary/5 text-center transition-all"
                                                             placeholder="0"
                                                             min="1"
                                                             required
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest px-1">Unit Cost</label>
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Unit Cost</label>
                                                         <div className="relative">
-                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 font-bold text-sm">{symbol}</span>
+                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 font-bold text-sm">{symbol}</span>
                                                             <input
                                                                 type="number"
                                                                 step="0.01"
                                                                 value={item.cost}
                                                                 onChange={(e) => updateItem(index, 'cost', e.target.value)}
-                                                                className="w-full h-12 pl-8 pr-3 bg-white border-2 border-blue-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:shadow-lg focus:shadow-blue-500/10 text-right transition-all font-mono"
+                                                                className="w-full h-12 pl-8 pr-3 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-primary focus:shadow-lg focus:shadow-primary/5 text-right transition-all font-mono"
                                                                 placeholder="0.00"
                                                                 min="0"
                                                                 required
@@ -456,9 +456,9 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                                 </div>
 
                                                 {/* Subtotal */}
-                                                <div className="flex justify-between items-center pt-3 border-t-2 border-blue-200">
-                                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Subtotal</span>
-                                                    <span className="text-lg font-black text-emerald-600 font-mono">
+                                                <div className="flex justify-between items-center pt-3 border-t border-slate-200">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtotal</span>
+                                                    <span className="text-lg font-black text-slate-900 font-mono italic">
                                                         {formatCurrency(subtotal, symbol)}
                                                     </span>
                                                 </div>
@@ -469,12 +469,12 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
 
                                 {items.length === 0 && (
                                     <div className="p-20 text-center space-y-4">
-                                        <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto">
-                                            <ShoppingCart size={32} className="text-blue-400" />
+                                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
+                                            <ShoppingCart size={32} className="text-slate-200" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No Items Added</p>
-                                            <p className="text-[10px] text-blue-300 font-bold uppercase mt-2">Click "Add Row" or browse the catalog</p>
+                                            <p className="text-sm font-black text-slate-300 uppercase tracking-widest">No Items Added</p>
+                                            <p className="text-[10px] text-slate-200 font-bold uppercase mt-2">Click "Add Row" or browse the catalog</p>
                                         </div>
                                     </div>
                                 )}
@@ -485,10 +485,10 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
             )}
 
             {/* Invoices List */}
-            <div className="bg-white border-2 border-blue-50 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-blue-500/5">
-                <div className="p-10 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center px-12">
+            <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm">
+                <div className="p-10 border-b border-slate-50 bg-slate-50 flex justify-between items-center px-12">
                     <h3 className="text-2xl font-black flex items-center gap-5 text-slate-900 uppercase tracking-tighter italic">
-                        <FileText className="text-blue-600" size={28} />
+                        <FileText className="text-primary" size={28} />
                         Ledger Archive
                     </h3>
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] bg-white px-4 py-2 rounded-full border border-slate-100 italic shadow-sm">
@@ -521,17 +521,17 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                 <TableBody>
                                     {invoices.map((invoice) => (
                                         <InvoiceDetailsDialog key={invoice.id} invoice={invoice} currency={currency}>
-                                            <TableRow className="group cursor-pointer hover:bg-blue-50/50 transition-all border-b border-slate-50 last:border-0 h-24">
+                                            <TableRow className="group cursor-pointer hover:bg-slate-50 transition-all border-b border-slate-50 last:border-0 h-24">
                                                 <TableCell className="px-12 py-6">
                                                     <div className="flex items-center gap-5">
-                                                        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
                                                             <FileText size={18} />
                                                         </div>
                                                         <div>
-                                                            <div className="font-black text-slate-900 tracking-tight text-lg underline decoration-blue-500/10 underline-offset-4 group-hover:decoration-blue-500/30">
+                                                            <div className="font-black text-slate-900 tracking-tight text-lg underline decoration-primary/10 underline-offset-4 group-hover:decoration-primary/30 uppercase italic">
                                                                 {invoice.number}
                                                             </div>
-                                                            <div className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1 opacity-60">CODE//INVC</div>
+                                                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">CODE//INVC</div>
                                                         </div>
                                                     </div>
                                                 </TableCell>

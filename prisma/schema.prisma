@@ -87,6 +87,7 @@ model Product {
   invoiceItems  InvoiceItem[]
   saleItems     SaleItem[]
   transferItems TransferItem[]
+  imageUrl      String?
 
   @@index([businessId])
 }

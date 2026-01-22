@@ -97,10 +97,10 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-10">
                         <div className="space-y-4">
                             <div className="flex items-center gap-4">
-                                <div className="p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-100">
+                                <div className="p-4 bg-primary rounded-2xl shadow-lg shadow-primary/20">
                                     <Store className="text-white" size={24} />
                                 </div>
-                                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Retail Network</span>
+                                <span className="text-[10px] font-black text-primary uppercase tracking-widest">Retail Network</span>
                             </div>
                             <div>
                                 <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
@@ -131,7 +131,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                     required
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="w-full px-6 h-16 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                    className="w-full px-6 h-16 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary focus:bg-white transition-all outline-none"
                                     placeholder="e.g. Main Street Branch"
                                 />
                             </div>
@@ -141,7 +141,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                     name="location"
                                     value={location}
                                     onChange={(e) => setLocation(e.target.value)}
-                                    className="w-full px-6 h-16 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                    className="w-full px-6 h-16 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary focus:bg-white transition-all outline-none"
                                     placeholder="e.g. New York, NY"
                                 />
                             </div>
@@ -206,7 +206,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                             </div>
                             <button
                                 type="submit"
-                                className="flex-1 h-16 bg-blue-600 hover:bg-slate-900 text-white rounded-2xl font-black shadow-xl shadow-blue-100 transition-all active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
+                                className="flex-1 h-16 bg-primary hover:opacity-90 text-white rounded-2xl font-black shadow-xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
                             >
                                 {editingShop ? (
                                     <>
@@ -225,14 +225,14 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-4 md:px-0">
                 {shops.map(shop => (
-                    <div key={shop.id} className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-500/10 hover:border-blue-100 transition-all group">
-                        <div className="p-8 md:p-10 border-b border-slate-50 bg-slate-50/50 flex justify-between items-start group-hover:bg-blue-50/30 transition-all">
+                    <div key={shop.id} className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20 transition-all group">
+                        <div className="p-8 md:p-10 border-b border-slate-50 bg-slate-50/30 flex justify-between items-start group-hover:bg-primary/5 transition-all">
                             <div className="flex items-center gap-5">
-                                <div className="w-16 h-16 bg-white border border-slate-100 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform text-slate-400 group-hover:text-blue-600">
+                                <div className="w-16 h-16 bg-white border border-slate-100 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform text-slate-400 group-hover:text-primary">
                                     <Store size={28} />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 group-hover:text-blue-900 transition-colors uppercase">{shop.name}</h3>
+                                    <h3 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 group-hover:text-primary transition-colors uppercase">{shop.name}</h3>
                                     <p className="text-[11px] font-bold flex items-center gap-2 mt-2 text-slate-400 uppercase tracking-widest">
                                         <MapPin size={14} />
                                         {shop.location || 'Location Not Set'}
@@ -242,7 +242,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                             <div className="flex flex-col items-end gap-2">
                                 <button
                                     onClick={() => handleEditClick(shop)}
-                                    className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-md transition-all"
+                                    className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-primary hover:border-primary/20 hover:shadow-md transition-all"
                                     title="Edit Shop Details"
                                 >
                                     <Edit2 size={16} />
@@ -275,7 +275,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                         {shop.users.map(user => (
                                             <div key={user.id} className="flex justify-between items-center bg-slate-50 border border-slate-100 p-4 rounded-2xl hover:bg-white hover:border-blue-100 hover:shadow-md transition-all group/item">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-white text-slate-500 flex items-center justify-center text-xs font-black uppercase group-hover/item:bg-blue-600 group-hover/item:text-white transition-all shadow-sm">
+                                                    <div className="w-10 h-10 rounded-xl bg-white text-slate-500 flex items-center justify-center text-xs font-black uppercase group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-sm">
                                                         {(user.name || user.email || 'A')[0]}
                                                     </div>
                                                     <div className="flex flex-col">
@@ -301,7 +301,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                 <div className="pt-8 border-t border-slate-100 space-y-4">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Assign New Staff</p>
                                     <div className="flex gap-3">
-                                        <select id={`select-${shop.id}`} className="flex-1 bg-slate-50 border border-slate-200 h-12 px-4 text-[11px] font-bold text-slate-700 rounded-xl outline-none focus:border-blue-500 focus:bg-white uppercase appearance-none transition-all">
+                                        <select id={`select-${shop.id}`} className="flex-1 bg-slate-50 border border-slate-200 h-12 px-4 text-[11px] font-bold text-slate-700 rounded-xl outline-none focus:border-primary focus:bg-white uppercase appearance-none transition-all">
                                             {unassignedUsers.map(u => (
                                                 <option key={u.id} value={u.id}>{u.name || u.email}</option>
                                             ))}
@@ -317,7 +317,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                                     toast.error(result.error);
                                                 }
                                             }}
-                                            className="bg-slate-900 text-white h-12 px-6 text-[10px] font-black rounded-xl uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
+                                            className="bg-primary text-white h-12 px-6 text-[10px] font-black rounded-xl uppercase tracking-widest hover:opacity-90 transition-all shadow-lg shadow-primary/20"
                                         >
                                             Grant
                                         </button>
