@@ -1,8 +1,13 @@
 'use server';
 
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function uploadImage(formData: FormData) {
     try {
@@ -11,34 +16,38 @@ export async function uploadImage(formData: FormData) {
             return { error: 'No file uploaded' };
         }
 
+        // Convert file to buffer
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // Define the path relative to the root public directory
-        const uploadDir = join(process.cwd(), 'public', 'uploads');
+        // Upload to Cloudinary
+        const result = await new Promise<any>((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                    folder: 'inventory-system',
+                    resource_type: 'auto',
+                    transformation: [
+                        { width: 1200, height: 1200, crop: 'limit' },
+                        { quality: 'auto:good' },
+                        { fetch_format: 'auto' }
+                    ]
+                },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            );
 
-        // Ensure the directory exists
-        try {
-            await mkdir(uploadDir, { recursive: true });
-        } catch (e) {
-            // Already exists or other error handled by the next step
-        }
+            uploadStream.end(buffer);
+        });
 
-        // Generate a unique filename
-        const ext = file.name.split('.').pop() || 'png';
-        const filename = `${uuidv4()}.${ext}`;
-        const path = join(uploadDir, filename);
-
-        // Write the file to disk
-        await writeFile(path, buffer);
-
-        // Return the public URL path
+        // Return the secure URL from Cloudinary
         return {
             success: true,
-            url: `/uploads/${filename}`
+            url: result.secure_url
         };
     } catch (error) {
-        console.error('Upload error:', error);
-        return { error: 'Failed to save image' };
+        console.error('Cloudinary upload error:', error);
+        return { error: 'Failed to upload image to cloud storage' };
     }
 }

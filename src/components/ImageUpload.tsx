@@ -178,7 +178,7 @@ export default function ImageUpload({ value, onChange, label, description }: Ima
                         </div>
                         <input
                             type="text"
-                            value={preview.startsWith('/uploads/') ? '' : preview}
+                            value={preview.startsWith('/uploads/') || preview.startsWith('http') ? '' : preview}
                             onChange={(e) => { setPreview(e.target.value); onChange(e.target.value); }}
                             className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-bold text-slate-900 placeholder:text-slate-300 focus:border-primary focus:bg-white outline-none transition-all italic font-mono"
                             placeholder="Direct Telemetry Stream (URL)..."
