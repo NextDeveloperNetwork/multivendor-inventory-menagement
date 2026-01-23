@@ -144,6 +144,29 @@ export async function deleteProduct(id: string) {
     }
 }
 
+export async function bulkDeleteProducts(productIds: string[]) {
+    try {
+        if (!productIds || productIds.length === 0) {
+            return { error: 'No products selected' };
+        }
+
+        const result = await prisma.product.deleteMany({
+            where: {
+                id: {
+                    in: productIds
+                }
+            }
+        });
+
+        revalidatePath('/admin/inventory');
+        revalidatePath('/shop/inventory');
+        return { success: true, count: result.count };
+    } catch (error) {
+        console.error('Bulk delete error:', error);
+        return { error: 'Failed to delete products' };
+    }
+}
+
 export async function getProductInvoiceHistory(productId: string) {
     try {
         const history = await prisma.invoiceItem.findMany({

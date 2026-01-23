@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { deleteProduct, updateProduct, quickAddStock } from '@/app/actions/inventory';
+import { deleteProduct, updateProduct, quickAddStock, bulkDeleteProducts } from '@/app/actions/inventory';
 import {
     Plus,
     Search,
@@ -26,7 +26,9 @@ import {
     LayoutGrid,
     List,
     HelpCircle,
-    Image as ImageIcon
+    Image as ImageIcon,
+    CheckSquare,
+    Square
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logActivity } from '@/app/actions/intelligence';
@@ -61,6 +63,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
     const [showScanner, setShowScanner] = useState(false);
     const [loading, setLoading] = useState(false);
     const [viewMode, setViewMode] = useState<'table' | 'catalog'>('catalog');
+    const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
     const router = useRouter();
 
     const filteredProducts = initialProducts.filter(p =>
@@ -124,6 +127,39 @@ export default function InventoryClient({ products: initialProducts, filter, sho
         setLoading(false);
     };
 
+    const toggleProductSelection = (productId: string) => {
+        const newSelection = new Set(selectedProducts);
+        if (newSelection.has(productId)) {
+            newSelection.delete(productId);
+        } else {
+            newSelection.add(productId);
+        }
+        setSelectedProducts(newSelection);
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedProducts.size === filteredProducts.length) {
+            setSelectedProducts(new Set());
+        } else {
+            setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedProducts.size === 0) return;
+        setLoading(true);
+        const res = await bulkDeleteProducts(Array.from(selectedProducts));
+        if (res.success) {
+            toast.success(`Successfully deleted ${res.count} product(s)`);
+            setSelectedProducts(new Set());
+            setIsDeleteDialogOpen(false);
+            router.refresh();
+        } else {
+            toast.error(res.error || 'Failed to delete products');
+        }
+        setLoading(false);
+    };
+
     return (
         <div className="space-y-8">
             {/* Search Bar & View Toggle */}
@@ -166,12 +202,54 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                 </div>
             </div>
 
+            {/* Bulk Action Toolbar */}
+            {selectedProducts.size > 0 && (
+                <div className="bg-blue-600 text-white px-8 py-4 rounded-2xl shadow-lg flex items-center justify-between animate-in slide-in-from-top">
+                    <div className="flex items-center gap-4">
+                        <CheckSquare size={20} />
+                        <span className="font-black text-sm uppercase tracking-widest">
+                            {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''} selected
+                        </span>
+                    </div>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setSelectedProducts(new Set())}
+                            className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
+                        >
+                            Clear
+                        </button>
+                        <button
+                            onClick={() => {
+                                setProductToDelete({ isBulk: true, count: selectedProducts.size });
+                                setIsDeleteDialogOpen(true);
+                            }}
+                            className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+                        >
+                            <Trash2 size={16} />
+                            Delete Selected
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {viewMode === 'table' ? (
                 <div className="hidden md:block bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead>
                                 <tr className="bg-slate-50/50 border-b border-slate-100">
+                                    <th className="px-6 py-8 w-12">
+                                        <button
+                                            onClick={toggleSelectAll}
+                                            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                                        >
+                                            {selectedProducts.size === filteredProducts.length && filteredProducts.length > 0 ? (
+                                                <CheckSquare size={20} className="text-primary" />
+                                            ) : (
+                                                <Square size={20} />
+                                            )}
+                                        </button>
+                                    </th>
                                     <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Component / identifier</th>
                                     <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Valuation</th>
                                     <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Avg Unit Cost</th>
@@ -204,6 +282,21 @@ export default function InventoryClient({ products: initialProducts, filter, sho
 
                                     return (
                                         <tr key={product.id} className="hover:bg-slate-50/50 transition-all group">
+                                            <td className="px-6 py-8">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleProductSelection(product.id);
+                                                    }}
+                                                    className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                                                >
+                                                    {selectedProducts.has(product.id) ? (
+                                                        <CheckSquare size={20} className="text-primary" />
+                                                    ) : (
+                                                        <Square size={20} />
+                                                    )}
+                                                </button>
+                                            </td>
                                             <td className="px-10 py-8">
                                                 <button
                                                     onClick={() => setHistoryProduct(product)}
@@ -660,14 +753,26 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                             <AlertCircle size={40} />
                         </div>
                         <div>
-                            <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-slate-900 leading-tight">Authorize Item Deletion?</DialogTitle>
-                            <DialogDescription className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2 px-4">Warning: This action will purge all telemetry for <span className="text-red-500">{productToDelete?.name}</span> from the master registry.</DialogDescription>
+                            <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-slate-900 leading-tight">
+                                {productToDelete?.isBulk ? 'Authorize Bulk Deletion?' : 'Authorize Item Deletion?'}
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2 px-4">
+                                {productToDelete?.isBulk ? (
+                                    <>Warning: This action will purge <span className="text-red-500">{productToDelete.count} product(s)</span> from the master registry.</>
+                                ) : (
+                                    <>Warning: This action will purge all telemetry for <span className="text-red-500">{productToDelete?.name}</span> from the master registry.</>
+                                )}
+                            </DialogDescription>
                         </div>
                         <div className="flex gap-4 pt-4">
                             <button onClick={() => setIsDeleteDialogOpen(false)} className="flex-1 h-14 bg-slate-50 text-slate-400 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-100 transition-all">
                                 Negative
                             </button>
-                            <button onClick={handleDelete} disabled={loading} className="flex-1 h-14 bg-red-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-red-700 transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 flex items-center justify-center gap-3">
+                            <button
+                                onClick={productToDelete?.isBulk ? handleBulkDelete : handleDelete}
+                                disabled={loading}
+                                className="flex-1 h-14 bg-red-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-red-700 transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 flex items-center justify-center gap-3"
+                            >
                                 {loading && <Loader2 className="animate-spin" size={14} />}
                                 Confirm Purge
                             </button>
