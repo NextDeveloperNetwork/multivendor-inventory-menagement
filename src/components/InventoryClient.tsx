@@ -224,17 +224,17 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                                                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-500 rounded-md border border-blue-100">
                                                                     <Barcode size={10} />
                                                                     <span className="text-[8px] font-black font-mono">{product.barcode}</span>
-                                                                    <button
+                                                                    <span
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             navigator.clipboard.writeText(product.barcode);
                                                                             toast.success('Barcode Copied: ' + product.barcode);
                                                                         }}
-                                                                        className="hover:text-blue-700 transition-colors"
+                                                                        className="hover:text-blue-700 transition-colors cursor-pointer"
                                                                         title="Copy Barcode"
                                                                     >
                                                                         <Copy size={10} />
-                                                                    </button>
+                                                                    </span>
                                                                 </div>
                                                             )}
                                                         </div>
