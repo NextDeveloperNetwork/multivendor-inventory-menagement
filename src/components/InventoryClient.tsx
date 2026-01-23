@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { deleteProduct, updateProduct, quickAddStock, bulkDeleteProducts } from '@/app/actions/inventory';
+import { deleteProduct, updateProduct, quickAddStock, setStockLevel, bulkDeleteProducts } from '@/app/actions/inventory';
 import {
     Plus,
     Search,
@@ -33,7 +33,7 @@ import {
 import { toast } from 'sonner';
 import { logActivity } from '@/app/actions/intelligence';
 import ImageUpload from './ImageUpload';
-import { formatCurrency, generateEAN13 } from '@/lib/utils';
+import { formatCurrency, generateEAN13, generateSKU } from '@/lib/utils';
 import BarcodeScanner from './BarcodeScanner';
 import {
     Dialog,
@@ -593,7 +593,26 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                             </div>
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Global SKU</label>
-                                <input name="sku" defaultValue={editingProduct?.sku} required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs" />
+                                <div className="relative group">
+                                    <input
+                                        name="sku"
+                                        defaultValue={editingProduct?.sku}
+                                        required
+                                        className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs pr-12"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                            const nameInput = input.closest('form')?.querySelector('input[name="name"]') as HTMLInputElement;
+                                            if (input) input.value = generateSKU(nameInput?.value || '');
+                                        }}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                        title="Generate SKU"
+                                    >
+                                        <RefreshCw size={18} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -667,8 +686,33 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     <div className="text-center px-4">
-                                                        <div className="text-2xl font-black text-black font-mono">{inv.quantity}</div>
-                                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Units</div>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={inv.quantity}
+                                                            onChange={async (e) => {
+                                                                const val = parseInt(e.target.value);
+                                                                if (isNaN(val) || val < 0) return;
+                                                                if (!locationId) return;
+
+                                                                // Optimistic local update
+                                                                const updated = { ...editingProduct };
+                                                                const invIndex = updated.inventory.findIndex((i: any) => i.id === inv.id);
+                                                                if (invIndex !== -1) {
+                                                                    updated.inventory[invIndex].quantity = val;
+                                                                    setEditingProduct(updated);
+                                                                }
+
+                                                                const res = await setStockLevel(editingProduct.id, val, locationId);
+                                                                if (res.success) {
+                                                                    router.refresh();
+                                                                } else {
+                                                                    toast.error(res.error || 'Failed to set stock level');
+                                                                }
+                                                            }}
+                                                            className="w-20 h-10 bg-white border-2 border-slate-200 rounded-lg text-center font-black text-black font-mono focus:border-blue-500 outline-none"
+                                                        />
+                                                        <div className="text-[8px] font-bold text-slate-400 uppercase mt-1">Units</div>
                                                     </div>
                                                     <div className="flex gap-2">
                                                         <button

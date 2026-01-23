@@ -83,3 +83,9 @@ export function generateEAN13(): string {
   const checksum = (10 - (sum % 10)) % 10;
   return barcode + checksum.toString();
 }
+export function generateSKU(name: string = ""): string {
+  const prefix = name ? name.trim().slice(0, 3).toUpperCase() : "ART";
+  const random = Math.floor(1000 + Math.random() * 9000); // 4 digits
+  const date = new Date().toISOString().slice(2, 4) + new Date().toISOString().slice(5, 7); // YYMM
+  return `${prefix}-${date}-${random}`;
+}

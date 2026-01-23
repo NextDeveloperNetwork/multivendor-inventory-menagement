@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Package, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import MotionWrapper from '@/components/MotionWrapper';
-import { generateEAN13 } from '@/lib/utils';
+import { generateEAN13, generateSKU } from '@/lib/utils';
 import { toast } from 'sonner';
 import ImageUpload from '@/components/ImageUpload';
 
@@ -17,6 +17,8 @@ interface NewProductClientProps {
 export default function NewProductClient({ selectedBusinessId }: NewProductClientProps) {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [sku, setSku] = useState('');
+    const [name, setName] = useState('');
     const [barcode, setBarcode] = useState('');
     const [imageUrl, setImageUrl] = useState('');
     const router = useRouter();
@@ -77,7 +79,6 @@ export default function NewProductClient({ selectedBusinessId }: NewProductClien
                             label="Product Aesthetic"
                             description="Capture imagery via camera or select from archives. Native camera support included."
                         />
-                        {/* Hidden input to ensure formData collects the URL */}
                         <input type="hidden" name="imageUrl" value={imageUrl} />
                     </div>
 
@@ -85,7 +86,24 @@ export default function NewProductClient({ selectedBusinessId }: NewProductClien
                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
                         <div className="space-y-4">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 italic text-primary">Master SKU</label>
-                            <input name="sku" required className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black text-slate-900 placeholder:text-slate-300 focus:border-primary focus:bg-white outline-none transition-all uppercase italic tracking-tighter" placeholder="XXXX-ID-001" />
+                            <div className="relative group/input">
+                                <input
+                                    name="sku"
+                                    required
+                                    value={sku}
+                                    onChange={(e) => setSku(e.target.value)}
+                                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black text-slate-900 placeholder:text-slate-300 focus:border-primary focus:bg-white outline-none transition-all uppercase italic tracking-tighter pr-14"
+                                    placeholder="XXXX-ID-001"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setSku(generateSKU(name))}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white border border-slate-100 rounded-xl text-primary hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center group-hover/input:scale-105 active:scale-95"
+                                    title="Generate SKU"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="space-y-4">
@@ -116,7 +134,14 @@ export default function NewProductClient({ selectedBusinessId }: NewProductClien
                     <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-10">
                         <div className="space-y-4">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 italic">Article Designation</label>
-                            <input name="name" required className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-2xl font-black text-slate-900 placeholder:text-slate-300 focus:border-primary focus:bg-white outline-none transition-all tracking-tighter uppercase italic" placeholder="Enter product name..." />
+                            <input
+                                name="name"
+                                required
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-2xl font-black text-slate-900 placeholder:text-slate-300 focus:border-primary focus:bg-white outline-none transition-all tracking-tighter uppercase italic"
+                                placeholder="Enter product name..."
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -138,12 +163,20 @@ export default function NewProductClient({ selectedBusinessId }: NewProductClien
                             <textarea name="description" className="w-full px-8 py-6 h-40 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-sm font-medium text-slate-600 placeholder:text-slate-300 focus:border-primary focus:bg-white outline-none transition-all resize-none leading-relaxed" placeholder="Detailed product specifications and technical requirements..." />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-6 border-t border-slate-50">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-slate-50">
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black text-primary uppercase tracking-widest pl-1 italic">Liquidated Price</label>
                                 <div className="relative">
                                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-primary font-black italic">$</span>
                                     <input name="price" type="number" step="0.01" min="0" required className="w-full pl-10 pr-6 py-5 bg-slate-900 text-white rounded-2xl text-xl font-black font-mono focus:ring-2 ring-primary/20 outline-none transition-all italic tracking-tighter" placeholder="0.00" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest pl-1 italic">Discount Price</label>
+                                <div className="relative">
+                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-amber-500 font-bold italic">$</span>
+                                    <input name="discountPrice" type="number" step="0.01" min="0" className="w-full pl-10 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-xl font-black text-slate-900 placeholder:text-slate-300 focus:border-primary focus:bg-white outline-none transition-all italic tracking-tighter font-mono" placeholder="0.00" />
                                 </div>
                             </div>
 

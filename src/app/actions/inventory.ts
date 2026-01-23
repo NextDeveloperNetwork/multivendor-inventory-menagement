@@ -192,25 +192,89 @@ export async function getProductInvoiceHistory(productId: string) {
     }
 }
 
-export async function quickAddStock(productId: string, quantity: number, shopId: string) {
+export async function quickAddStock(productId: string, quantity: number, targetId: string) {
     try {
-        await prisma.inventory.upsert({
-            where: {
-                productId_shopId: { productId, shopId }
-            },
-            update: {
-                quantity: { increment: quantity }
-            },
-            create: {
-                productId,
-                shopId,
-                quantity
-            }
-        });
+        // Try to determine if it's a shop or warehouse
+        const isShop = await prisma.shop.findUnique({ where: { id: targetId } });
+
+        if (isShop) {
+            await prisma.inventory.upsert({
+                where: {
+                    productId_shopId: { productId, shopId: targetId }
+                },
+                update: {
+                    quantity: { increment: quantity }
+                },
+                create: {
+                    productId,
+                    shopId: targetId,
+                    quantity
+                }
+            });
+        } else {
+            await prisma.inventory.upsert({
+                where: {
+                    productId_warehouseId: { productId, warehouseId: targetId }
+                },
+                update: {
+                    quantity: { increment: quantity }
+                },
+                create: {
+                    productId,
+                    warehouseId: targetId,
+                    quantity
+                }
+            });
+        }
+
         revalidatePath('/admin/inventory');
         revalidatePath('/shop');
         return { success: true };
     } catch (e) {
+        console.error('quickAddStock error:', e);
+        return { error: 'Failed to update stock' };
+    }
+}
+
+export async function setStockLevel(productId: string, quantity: number, targetId: string) {
+    try {
+        const isShop = await prisma.shop.findUnique({ where: { id: targetId } });
+
+        if (isShop) {
+            await prisma.inventory.upsert({
+                where: {
+                    productId_shopId: { productId, shopId: targetId }
+                },
+                update: {
+                    quantity: quantity
+                },
+                create: {
+                    productId,
+                    shopId: targetId,
+                    quantity
+                }
+            });
+        } else {
+            await prisma.inventory.upsert({
+                where: {
+                    productId_warehouseId: { productId, warehouseId: targetId }
+                },
+                update: {
+                    quantity: quantity
+                },
+                create: {
+                    productId,
+                    warehouseId: targetId,
+                    quantity
+                }
+            });
+        }
+
+        revalidatePath('/admin/inventory');
+        revalidatePath('/shop');
+        return { success: true };
+    } catch (e) {
+        console.error('setStockLevel error:', e);
         return { error: 'Failed to update stock' };
     }
 }
