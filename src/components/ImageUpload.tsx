@@ -18,29 +18,84 @@ export default function ImageUpload({ value, onChange, label, description }: Ima
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
+    const compressImage = (file: File): Promise<File> => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(img.src);
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                const MAX_WIDTH = 1200;
+                const MAX_HEIGHT = 1200;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                            type: 'image/jpeg',
+                            lastModified: Date.now(),
+                        }));
+                    } else {
+                        resolve(file);
+                    }
+                }, 'image/jpeg', 0.8);
+            };
+            img.onerror = () => resolve(file);
+        });
+    };
+
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Preview locally
-        const localPreview = URL.createObjectURL(file);
-        setPreview(localPreview);
         setUploading(true);
 
-        const formData = new FormData();
-        formData.append('file', file);
+        try {
+            // Preview locally
+            const localPreview = URL.createObjectURL(file);
+            setPreview(localPreview);
 
-        const result = await uploadImage(formData);
+            // Compress before upload
+            const fileToUpload = file.size > 1024 * 1024 ? await compressImage(file) : file;
 
-        if (result.success && result.url) {
-            onChange(result.url);
-            setPreview(result.url);
-            toast.success('Image synchronized to registry');
-        } else {
-            toast.error(result.error || 'Upload failed');
-            setPreview(value || '');
+            const formData = new FormData();
+            formData.append('file', fileToUpload);
+
+            const result = await uploadImage(formData);
+
+            if (result.success && result.url) {
+                onChange(result.url);
+                setPreview(result.url);
+                toast.success('Image synchronized to registry');
+            } else {
+                toast.error(result.error || 'Upload failed');
+                setPreview(value || '');
+            }
+        } catch (error) {
+            console.error('Upload handling error:', error);
+            toast.error('Flash memory error during capture');
+        } finally {
+            setUploading(false);
         }
-        setUploading(false);
     };
 
     const triggerFileSelect = () => fileInputRef.current?.click();
