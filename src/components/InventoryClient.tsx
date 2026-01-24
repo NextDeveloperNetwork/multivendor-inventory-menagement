@@ -33,7 +33,7 @@ import {
 import { toast } from 'sonner';
 import { logActivity } from '@/app/actions/intelligence';
 import ImageUpload from './ImageUpload';
-import { formatCurrency, generateEAN13, generateSKU } from '@/lib/utils';
+import { formatCurrency, generateBarcode, generateSKU } from '@/lib/utils';
 import BarcodeScanner from './BarcodeScanner';
 import {
     Dialog,
@@ -49,11 +49,12 @@ interface InventoryClientProps {
     filter: string;
     shopId?: string;
     warehouseId?: string;
-    currency: { symbol: string; rate: number };
+    currency: { symbol: string; rate: number; code?: string };
 }
 
 export default function InventoryClient({ products: initialProducts, filter, shopId, warehouseId, currency }: InventoryClientProps) {
     const symbol = currency?.symbol || '$';
+    const currencyCode = currency?.code || 'USD';
 
     const [search, setSearch] = useState('');
     const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -629,7 +630,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                     type="button"
                                     onClick={(e) => {
                                         const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                                        if (input) input.value = generateEAN13();
+                                        if (input) input.value = generateBarcode();
                                     }}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
                                     title="Generate EAN-13"
@@ -655,15 +656,15 @@ export default function InventoryClient({ products: initialProducts, filter, sho
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Customer Price (USD)</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Customer Price ({currencyCode})</label>
                                 <input name="price" type="number" step="0.01" defaultValue={editingProduct?.price} required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs font-mono" />
                             </div>
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Discount Price (USD)</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Discount Price ({currencyCode})</label>
                                 <input name="discountPrice" type="number" step="0.01" defaultValue={editingProduct?.discountPrice} className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs font-mono" placeholder="Optional" />
                             </div>
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Acquisition Cost (USD)</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Acquisition Cost ({currencyCode})</label>
                                 <input name="cost" type="number" step="0.01" defaultValue={editingProduct?.cost} required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs font-mono" />
                             </div>
                         </div>

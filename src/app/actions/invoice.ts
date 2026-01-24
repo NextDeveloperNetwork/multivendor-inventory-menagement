@@ -24,6 +24,7 @@ export async function createInvoice(formData: FormData) {
         const invoice = await prisma.invoice.create({
             data: {
                 number: invoiceNumber,
+                warehouseId: warehouseId, // Store the warehouse ID
                 supplier: (supplierId ? { connect: { id: supplierId } } : undefined) as any,
                 items: {
                     create: items.map((item: any) => ({
@@ -32,7 +33,7 @@ export async function createInvoice(formData: FormData) {
                         cost: parseFloat(item.cost),
                     })),
                 },
-            },
+            } as any,
             include: {
                 supplier: true,
                 items: {
@@ -152,24 +153,37 @@ export async function deleteInvoice(id: string) {
         // It's stored in the Inventory records.
         // Let's find where these items are currently located.
 
+        const inv = invoice as any;
+
         await prisma.$transaction(async (tx) => {
-            for (const item of invoice.items) {
-                // Find any inventory record for this product in a warehouse that decreased?
-                // Actually, the most reliable way is to find the inventory record that was updated.
-                // Since our system currently attaches an invoice batch to ONE warehouse at a time (via the form),
-                // and the Invoice model doesn't store it, we have to look it up from the inventory if we can,
-                // or we should have stored it in the Invoice model.
+            // Rollback inventory if warehouseId exists
+            if (inv.warehouseId) {
+                for (const item of inv.items) {
+                    const inventory = await tx.inventory.findUnique({
+                        where: {
+                            productId_warehouseId: {
+                                productId: item.productId,
+                                warehouseId: inv.warehouseId
+                            }
+                        }
+                    });
 
-                // Let's check the first item's inventory link if it exists.
-                // Actually, let's look for inventory records that might match this product.
-                // This is a bit tricky without a warehouseId on the Invoice model.
-
-                // For now, let's just delete the items and invoice.
-                // IF we want full rollback, we need to add warehouseId to the Invoice model.
-
-                await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
-                await tx.invoice.delete({ where: { id } });
+                    if (inventory) {
+                        await tx.inventory.update({
+                            where: { id: inventory.id },
+                            data: {
+                                quantity: {
+                                    decrement: item.quantity
+                                }
+                            }
+                        });
+                    }
+                }
             }
+
+            // Delete invoice items and invoice outside of the loop
+            await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
+            await tx.invoice.delete({ where: { id } });
         });
 
         revalidatePath('/admin/invoices');

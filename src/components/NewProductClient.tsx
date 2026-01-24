@@ -6,15 +6,17 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Package, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import MotionWrapper from '@/components/MotionWrapper';
-import { generateEAN13, generateSKU } from '@/lib/utils';
+import { generateBarcode, generateSKU } from '@/lib/utils';
 import { toast } from 'sonner';
 import ImageUpload from '@/components/ImageUpload';
 
 interface NewProductClientProps {
     selectedBusinessId: string | null;
+    currency: { symbol: string; code: string };
 }
 
-export default function NewProductClient({ selectedBusinessId }: NewProductClientProps) {
+export default function NewProductClient({ selectedBusinessId, currency }: NewProductClientProps) {
+    const symbol = currency?.symbol || '$';
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [sku, setSku] = useState('');
@@ -118,7 +120,7 @@ export default function NewProductClient({ selectedBusinessId }: NewProductClien
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => setBarcode(generateEAN13())}
+                                    onClick={() => setBarcode(generateBarcode())}
                                     className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white border border-slate-100 rounded-xl text-primary hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center group-hover/input:scale-105 active:scale-95"
                                     title="Generate EAN-13"
                                 >
@@ -167,7 +169,7 @@ export default function NewProductClient({ selectedBusinessId }: NewProductClien
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black text-primary uppercase tracking-widest pl-1 italic">Liquidated Price</label>
                                 <div className="relative">
-                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-primary font-black italic">$</span>
+                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-primary font-black italic">{symbol}</span>
                                     <input name="price" type="number" step="0.01" min="0" required className="w-full pl-10 pr-6 py-5 bg-slate-900 text-white rounded-2xl text-xl font-black font-mono focus:ring-2 ring-primary/20 outline-none transition-all italic tracking-tighter" placeholder="0.00" />
                                 </div>
                             </div>
@@ -175,7 +177,7 @@ export default function NewProductClient({ selectedBusinessId }: NewProductClien
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest pl-1 italic">Discount Price</label>
                                 <div className="relative">
-                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-amber-500 font-bold italic">$</span>
+                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-amber-500 font-bold italic">{symbol}</span>
                                     <input name="discountPrice" type="number" step="0.01" min="0" className="w-full pl-10 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-xl font-black text-slate-900 placeholder:text-slate-300 focus:border-primary focus:bg-white outline-none transition-all italic tracking-tighter font-mono" placeholder="0.00" />
                                 </div>
                             </div>
@@ -183,7 +185,7 @@ export default function NewProductClient({ selectedBusinessId }: NewProductClien
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 italic">Procurement Cost</label>
                                 <div className="relative">
-                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold italic">$</span>
+                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold italic">{symbol}</span>
                                     <input name="cost" type="number" step="0.01" min="0" required className="w-full pl-10 pr-6 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-xl font-black text-slate-900 placeholder:text-slate-300 focus:border-primary focus:bg-white outline-none transition-all italic tracking-tighter font-mono" placeholder="0.00" />
                                 </div>
                             </div>

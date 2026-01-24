@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { generateEAN13 } from '@/lib/utils';
+import { generateBarcode } from '@/lib/utils';
 import Papa from 'papaparse';
 
 const productSchema = z.object({
@@ -35,7 +35,7 @@ export async function createProduct(formData: FormData) {
 
     try {
         const { name, sku, barcode, description, price, cost, discountPrice, initialStock, imageUrl } = result.data;
-        const finalBarcode = barcode || generateEAN13();
+        const finalBarcode = barcode || generateBarcode();
 
         const existing = await prisma.product.findFirst({
             where: {
@@ -132,11 +132,21 @@ export async function updateProduct(id: string, formData: FormData) {
 
 export async function deleteProduct(id: string) {
     try {
-        await prisma.product.delete({
-            where: { id },
+        await prisma.$transaction(async (tx) => {
+            // Delete related records that prevent product deletion
+            await tx.inventory.deleteMany({ where: { productId: id } });
+            await tx.invoiceItem.deleteMany({ where: { productId: id } });
+            await tx.saleItem.deleteMany({ where: { productId: id } });
+            await tx.transferItem.deleteMany({ where: { productId: id } });
+
+            await tx.product.delete({
+                where: { id },
+            });
         });
 
         revalidatePath('/admin/inventory');
+        revalidatePath('/admin/invoices');
+        revalidatePath('/shop');
         return { success: true };
     } catch (error) {
         console.error('Delete product error:', error);
@@ -150,17 +160,23 @@ export async function bulkDeleteProducts(productIds: string[]) {
             return { error: 'No products selected' };
         }
 
-        const result = await prisma.product.deleteMany({
-            where: {
-                id: {
-                    in: productIds
+        const count = await prisma.$transaction(async (tx) => {
+            await tx.inventory.deleteMany({ where: { productId: { in: productIds } } });
+            await tx.invoiceItem.deleteMany({ where: { productId: { in: productIds } } });
+            await tx.saleItem.deleteMany({ where: { productId: { in: productIds } } });
+            await tx.transferItem.deleteMany({ where: { productId: { in: productIds } } });
+
+            const result = await tx.product.deleteMany({
+                where: {
+                    id: { in: productIds }
                 }
-            }
+            });
+            return result.count;
         });
 
         revalidatePath('/admin/inventory');
         revalidatePath('/shop/inventory');
-        return { success: true, count: result.count };
+        return { success: true, count };
     } catch (error) {
         console.error('Bulk delete error:', error);
         return { error: 'Failed to delete products' };
@@ -329,7 +345,7 @@ export async function bulkCreateProducts(formData: FormData) {
                 }
 
                 const { name, sku, barcode, description, price, cost, initialStock } = validation.data;
-                const finalBarcode = barcode || generateEAN13();
+                const finalBarcode = barcode || generateBarcode();
                 const businessId = formData.get('businessId') as string;
 
                 // Check for existing

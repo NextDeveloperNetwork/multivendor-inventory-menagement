@@ -66,22 +66,13 @@ export function sanitizeData(data: any): any {
   return data;
 }
 
-export function generateEAN13(): string {
-  // Use '200' prefix for internal use
-  let barcode = "200";
-  for (let i = 0; i < 9; i++) {
-    barcode += Math.floor(Math.random() * 10).toString();
+export function generateBarcode(length: number = 10): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-
-  // Calculate EAN-13 Checksum
-  // Weights are 1, 3, 1, 3...
-  let sum = 0;
-  for (let i = 0; i < 12; i++) {
-    const digit = parseInt(barcode[i]);
-    sum += (i % 2 === 0) ? digit : digit * 3;
-  }
-  const checksum = (10 - (sum % 10)) % 10;
-  return barcode + checksum.toString();
+  return result;
 }
 export function generateSKU(name: string = ""): string {
   const prefix = name ? name.trim().slice(0, 3).toUpperCase() : "ART";

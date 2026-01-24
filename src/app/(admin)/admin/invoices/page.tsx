@@ -60,7 +60,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     const products = sanitizeData(rawProducts);
     const suppliers = sanitizeData(rawSuppliers);
     const warehouses = sanitizeData(rawWarehouses);
-    const currency = sanitizeData(baseCurrency) || { symbol: '$', rate: 1 };
+    const currency = sanitizeData(baseCurrency) || { symbol: '$', rate: 1, code: 'USD' };
 
     return (
         <div className="space-y-12 fade-in relative pb-20">

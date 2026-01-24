@@ -25,7 +25,7 @@ interface InvoiceClientProps {
     products: any[];
     suppliers: any[];
     warehouses: any[];
-    currency: { symbol: string; rate: number };
+    currency: { symbol: string; rate: number; code?: string };
     selectedBusinessId: string | null;
 }
 
@@ -567,7 +567,7 @@ export default function InvoiceClient({ invoices, products, suppliers, warehouse
                                                                 sum + (Number(item.cost) * item.quantity), 0
                                                             ), symbol)}
                                                         </span>
-                                                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">USD Asset</span>
+                                                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{currency.code || 'USD'} Asset</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="px-12 text-right">
