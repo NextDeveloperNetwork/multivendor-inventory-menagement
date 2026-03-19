@@ -73,64 +73,59 @@ export default function BusinessesClient({ initialBusinesses }: BusinessesPagePr
     };
 
     return (
-        <div className="space-y-12 animate-in fade-in duration-1000">
+        <div className="space-y-6 animate-in fade-in duration-1000">
             {/* Header / Form Section */}
-            <div className="relative overflow-hidden bg-white rounded-[3rem] p-10 md:p-14 shadow-xl border border-slate-100">
-                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/5 rounded-full -mr-72 -mt-72 blur-[100px]"></div>
-
-                <div className="relative z-10">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-10">
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-4">
-                                <div className="p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-100">
-                                    <Briefcase className="text-white" size={24} />
-                                </div>
-                                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Enterprise segment</span>
-                            </div>
-                            <div>
-                                <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-                                    {editingBusiness ? 'Edit Business' : 'Create Entity'}
-                                </h1>
-                                <p className="mt-2 text-slate-400 text-sm font-bold uppercase tracking-widest">
-                                    {editingBusiness ? 'Updating Corporate Node' : 'Initialize Management Scope'}
-                                </p>
-                            </div>
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-slate-900 p-6 text-white flex flex-col md:flex-row justify-between items-center gap-4 border-b border-slate-800">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-black/20">
+                            <Briefcase className="text-white" size={18} />
                         </div>
-
-                        {editingBusiness && (
-                            <button
-                                onClick={handleCancelEdit}
-                                className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-colors"
-                            >
-                                Cancel Edit
-                            </button>
-                        )}
+                        <div>
+                            <h2 className="text-xl font-black text-white tracking-tighter uppercase italic line-through decoration-blue-500/30">
+                                {editingBusiness ? 'Modify Sector' : 'Sector Registration'}
+                            </h2>
+                            <p className="text-[9px] text-blue-400 font-black uppercase tracking-[0.2em] italic leading-none mt-1">
+                                {editingBusiness ? `Updating Domain: ${editingBusiness.id.slice(-8).toUpperCase()}` : 'Initialize New Global Management Scope'}
+                            </p>
+                        </div>
                     </div>
 
-                    <form action={handleSubmit} className="space-y-8">
+                    {editingBusiness && (
+                        <button
+                            onClick={handleCancelEdit}
+                            className="bg-white/10 hover:bg-white/20 text-white px-4 h-10 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 italic"
+                        >
+                            ABORT_EDIT
+                        </button>
+                    )}
+                </div>
+
+                <div className="p-6 md:p-8 bg-white">
+                    <form action={handleSubmit} className="space-y-6">
                         <div className="flex flex-col md:flex-row gap-6 items-end">
                             <div className="flex-1 space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Name</label>
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">Authorized Sector Identity</label>
                                 <input
                                     name="name"
                                     required
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="w-full px-6 h-16 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-blue-500 focus:bg-white transition-all outline-none"
-                                    placeholder="e.g. Acme Corp / Retail Division"
+                                    className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black text-[10px] focus:border-blue-600 focus:bg-white transition-all outline-none uppercase italic"
+                                    placeholder="ACME_GLOBAL_DIVISION..."
                                 />
                             </div>
                             <button
                                 type="submit"
-                                className="w-full md:w-64 h-16 bg-blue-600 hover:bg-slate-900 text-white rounded-2xl font-black shadow-xl shadow-blue-100 transition-all active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
+                                className="w-full md:w-64 h-11 bg-slate-900 hover:bg-blue-600 text-white rounded-xl font-black shadow-lg shadow-black/10 transition-all active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-[0.2em] text-[10px] italic border border-slate-800"
                             >
                                 {editingBusiness ? (
                                     <>
-                                        <Check size={18} strokeWidth={3} /> Update Entity
+                                        <Check size={16} strokeWidth={3} /> COMMIT_DOMAIN_CHANGES
                                     </>
                                 ) : (
                                     <>
-                                        <Plus size={18} strokeWidth={3} /> Create Entity
+                                        <Plus size={16} strokeWidth={3} /> INITIALIZE_DOMAIN_SCOPE
                                     </>
                                 )}
                             </button>
@@ -139,43 +134,43 @@ export default function BusinessesClient({ initialBusinesses }: BusinessesPagePr
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4 md:px-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {initialBusinesses.map(business => (
-                    <div key={business.id} className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-500/10 hover:border-blue-100 transition-all group">
-                        <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex justify-between items-start group-hover:bg-blue-50/30 transition-all">
-                            <div className="flex items-center gap-5">
-                                <div className="w-14 h-14 bg-white border border-slate-100 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform text-slate-400 group-hover:text-blue-600">
-                                    <Briefcase size={24} />
+                    <div key={business.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:border-slate-900 transition-all group flex flex-col">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start px-6">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-white border border-slate-200 rounded-lg flex items-center justify-center shadow-sm text-slate-400 group-hover:text-blue-600 transition-all">
+                                    <Briefcase size={20} />
                                 </div>
-                                <div>
-                                    <h3 className="text-xl font-black tracking-tight text-slate-900 group-hover:text-blue-900 transition-colors uppercase">{business.name}</h3>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {business.id}</p>
+                                <div className="min-w-0">
+                                    <h3 className="text-sm font-black tracking-tight text-slate-900 group-hover:text-blue-900 transition-colors uppercase italic">{business.name}</h3>
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5 font-mono italic truncate">ID_{business.id.slice(-8).toUpperCase()}</p>
                                 </div>
                             </div>
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => handleEditClick(business)}
-                                    className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-md transition-all"
+                                    className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 rounded text-slate-400 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm"
                                 >
-                                    <Edit2 size={14} />
+                                    <Edit2 size={12} />
                                 </button>
                                 <button
                                     onClick={() => setDeleteId(business.id)}
-                                    className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-rose-600 hover:border-rose-100 hover:shadow-md transition-all"
+                                    className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 rounded text-slate-400 hover:text-rose-600 hover:border-rose-300 transition-all shadow-sm"
                                 >
-                                    <Trash2 size={14} />
+                                    <Trash2 size={12} />
                                 </button>
                             </div>
                         </div>
 
-                        <div className="p-8 grid grid-cols-2 gap-4">
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Shops</p>
-                                <p className="text-2xl font-black text-slate-900">{business.shopCount}</p>
+                        <div className="p-6 grid grid-cols-2 gap-3">
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center italic">
+                                <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest mb-1">Active Nodes</p>
+                                <p className="text-xl font-black text-slate-900 font-mono tracking-tighter">{business.shopCount}</p>
                             </div>
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Customers</p>
-                                <p className="text-2xl font-black text-slate-900">{business.customerCount}</p>
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center italic">
+                                <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest mb-1">Human Assets</p>
+                                <p className="text-xl font-black text-slate-900 font-mono tracking-tighter">{business.customerCount}</p>
                             </div>
                         </div>
                     </div>
@@ -186,9 +181,9 @@ export default function BusinessesClient({ initialBusinesses }: BusinessesPagePr
                 isOpen={deleteId !== null}
                 onClose={() => setDeleteId(null)}
                 onConfirm={handleDelete}
-                title="Delete Business Entity"
-                description="Are you sure you want to delete this business? Internal data nodes may lose association if they exist."
-                confirmText="Delete Entity"
+                title="Authorize Sector Purge"
+                description={`Initialize terminal sequence to purge domain [${initialBusinesses.find(b => b.id === deleteId)?.name}]. Root association will be fragmented.`}
+                confirmText="PURGE_DOMAIN_STAKE"
                 variant="danger"
             />
         </div>

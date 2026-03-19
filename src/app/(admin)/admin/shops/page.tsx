@@ -35,24 +35,22 @@ export default async function ShopsPage() {
     const selectedBusinessId = await getSelectedBusinessId();
 
     return (
-        <div className="space-y-12 fade-in relative pb-20">
+        <div className="space-y-6 fade-in relative pb-20 p-2 md:p-6">
             {/* Header Section */}
-            <div className="bg-white p-12 rounded-[3.5rem] border-2 border-blue-50 shadow-2xl shadow-blue-500/5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="space-y-3">
-                        <h1 className="text-5xl font-black text-black tracking-tighter uppercase italic">
-                            Terminal <span className="text-blue-600">Network</span>
-                        </h1>
-                        <p className="text-blue-300 text-sm font-bold uppercase tracking-[0.2em] flex items-center gap-4">
-                            Monitor and manage all physical store locations and staff assignments
-                        </p>
-                    </div>
-                    <div className="flex gap-4">
-                        <div className="bg-blue-50 px-8 py-5 rounded-[2rem] border-2 border-blue-100 flex flex-col items-end shadow-sm">
-                            <span className="text-[10px] text-blue-300 uppercase tracking-widest font-black">Active Nodes</span>
-                            <span className="text-4xl font-black text-blue-600 tracking-tighter italic">{shops.length}</span>
-                        </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
+                        Terminal <span className="text-blue-600">Matrix</span>
+                    </h1>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1">
+                        Physical Node Distribution & Staffing Registry
+                    </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3 items-center">
+                    <div className="px-4 h-12 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-center items-end shadow-inner min-w-[120px]">
+                        <span className="text-[8px] text-slate-400 uppercase tracking-widest font-black leading-none">Active Nodes</span>
+                        <span className="text-lg font-black text-slate-900 tracking-tighter italic">{shops.length} UNITS</span>
                     </div>
                 </div>
             </div>

@@ -67,39 +67,35 @@ export default async function TransfersPage({ searchParams }: TransfersPageProps
     const inventory = sanitizeData(rawInventory);
 
     return (
-        <div className="space-y-12 fade-in relative pb-20">
+        <div className="space-y-6 fade-in relative pb-20 p-2 md:p-6">
             {/* Header Section */}
-            <div className="bg-white p-12 rounded-[3.5rem] border-2 border-blue-50 shadow-2xl shadow-blue-500/5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="space-y-3">
-                        <h1 className="text-5xl font-black text-black tracking-tighter uppercase italic">
-                            Logistics <span className="text-blue-600">Vector</span>
-                        </h1>
-                        <p className="text-blue-300 text-sm font-bold uppercase tracking-[0.2em] flex items-center gap-4">
-                            <TruckIcon size={20} className="text-blue-500" />
-                            Coordinate Multi-Node Inventory Synchronization
-                        </p>
-                    </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
+                        Stock <span className="text-blue-600">Transfers</span>
+                    </h1>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1">
+                        Internal Inventory Movement & Location Synchronization
+                    </p>
                 </div>
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                    { label: 'TOTAL MOVEMENTS', value: transfers.length, icon: TruckIcon, sub: 'Active Flow Channels' },
-                    { label: 'TODAY\'S TRANSFERS', value: transfers.filter((t: any) => new Date(t.date).toDateString() === new Date().toDateString()).length, icon: Calendar, sub: 'Current Cycle Activity' },
-                    { label: 'VOLUME (UNITS)', value: transfers.reduce((sum: number, t: any) => sum + t.items.reduce((is: number, i: any) => is + i.quantity, 0), 0).toLocaleString(), icon: Package, sub: 'Net Resource Throughput' }
+                    { label: 'TOTAL TRANSFERS', value: transfers.length, icon: TruckIcon, sub: 'Active Movement Logs' },
+                    { label: 'TODAY\'S ACTIVITY', value: transfers.filter((t: any) => new Date(t.date).toDateString() === new Date().toDateString()).length, icon: Calendar, sub: 'Current Business Cycle' },
+                    { label: 'STOCK VOLUME', value: transfers.reduce((sum: number, t: any) => sum + t.items.reduce((is: number, i: any) => is + i.quantity, 0), 0).toLocaleString(), icon: Package, sub: 'Net Unit Throughput' }
                 ].map((stat, idx) => (
-                    <div key={idx} className="bg-white p-12 rounded-[2.5rem] border-2 border-blue-50 shadow-2xl shadow-blue-500/5 relative group hover:bg-blue-50 transition-all duration-500">
-                        <div className="flex justify-between items-start mb-10">
-                            <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
-                                <stat.icon size={32} />
+                    <div key={idx} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative group hover:border-blue-600 transition-all">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                                <stat.icon size={20} />
                             </div>
-                            <span className="text-[10px] font-black text-blue-200 group-hover:text-blue-400 transition-colors uppercase tracking-widest font-mono">0{idx + 1} // LOGS</span>
+                            <span className="text-[8px] font-black text-slate-300 group-hover:text-blue-600 transition-colors uppercase tracking-widest font-mono">STEP // 0{idx + 1}</span>
                         </div>
-                        <div className="text-4xl font-black text-black mb-2 tracking-tighter underline decoration-4 decoration-blue-500/10 underline-offset-8 group-hover:decoration-blue-500/30 transition-all">{stat.value}</div>
-                        <div className="text-[10px] font-black text-blue-300 uppercase tracking-widest mt-6">{stat.label}</div>
+                        <div className="text-3xl font-black text-slate-900 mb-1 tracking-tighter italic">{stat.value}</div>
+                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono italic">{stat.label}</div>
                     </div>
                 ))}
             </div>

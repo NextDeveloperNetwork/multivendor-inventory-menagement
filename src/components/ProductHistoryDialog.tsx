@@ -98,84 +98,84 @@ export default function ProductHistoryDialog({ product, isOpen, onClose }: Produ
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl bg-white rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
-                <div className="bg-black p-10 text-white flex justify-between items-center">
-                    <div className="flex items-center gap-6">
-                        <div className="w-16 h-16 bg-blue-600 rounded-[1.8rem] flex items-center justify-center shadow-lg shadow-blue-500/20">
-                            <FileText size={28} />
+            <DialogContent className="max-w-4xl bg-white rounded-2xl p-0 overflow-hidden border border-slate-200 shadow-2xl">
+                <div className="bg-slate-900 px-8 py-6 text-white flex justify-between items-center border-b border-white/10">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+                            <FileText size={20} />
                         </div>
                         <div>
-                            <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">Procurement Ledger</DialogTitle>
-                            <DialogDescription className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
-                                <Package size={12} /> {product?.name} // {product?.sku}
+                            <DialogTitle className="text-sm font-black uppercase italic tracking-tighter">PROCUREMENT_LEDGER</DialogTitle>
+                            <DialogDescription className="text-[8px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2 mt-0.5">
+                                <Package size={10} /> {product?.name} <span className="text-white/30">|</span> {product?.sku}
                             </DialogDescription>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                         <button
                             onClick={downloadPDF}
                             disabled={loading || history.length === 0}
-                            className="h-12 px-6 bg-white text-black hover:bg-blue-600 hover:text-white rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 transition-all active:scale-95 disabled:opacity-30"
+                            className="h-9 px-4 bg-white text-slate-900 hover:bg-blue-600 hover:text-white rounded-lg font-black uppercase tracking-widest text-[8px] flex items-center gap-2 transition-all active:scale-95 disabled:opacity-30 border border-slate-200 shadow-sm"
                         >
-                            <Download size={16} /> Export PDF
+                            <Download size={14} /> EXPORT_DATA
                         </button>
-                        <button onClick={onClose} className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
-                            <X size={20} />
+                        <button onClick={onClose} className="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-colors">
+                            <X size={16} />
                         </button>
                     </div>
                 </div>
 
-                <div className="p-10 max-h-[60vh] overflow-y-auto">
+                <div className="p-0 max-h-[60vh] overflow-y-auto">
                     {loading ? (
                         <div className="py-20 flex flex-col items-center justify-center gap-4">
-                            <Loader2 className="animate-spin text-blue-600" size={40} />
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Syncing Registry History...</p>
+                            <Loader2 className="animate-spin text-blue-600" size={32} />
+                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 font-mono">SYNCING_REGISTRY_LOGS...</p>
                         </div>
                     ) : history.length === 0 ? (
                         <div className="py-20 text-center space-y-4">
-                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto border-2 border-dashed border-slate-100">
-                                <FileText size={32} className="text-slate-200" />
+                            <div className="w-16 h-16 bg-slate-50 rounded-xl flex items-center justify-center mx-auto border border-dashed border-slate-200">
+                                <FileText size={24} className="text-slate-300" />
                             </div>
                             <div>
-                                <h4 className="text-slate-900 font-black uppercase italic tracking-tight">No Transactions Detected</h4>
-                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1 italic">This asset has no recorded procurement events.</p>
+                                <h4 className="text-slate-900 text-xs font-black uppercase italic tracking-tight">NULL_DATA_DETECTED</h4>
+                                <p className="text-slate-400 text-[8px] font-bold uppercase tracking-widest mt-1 italic">VOID TRANSACTION HISTORY FOR TARGET ASSET</p>
                             </div>
                         </div>
                     ) : (
-                        <div className="border-2 border-slate-50 rounded-[2rem] overflow-hidden">
+                        <div className="overflow-hidden">
                             <Table>
-                                <TableHeader className="bg-slate-50/50">
-                                    <TableRow className="hover:bg-transparent">
-                                        <TableHead className="py-6 px-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Date / Node</TableHead>
-                                        <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Reference</TableHead>
-                                        <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Supplier Entity</TableHead>
-                                        <TableHead className="py-6 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-32">Qty</TableHead>
-                                        <TableHead className="py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 w-48">Unit Cost</TableHead>
-                                        <TableHead className="py-6 px-8 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 w-48">Subtotal</TableHead>
+                                <TableHeader className="bg-slate-50 border-b border-slate-100">
+                                    <TableRow className="hover:bg-transparent border-0">
+                                        <TableHead className="h-12 px-8 text-[8px] font-black uppercase tracking-widest text-slate-400 font-mono">STAMP_NODE</TableHead>
+                                        <TableHead className="h-12 text-[8px] font-black uppercase tracking-widest text-slate-400 font-mono">REFERENCE_ID</TableHead>
+                                        <TableHead className="h-12 text-[8px] font-black uppercase tracking-widest text-slate-400 font-mono">SUPPLIER_ENTITY</TableHead>
+                                        <TableHead className="h-12 text-center text-[8px] font-black uppercase tracking-widest text-slate-400 font-mono w-32">QTY_U</TableHead>
+                                        <TableHead className="h-12 text-right text-[8px] font-black uppercase tracking-widest text-slate-400 font-mono w-48">VAL_UNIT</TableHead>
+                                        <TableHead className="h-12 px-8 text-right text-[8px] font-black uppercase tracking-widest text-slate-400 font-mono w-48">VAL_NET</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {history.map((item, index) => (
-                                        <TableRow key={index} className="group hover:bg-slate-50/50 transition-all border-b border-slate-50 last:border-0 h-20">
-                                            <TableCell className="px-8 font-mono text-[10px] font-black text-slate-400 uppercase italic">
+                                        <TableRow key={index} className="group hover:bg-slate-50/50 transition-all border-b border-slate-50 last:border-0 h-14">
+                                            <TableCell className="px-8 font-mono text-[9px] font-black text-slate-400 uppercase italic">
                                                 {format(new Date(item.invoice.date), 'yyyy.MM.dd')}
                                             </TableCell>
-                                            <TableCell className="font-bold text-xs text-black italic">
+                                            <TableCell className="font-mono font-black text-[10px] text-slate-900 italic">
                                                 {item.invoice.number}
                                             </TableCell>
-                                            <TableCell className="font-bold text-xs text-black">
-                                                <div className="flex items-center gap-2">
-                                                    <Store size={14} className="text-blue-500" />
-                                                    {item.invoice.supplier?.name || "DIRECT"}
+                                            <TableCell className="font-black text-[10px] text-slate-900">
+                                                <div className="flex items-center gap-2 uppercase tracking-tight">
+                                                    <Store size={12} className="text-blue-500" />
+                                                    {item.invoice.supplier?.name || "DIRECT_AUTH"}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-center font-black text-xs text-black">
-                                                +{item.quantity}
+                                            <TableCell className="text-center font-mono font-black text-[10px] text-slate-900">
+                                                +{item.quantity}_U
                                             </TableCell>
-                                            <TableCell className="text-right font-mono text-xs font-black text-slate-900">
+                                            <TableCell className="text-right font-mono text-[10px] font-black text-slate-400">
                                                 {formatCurrency(Number(item.cost))}
                                             </TableCell>
-                                            <TableCell className="px-8 text-right font-mono text-xs font-black text-blue-600 italic">
+                                            <TableCell className="px-8 text-right font-mono text-[10px] font-black text-blue-600 italic">
                                                 {formatCurrency(Number(item.cost) * item.quantity)}
                                             </TableCell>
                                         </TableRow>
@@ -187,22 +187,22 @@ export default function ProductHistoryDialog({ product, isOpen, onClose }: Produ
                 </div>
 
                 {!loading && history.length > 0 && (
-                    <div className="p-10 bg-slate-50/50 border-t border-slate-100 flex justify-between items-center px-12">
+                    <div className="p-8 bg-slate-50 border-t border-slate-200 flex justify-between items-center px-10">
                         <div className="flex gap-10">
                             <div>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Lifetime Procurement</p>
-                                <p className="text-xl font-black text-black leading-none">{history.reduce((sum, i) => sum + i.quantity, 0)} Units</p>
+                                <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">LIFETIME_STOCK_FLOW</p>
+                                <p className="text-lg font-black text-slate-900 leading-none font-mono italic">{history.reduce((sum, i) => sum + i.quantity, 0)} _U</p>
                             </div>
-                            <div className="w-px h-10 bg-slate-200" />
+                            <div className="w-px h-8 bg-slate-200" />
                             <div>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Total Capital Injected</p>
-                                <p className="text-xl font-black text-blue-600 leading-none">
+                                <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">TOTAL_CAPITAL_ALLOCATION</p>
+                                <p className="text-lg font-black text-blue-600 leading-none font-mono italic">
                                     {formatCurrency(history.reduce((sum, i) => sum + (Number(i.cost) * i.quantity), 0))}
                                 </p>
                             </div>
                         </div>
-                        <div className="text-[10px] font-black text-slate-300 uppercase italic">
-                            Authorized Audit Log // System Master
+                        <div className="text-[7px] font-black text-slate-300 uppercase tracking-[0.2em] italic font-mono">
+                            AUTHORIZED_AUDIT_LOG_ENTRY // NODE_STK_MASTER
                         </div>
                     </div>
                 )}

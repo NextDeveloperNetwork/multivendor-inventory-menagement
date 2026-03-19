@@ -13,86 +13,84 @@ export async function createTransfer(formData: FormData) {
     const businessId = formData.get('businessId') as string;
 
     try {
-        const transferData: any = {
-            status: 'COMPLETED',
-            businessId,
-            items: {
-                create: items.map((item: any) => ({
-                    productId: item.productId,
-                    quantity: parseInt(item.quantity),
-                })),
-            },
-        };
-
-        if (fromType === 'warehouse') transferData.fromWarehouseId = fromId;
-        else transferData.fromShopId = fromId;
-
-        if (toType === 'warehouse') transferData.toWarehouseId = toId;
-        else transferData.toShopId = toId;
-
-        const transfer = await prisma.transfer.create({
-            data: transferData,
-            include: {
-                items: { include: { product: true } },
-                fromWarehouse: true,
-                fromShop: true,
-                toWarehouse: true,
-                toShop: true,
-            },
-        });
-
-        // Update inventories
-        for (const item of items) {
-            const quantity = parseInt(item.quantity);
-
-            // 1. Deduct from Source
-            const sourceWhere: any = { productId: item.productId };
-            if (fromType === 'warehouse') sourceWhere.warehouseId = fromId;
-            else sourceWhere.shopId = fromId;
-
-            const sourceInv = await prisma.inventory.findUnique({
-                where: fromType === 'warehouse' ?
-                    { productId_warehouseId: { productId: item.productId, warehouseId: fromId } } :
-                    { productId_shopId: { productId: item.productId, shopId: fromId } }
-            });
-
-            if (sourceInv) {
-                await prisma.inventory.update({
-                    where: { id: sourceInv.id },
-                    data: { quantity: { decrement: quantity } },
-                });
-            }
-
-            // 2. Add to Destination
-            const destInv = await prisma.inventory.findUnique({
-                where: toType === 'warehouse' ?
-                    { productId_warehouseId: { productId: item.productId, warehouseId: toId } } :
-                    { productId_shopId: { productId: item.productId, shopId: toId } }
-            });
-
-            if (destInv) {
-                await prisma.inventory.update({
-                    where: { id: destInv.id },
-                    data: { quantity: { increment: quantity } },
-                });
-            } else {
-                await prisma.inventory.create({
-                    data: {
+        const result = await prisma.$transaction(async (tx) => {
+            const transferData: any = {
+                status: 'COMPLETED',
+                businessId,
+                items: {
+                    create: items.map((item: any) => ({
                         productId: item.productId,
-                        warehouseId: toType === 'warehouse' ? toId : null,
-                        shopId: toType === 'shop' ? toId : null,
-                        quantity,
-                    },
+                        quantity: parseInt(item.quantity),
+                    })),
+                },
+            };
+
+            if (fromType === 'warehouse') transferData.fromWarehouseId = fromId;
+            else transferData.fromShopId = fromId;
+
+            if (toType === 'warehouse') transferData.toWarehouseId = toId;
+            else transferData.toShopId = toId;
+
+            const transfer = await tx.transfer.create({
+                data: transferData,
+                include: {
+                    items: { include: { product: true } },
+                    fromWarehouse: true,
+                    fromShop: true,
+                    toWarehouse: true,
+                    toShop: true,
+                },
+            });
+
+            // Update inventories
+            for (const item of items) {
+                const quantity = parseInt(item.quantity);
+
+                // 1. Deduct from Source
+                if (fromType === 'warehouse') {
+                    await tx.inventory.update({
+                        where: { productId_warehouseId: { productId: item.productId, warehouseId: fromId } },
+                        data: { quantity: { decrement: quantity } },
+                    });
+                } else {
+                    await tx.inventory.update({
+                        where: { productId_shopId: { productId: item.productId, shopId: fromId } },
+                        data: { quantity: { decrement: quantity } },
+                    });
+                }
+
+                // 2. Add to Destination
+                const destInv = await tx.inventory.findFirst({
+                    where: toType === 'warehouse' ?
+                        { productId: item.productId, warehouseId: toId } :
+                        { productId: item.productId, shopId: toId }
                 });
+
+                if (destInv) {
+                    await tx.inventory.update({
+                        where: { id: destInv.id },
+                        data: { quantity: { increment: quantity } },
+                    });
+                } else {
+                    await tx.inventory.create({
+                        data: {
+                            productId: item.productId,
+                            warehouseId: toType === 'warehouse' ? toId : null,
+                            shopId: toType === 'shop' ? toId : null,
+                            quantity,
+                        },
+                    });
+                }
             }
-        }
+            return transfer;
+        });
 
         revalidatePath('/admin/transfers');
         revalidatePath('/admin/inventory');
         revalidatePath('/shop');
         revalidatePath('/shop/inventory');
         revalidatePath('/shop/history');
-        return { success: true, transfer: sanitizeData(transfer) };
+        return { success: true, transfer: sanitizeData(result) };
     } catch (error) {
         console.error('Error creating transfer:', error);
         return { success: false, error: 'Failed to create transfer' };
@@ -186,7 +184,9 @@ export async function deleteTransfer(id: string) {
 
         revalidatePath('/admin/transfers');
         revalidatePath('/admin/inventory');
+        revalidatePath('/shop');
         revalidatePath('/shop/inventory');
+        revalidatePath('/shop/history');
 
         return { success: true };
     } catch (error) {
@@ -308,6 +308,9 @@ export async function updateTransfer(id: string, formData: FormData) {
 
         revalidatePath('/admin/transfers');
         revalidatePath('/admin/inventory');
+        revalidatePath('/shop');
+        revalidatePath('/shop/inventory');
+        revalidatePath('/shop/history');
         return { success: true };
     } catch (error: any) {
         console.error('Error updating transfer:', error);

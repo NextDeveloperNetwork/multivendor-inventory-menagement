@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Card, CardHeader, CardTitle, CardContent, CardValue } from '@/components/DashboardCard';
-import { Package, Store, DollarSign, ShoppingCart } from 'lucide-react';
+import { Package, Store, DollarSign, ShoppingCart, Activity } from 'lucide-react';
 import Link from 'next/link';
 import DeleteSaleButton from '@/components/DeleteSaleButton';
 import MotionWrapper from '@/components/MotionWrapper';
@@ -72,143 +72,174 @@ export default async function AdminDashboard() {
         .sort((a, b) => b.percentage - a.percentage);
 
     return (
-        <section className="p-8 max-w-[1600px] mx-auto space-y-12">
+        <section className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-8">
             {/* Header */}
-            <MotionWrapper className="flex flex-col md:flex-row justify-between items-start gap-6">
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-                        Dashboard
+            <MotionWrapper className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+                <div className="text-center md:text-left">
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
+                        Control <span className="text-blue-600">Matrix</span>
                     </h1>
-                    <p className="mt-2 text-slate-400 font-medium text-sm italic">
-                        Real-time operational intelligence
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">
+                        Operational Intelligence Registry
                     </p>
                 </div>
 
-                <div className="flex gap-4 items-start">
-                    <div className="w-72 hidden md:block">
+                <div className="flex flex-wrap justify-center gap-3 items-center">
+                    <div className="w-64">
                         <BusinessSelector className="mb-0" />
                     </div>
-                    <button className="px-4 py-2 bg-slate-50 text-slate-500 font-bold rounded-xl border border-slate-100 text-xs uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center gap-2 h-[52px]">
-                        <Package size={14} /> Add Widget
+                    <button className="px-5 h-12 bg-slate-900 text-white font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2 shadow-lg shadow-slate-900/10">
+                        <Package size={14} className="text-blue-400" /> System Widget
                     </button>
                     <Link
                         href="/admin/inventory/new"
-                        className="px-6 py-2 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all flex items-center gap-2 text-xs uppercase tracking-widest"
+                        className="px-6 h-12 bg-blue-600 text-white font-black rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all flex items-center gap-2 text-[10px] uppercase tracking-widest"
                     >
-                        <ShoppingCart size={14} /> New Asset
+                        <ShoppingCart size={14} /> Deploy Asset
                     </Link>
                 </div>
             </MotionWrapper>
 
             {/* Top Metrics */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                <Metric label="Products" value={totalProducts} icon={Package} />
-                <Metric label="Shops" value={totalShops} icon={Store} />
-                <Metric label="Sales" value={totalSales} icon={ShoppingCart} />
-                <Metric label="Revenue" value={`${baseCurrency?.symbol || '$'}${totalRevenue.toLocaleString()}`} icon={DollarSign} />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Metric label="Total Assets" value={totalProducts} icon={Package} color="blue" />
+                <Metric label="Active Nodes" value={totalShops} icon={Store} color="indigo" />
+                <Metric label="Matrix Trans" value={totalSales} icon={ShoppingCart} color="emerald" />
+                <Metric label="Net Value" value={`${baseCurrency?.symbol || '$'}${totalRevenue.toLocaleString()}`} icon={DollarSign} color="amber" />
             </div>
 
-            {/* Top Performing Shops Chart */}
-            <Card className="rounded-3xl">
-                <CardHeader>
-                    <CardTitle>Top Performing Shops</CardTitle>
-                    <p className="text-xs text-slate-500 font-medium">
-                        Revenue share by percentage
-                    </p>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-6">
-                    <ShopPerformanceChart data={shopPerformanceChartData} />
-                    <div className="space-y-2">
-                        {shopPerformanceChartData.map((shop, i) => (
-                            <div key={shop.name} className="flex justify-between text-sm">
-                                <span className="font-semibold text-slate-700">{i + 1}. {shop.name}</span>
-                                <span className="font-black text-slate-900">{shop.percentage.toFixed(1)}%</span>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Top Performing Shops Chart */}
+                <Card className="rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden lg:col-span-2 bg-white">
+                    <CardHeader className="bg-slate-50 border-b border-slate-100 p-6 flex justify-between items-center">
+                        <div>
+                            <CardTitle className="text-sm font-black uppercase italic tracking-tighter">Node Performance Matrix</CardTitle>
+                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Revenue Distribution Analysis</p>
+                        </div>
+                        <div className="px-3 py-1 bg-white rounded-lg border border-slate-200 text-[10px] font-black italic">LIVE</div>
+                    </CardHeader>
+                    <CardContent className="p-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                            <ShopPerformanceChart data={shopPerformanceChartData} />
+                            <div className="space-y-3">
+                                {shopPerformanceChartData.map((shop, i) => (
+                                    <div key={shop.name} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-white hover:border-blue-200 transition-all group">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] font-black text-slate-300 group-hover:text-blue-400">{String(i + 1).padStart(2, '0')}</span>
+                                            <span className="font-bold text-slate-700 text-xs truncate max-w-[120px]">{shop.name}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="font-black text-slate-900 text-xs font-mono italic">{shop.percentage.toFixed(1)}%</span>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Partner Shops List */}
+                <Card className="rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden bg-white">
+                    <CardHeader className="bg-slate-900 text-white p-6 flex justify-between items-center">
+                        <div>
+                            <CardTitle className="text-sm font-black uppercase italic tracking-tighter text-white">Partner Registry</CardTitle>
+                            <p className="text-[9px] text-blue-400 font-black uppercase tracking-widest">Active Operational Nodes</p>
+                        </div>
+                        <Link href="/admin/shops" className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-all">
+                            <Store size={14} />
+                        </Link>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-2">
+                        {shopSalesData.map(shop => (
+                            <Link
+                                key={shop.id}
+                                href={`/admin/shops/${shop.id}`}
+                                className="flex justify-between items-center px-4 py-3 rounded-2xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all group"
+                            >
+                                <div className="min-w-0">
+                                    <p className="font-black text-slate-900 text-[11px] truncate uppercase">{shop.name}</p>
+                                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">{shop.location || 'GLOBAL_NODE'}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-black text-slate-900 text-xs font-mono italic">{baseCurrency?.symbol || '$'}{shop.revenue.toLocaleString()}</p>
+                                    <div className="flex items-center justify-end gap-1 mt-0.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        <p className="text-[8px] text-slate-400 font-black uppercase">{shop.salesCount} TX</p>
+                                    </div>
+                                </div>
+                            </Link>
                         ))}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Recent Activity Stream */}
+            <Card className="rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden bg-white">
+                <CardHeader className="bg-slate-50 border-b border-slate-100 p-6 flex justify-between items-center">
+                    <div>
+                        <CardTitle className="text-sm font-black uppercase italic tracking-tighter">Activity Stream</CardTitle>
+                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Real-time Transaction Logs</p>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="divide-y divide-slate-100">
+                        {recentSales.length === 0 ? (
+                            <div className="p-12 text-center">
+                                <Activity size={32} className="mx-auto text-slate-200 mb-4" />
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">No matrix transactions recorded</p>
+                            </div>
+                        ) : (
+                            recentSales.map(sale => (
+                                <SaleDetailsDialog key={sale.id} sale={sale}>
+                                    <div className="flex flex-col sm:flex-row justify-between p-6 hover:bg-slate-50/50 transition-all group cursor-pointer border-l-4 border-l-transparent hover:border-l-blue-600">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center group-hover:bg-blue-600 transition-all shrink-0">
+                                                <ShoppingCart size={18} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-black text-slate-900 text-xs uppercase tracking-tight">{sale.shop.name}</p>
+                                                    <span className="text-[9px] font-black text-slate-400 font-mono italic opacity-50">#{sale.number}</span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1 mt-2">
+                                                    {sale.items.map((item: any) => (
+                                                        <span key={item.id} className="text-[8px] font-black uppercase tracking-widest bg-white border border-slate-200 text-slate-500 px-2 py-0.5 rounded-lg group-hover:border-blue-200 group-hover:text-blue-600 transition-colors">
+                                                            {item.product.name} <span className="text-slate-300">×</span> {item.quantity}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right mt-4 sm:mt-0 flex flex-col justify-between items-end">
+                                            <div>
+                                                <p className="font-black text-slate-900 text-sm font-mono italic leading-none">{baseCurrency?.symbol || '$'}{Number(sale.total).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                                <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1 italic">{new Date(sale.date).toLocaleDateString()}</p>
+                                            </div>
+                                            <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <DeleteSaleButton id={sale.id} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </SaleDetailsDialog>
+                            ))
+                        )}
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Shops & Recent Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Shops List */}
-                <div className="lg:col-span-1 flex flex-col gap-6">
-                    <Card className="rounded-2xl">
-                        <CardHeader className="flex justify-between items-center">
-                            <CardTitle>Partner Shops</CardTitle>
-                            <Link href="/admin/shops" className="text-xs font-bold text-primary hover:underline uppercase tracking-widest">Global View</Link>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                            {shopSalesData.map(shop => (
-                                <Link
-                                    key={shop.id}
-                                    href={`/admin/shops/${shop.id}`}
-                                    className="flex justify-between items-center px-4 py-3 rounded-xl hover:bg-slate-50 transition"
-                                >
-                                    <div>
-                                        <p className="font-semibold text-slate-900">{shop.name}</p>
-                                        <p className="text-xs text-slate-400">{shop.location || 'Global'}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-bold">{baseCurrency?.symbol || '$'}{shop.revenue.toLocaleString()}</p>
-                                        <p className="text-xs text-slate-400">{shop.salesCount} sales</p>
-                                    </div>
-                                </Link>
-                            ))}
-                        </CardContent>
-                    </Card>
+            {/* Inventory Link Footnote */}
+            <Link href="/admin/inventory" className="p-8 rounded-[2.5rem] bg-slate-900 text-white hover:bg-black transition-all flex flex-col md:flex-row justify-between items-center gap-6 group shadow-2xl shadow-slate-900/40 border border-slate-800">
+                <div className="flex items-center gap-6 text-center md:text-left">
+                    <div className="w-16 h-16 rounded-[1.5rem] bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform">
+                        <Package size={28} />
+                    </div>
+                    <div>
+                        <div className="font-black text-2xl uppercase italic tracking-tighter group-hover:text-blue-400 transition-colors">Asset Management Matrix</div>
+                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-1">Initialize deep scan of current registry distribution</p>
+                    </div>
                 </div>
-
-                {/* Recent Activity */}
-                <div className="lg:col-span-2 flex flex-col gap-6">
-                    <Card className="rounded-2xl">
-                        <CardHeader>
-                            <CardTitle>Recent Activity Stream</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0 divide-y divide-slate-100">
-                            {recentSales.length === 0 ? (
-                                <div className="p-8 text-center text-slate-400">No recent activity recorded.</div>
-                            ) : (
-                                recentSales.map(sale => (
-                                    <SaleDetailsDialog key={sale.id} sale={sale}>
-                                        <div className="flex flex-col sm:flex-row justify-between p-6 hover:bg-slate-50/50 transition border-l-4 border-l-transparent hover:border-l-primary group">
-                                            <div className="flex items-start gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all transform group-hover:rotate-6">
-                                                    <ShoppingCart size={20} />
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-slate-900">{sale.shop.name} <span className="text-xs text-slate-400">#{sale.number}</span></p>
-                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                        {sale.items.map((item: any) => (
-                                                            <span key={item.id} className="text-[10px] font-medium bg-slate-100 px-2 py-0.5 rounded">{item.product.name} ×{item.quantity}</span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="text-right mt-4 sm:mt-0">
-                                                <p className="font-black text-slate-900">{baseCurrency?.symbol || '$'}{Number(sale.total).toFixed(2)}</p>
-                                                <p className="text-xs text-slate-400">{new Date(sale.date).toLocaleDateString()}</p>
-                                                <div className="mt-2 opacity-0 group-hover:opacity-100">
-                                                    <DeleteSaleButton id={sale.id} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </SaleDetailsDialog>
-                                ))
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-
-            {/* Inventory Link */}
-            <Link href="/admin/inventory" className="p-6 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 transition flex flex-col gap-4 group">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white">
-                    <Package size={20} />
-                </div>
-                <div>
-                    <div className="font-black text-xl mb-1 group-hover:translate-x-1 transition-transform">Inventory Matrix →</div>
-                    <p className="text-xs text-slate-400 font-medium">Deep dive into current asset distribution and stock levels.</p>
+                <div className="px-8 py-3 bg-white/10 rounded-xl font-black text-xs uppercase tracking-[0.2em] group-hover:bg-blue-600 transition-all border border-white/10 group-hover:border-blue-400 italic">
+                    Access Grid →
                 </div>
             </Link>
         </section>
@@ -216,16 +247,23 @@ export default async function AdminDashboard() {
 }
 
 // Metric Component
-function Metric({ label, value, icon: Icon }: { label: string; value: any; icon: any }) {
+function Metric({ label, value, icon: Icon, color }: { label: string; value: any; icon: any; color: string }) {
+    const colors: any = {
+        blue: 'text-blue-600 bg-blue-50 border-blue-100',
+        indigo: 'text-indigo-600 bg-indigo-50 border-indigo-100',
+        emerald: 'text-emerald-600 bg-emerald-50 border-emerald-100',
+        amber: 'text-amber-600 bg-amber-50 border-amber-100',
+    };
+
     return (
-        <Card className="rounded-[2rem]">
-            <CardContent className="flex items-center gap-4 py-8">
-                <div className="w-12 h-12 rounded-2xl bg-primary/5 text-primary flex items-center justify-center">
-                    <Icon size={20} />
+        <Card className="rounded-[2rem] border border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow">
+            <CardContent className="flex items-center gap-5 py-8">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-inner ${colors[color] || 'bg-slate-50 border-slate-100 text-slate-600'}`}>
+                    <Icon size={24} />
                 </div>
                 <div>
-                    <p className="text-xl font-black">{value}</p>
-                    <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
+                    <p className="text-xl font-black text-slate-900 font-mono italic leading-none">{value}</p>
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-black mt-1">{label}</p>
                 </div>
             </CardContent>
         </Card>

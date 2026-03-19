@@ -10,7 +10,7 @@ import {
     Trash2,
     Settings2,
     Package,
-    TrendingUp,
+    Activity,
     ShieldCheck,
     ArrowRight,
     Loader2,
@@ -165,242 +165,197 @@ export default function InventoryClient({ products: initialProducts, filter, sho
     };
 
     return (
-        <div className="space-y-8">
-            {/* Search Bar & View Toggle */}
-            <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
-                <div className="flex gap-4 w-full md:max-w-xl">
-                    <div className="relative group flex-1">
-                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Search global assets..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full h-14 pl-16 pr-6 bg-white border border-slate-200 rounded-2xl font-bold text-black focus:border-primary outline-none transition-all shadow-sm placeholder:text-slate-300"
-                        />
+        <div className="flex flex-col gap-6">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+                        <button
+                            onClick={() => setViewMode('catalog')}
+                            className={`px-4 h-8 rounded-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'catalog' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                        >
+                            <LayoutGrid size={14} />
+                            <span>Catalog</span>
+                        </button>
+                        <button
+                            onClick={() => setViewMode('table')}
+                            className={`px-4 h-8 rounded-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                        >
+                            <List size={14} />
+                            <span>List View</span>
+                        </button>
                     </div>
+
+                    <div className="h-4 w-[1px] bg-slate-300 mx-1 hidden sm:block" />
+
                     <button
                         onClick={() => setShowScanner(true)}
-                        className="h-14 px-6 bg-slate-100 text-slate-900 border border-slate-200 rounded-2xl shadow-sm hover:bg-slate-200 transition-all flex items-center gap-3 active:scale-95"
+                        className="h-10 px-4 bg-slate-50 text-slate-700 border border-slate-300 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-white hover:text-blue-600 transition-all flex items-center gap-2 active:scale-95 shadow-sm"
                     >
-                        <Camera size={20} />
-                        <span className="hidden sm:inline font-bold text-xs uppercase tracking-widest">Scan</span>
+                        <Camera size={14} className="text-blue-600" />
+                        Scan Barcode
                     </button>
-                </div>
 
-                <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shrink-0">
-                    <button
-                        onClick={() => setViewMode('catalog')}
-                        className={`px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-all ${viewMode === 'catalog' ? 'bg-white text-primary shadow-sm shadow-black/5' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                        <LayoutGrid size={16} />
-                        <span>Catalog</span>
-                    </button>
-                    <button
-                        onClick={() => setViewMode('table')}
-                        className={`px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold transition-all ${viewMode === 'table' ? 'bg-white text-primary shadow-sm shadow-black/5' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                        <List size={16} />
-                        <span>Table</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* Bulk Action Toolbar */}
-            {selectedProducts.size > 0 && (
-                <div className="bg-blue-600 text-white px-8 py-4 rounded-2xl shadow-lg flex items-center justify-between animate-in slide-in-from-top">
-                    <div className="flex items-center gap-4">
-                        <CheckSquare size={20} />
-                        <span className="font-black text-sm uppercase tracking-widest">
-                            {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''} selected
-                        </span>
-                    </div>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => setSelectedProducts(new Set())}
-                            className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
-                        >
-                            Clear
-                        </button>
+                    {selectedProducts.size > 0 && (
                         <button
                             onClick={() => {
                                 setProductToDelete({ isBulk: true, count: selectedProducts.size });
                                 setIsDeleteDialogOpen(true);
                             }}
-                            className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-xl font-bold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+                            className="h-10 px-4 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all flex items-center gap-2 active:scale-95 shadow-sm"
                         >
-                            <Trash2 size={16} />
-                            Delete Selected
+                            <Trash2 size={14} />
+                            Delete ({selectedProducts.size})
                         </button>
-                    </div>
+                    )}
                 </div>
-            )}
+
+                <div className="relative group w-full lg:w-96">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={16} />
+                    <input
+                        type="text"
+                        placeholder="Search inventory catalog..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 h-10 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold placeholder:text-slate-500 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none text-slate-900"
+                    />
+                </div>
+            </div>
 
             {viewMode === 'table' ? (
-                <div className="hidden md:block bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm">
+                <div className="hidden md:block bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead>
-                                <tr className="bg-slate-50/50 border-b border-slate-100">
-                                    <th className="px-6 py-8 w-12">
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th className="px-6 py-4 w-10">
                                         <button
                                             onClick={toggleSelectAll}
-                                            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                                            className="w-5 h-5 flex items-center justify-center text-slate-300 hover:text-blue-600 transition-colors"
                                         >
                                             {selectedProducts.size === filteredProducts.length && filteredProducts.length > 0 ? (
-                                                <CheckSquare size={20} className="text-primary" />
+                                                <CheckSquare size={16} className="text-blue-600" />
                                             ) : (
-                                                <Square size={20} />
+                                                <Square size={16} />
                                             )}
                                         </button>
                                     </th>
-                                    <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Component / identifier</th>
-                                    <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Valuation</th>
-                                    <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Avg Unit Cost</th>
-                                    <th className="px-10 py-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Registry Stock</th>
-                                    <th className="px-10 py-8 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Command</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Asset Name</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Price</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Stock Balance</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-slate-100">
                                 {filteredProducts.map((product) => {
                                     let stock = 0;
                                     if (filter === 'all') {
                                         stock = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
                                     } else if (filter === 'warehouse') {
-                                        stock = product.inventory
-                                            .filter((inv: any) => inv.warehouseId !== null)
-                                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                                        stock = product.inventory.filter((inv: any) => inv.warehouseId !== null).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
                                     } else if (filter === 'shops') {
-                                        stock = product.inventory
-                                            .filter((inv: any) => inv.shopId !== null)
-                                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                                        stock = product.inventory.filter((inv: any) => inv.shopId !== null).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
                                     } else if (filter === 'specific_shop' && shopId) {
-                                        stock = product.inventory
-                                            .filter((inv: any) => inv.shopId === shopId)
-                                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                                        stock = product.inventory.filter((inv: any) => inv.shopId === shopId).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
                                     } else if (filter === 'specific_warehouse' && warehouseId) {
-                                        stock = product.inventory
-                                            .filter((inv: any) => inv.warehouseId === warehouseId)
-                                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+                                        stock = product.inventory.filter((inv: any) => inv.warehouseId === warehouseId).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
                                     }
 
+                                    const isSelected = selectedProducts.has(product.id);
+
                                     return (
-                                        <tr key={product.id} className="hover:bg-slate-50/50 transition-all group">
-                                            <td className="px-6 py-8">
+                                        <tr
+                                            key={product.id}
+                                            className={`group cursor-pointer hover:bg-blue-50 transition-all h-16 border-b border-slate-100 last:border-0 ${isSelected ? 'bg-blue-50/50' : ''}`}
+                                            onClick={() => toggleProductSelection(product.id)}
+                                        >
+                                            <td className="px-6" onClick={e => e.stopPropagation()}>
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleProductSelection(product.id);
-                                                    }}
-                                                    className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                                                    onClick={() => toggleProductSelection(product.id)}
+                                                    className={`w-5 h-5 flex items-center justify-center rounded transition-colors ${isSelected ? 'text-blue-600' : 'text-slate-300 hover:text-slate-400'}`}
                                                 >
-                                                    {selectedProducts.has(product.id) ? (
-                                                        <CheckSquare size={20} className="text-primary" />
-                                                    ) : (
-                                                        <Square size={20} />
-                                                    )}
+                                                    {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
                                                 </button>
                                             </td>
-                                            <td className="px-10 py-8">
-                                                <button
-                                                    onClick={() => setHistoryProduct(product)}
-                                                    className="flex items-center gap-4 text-left group/name"
-                                                >
-                                                    <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner overflow-hidden border border-slate-100">
+                                            <td className="px-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all overflow-hidden shrink-0 shadow-sm">
                                                         {product.imageUrl ? (
                                                             <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                                                         ) : (
-                                                            <Package size={20} />
+                                                            <Package size={14} />
                                                         )}
                                                     </div>
-                                                    <div>
-                                                        <div className="font-black text-black uppercase tracking-tight italic text-base group-hover/name:text-blue-600 transition-colors underline decoration-transparent group-hover/name:decoration-blue-200 underline-offset-4">{product.name}</div>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <div className="text-[10px] text-slate-400 font-bold font-mono uppercase tracking-widest">SKU: {product.sku}</div>
+                                                    <div className="min-w-0">
+                                                        <div className="font-black text-slate-900 text-[11px] uppercase tracking-tight truncate max-w-[220px]">{product.name}</div>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <span className="text-[9px] text-slate-500 font-bold font-mono tracking-tighter italic">SKU_{product.sku}</span>
                                                             {product.barcode && (
-                                                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-500 rounded-md border border-blue-100">
+                                                                <div className="flex items-center gap-1.5 text-[9px] text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 group-hover:bg-white transition-colors">
                                                                     <Barcode size={10} />
-                                                                    <span className="text-[8px] font-black font-mono">{product.barcode}</span>
-                                                                    <span
+                                                                    <span className="font-mono">{product.barcode}</span>
+                                                                    <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             navigator.clipboard.writeText(product.barcode);
-                                                                            toast.success('Barcode Copied: ' + product.barcode);
+                                                                            toast.success('Asset Id Captured');
                                                                         }}
-                                                                        className="hover:text-blue-700 transition-colors cursor-pointer"
-                                                                        title="Copy Barcode"
+                                                                        className="ml-1 hover:text-blue-600 transition-colors"
+                                                                        title="Copy Identifier"
                                                                     >
                                                                         <Copy size={10} />
-                                                                    </span>
+                                                                    </button>
                                                                 </div>
                                                             )}
                                                         </div>
                                                     </div>
-                                                </button>
+                                                </div>
                                             </td>
-                                            <td className="px-10 py-8">
-                                                <div className="text-black font-black text-lg font-mono tracking-tighter italic">{formatCurrency(product.price, symbol)}</div>
-                                                <div className="text-[9px] text-blue-500 font-black uppercase tracking-[0.2em] mt-1 italic">Selling Price</div>
+                                            <td className="px-6 text-right">
+                                                <div className="text-slate-900 font-black text-xs font-mono tracking-tighter italic">{formatCurrency(product.price, symbol)}</div>
+                                                <div className="text-[8px] text-blue-600 font-bold uppercase tracking-widest mt-0.5 italic leading-none">Sale Value</div>
                                             </td>
-                                            <td className="px-10 py-8">
-                                                <div className="text-slate-900 font-black text-xs font-mono tracking-widest italic">{formatCurrency(product.cost, symbol)}</div>
-                                                <div className="text-[9px] text-blue-400 font-black uppercase tracking-[0.2em] mt-1 italic">Weighted Avg Cost</div>
-                                            </td>
-                                            <td className="px-10 py-8">
-                                                <div className={`inline-flex px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 shadow-sm ${stock > 10 ? 'bg-white text-blue-600 border-blue-100' :
-                                                    stock > 0 ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                                                        'bg-black text-white border-black'
+                                            <td className="px-6 text-right">
+                                                <div className={`inline-flex px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter border shadow-sm font-mono italic ${stock > 10 ? 'bg-white text-emerald-600 border-emerald-100' :
+                                                    stock > 0 ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                        'bg-slate-900 text-white border-slate-900'
                                                     }`}>
                                                     {stock} Units
                                                 </div>
                                             </td>
-                                            <td className="px-10 py-8 text-right">
-                                                <div className="flex items-center justify-end gap-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all transform translate-x-0 lg:translate-x-4 lg:group-hover:translate-x-0">
-                                                    {product.barcode && (
-                                                        <button
-                                                            onClick={() => {
-                                                                navigator.clipboard.writeText(product.barcode);
-                                                                toast.success('Barcode Copied: ' + product.barcode);
-                                                            }}
-                                                            className="w-10 h-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-400 transition-all shadow-sm"
-                                                            title="Copy Barcode"
-                                                        >
-                                                            <Copy size={18} />
-                                                        </button>
-                                                    )}
+                                            <td className="px-6 text-right" onClick={e => e.stopPropagation()}>
+                                                <div className="flex items-center justify-end gap-1">
                                                     <button
                                                         onClick={() => setPrintProduct(product)}
-                                                        className="w-10 h-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-400 transition-all shadow-sm"
-                                                        title="Print Barcode"
+                                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all font-mono shadow-sm"
+                                                        title="Print Asset"
                                                     >
-                                                        <Printer size={18} />
+                                                        <Printer size={16} />
                                                     </button>
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => setEditingProduct(product)}
-                                                            className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100 hover:border-blue-500"
-                                                            title="Edit Product"
-                                                        >
-                                                            <Edit2 size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleReportDamage(product)}
-                                                            className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all shadow-sm border border-amber-100 hover:border-amber-500"
-                                                            title="Report Damage / QC"
-                                                        >
-                                                            <AlertTriangle size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setProductToDelete(product);
-                                                                setIsDeleteDialogOpen(true);
-                                                            }}
-                                                            className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm border border-rose-100 hover:border-rose-500"
-                                                            title="Delete Product"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    </div>
+                                                    <button
+                                                        onClick={() => setEditingProduct(product)}
+                                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all font-mono shadow-sm"
+                                                        title="Config"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setHistoryProduct(product)}
+                                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all font-mono shadow-sm"
+                                                        title="Ledger"
+                                                    >
+                                                        <Activity size={16} />
+                                                    </button>
+                                                    <div className="h-4 w-px bg-slate-200 mx-1" />
+                                                    <button
+                                                        onClick={() => {
+                                                            setProductToDelete(product);
+                                                            setIsDeleteDialogOpen(true);
+                                                        }}
+                                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all font-mono shadow-sm"
+                                                        title="Purge"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -411,7 +366,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                     </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {filteredProducts.map((product) => {
                         let stock = 0;
                         if (filter === 'all') {
@@ -427,56 +382,65 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                         }
 
                         return (
-                            <div key={product.id} className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all group/card flex flex-col">
-                                <div className="aspect-[4/3] bg-slate-50 relative overflow-hidden flex items-center justify-center group-hover/card:scale-105 transition-transform duration-500">
+                            <div key={product.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:border-blue-600/50 transition-all group/card flex flex-col">
+                                <div className="aspect-[16/10] bg-slate-50 relative overflow-hidden flex items-center justify-center p-4">
                                     {product.imageUrl ? (
-                                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700" />
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 text-slate-300">
-                                            <ImageIcon size={48} strokeWidth={1} />
-                                            <span className="text-[10px] font-bold uppercase tracking-widest">No Image</span>
+                                            <ImageIcon size={40} strokeWidth={1} />
+                                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] italic">NO_VISUAL_DATA</span>
                                         </div>
                                     )}
-                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
-                                        <button onClick={() => setEditingProduct(product)} className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-600 hover:text-primary shadow-sm border border-slate-200/50">
-                                            <Edit2 size={16} />
+                                    <div className="absolute top-3 right-3 flex gap-1.5 translate-y-2 opacity-0 group-hover/card:translate-y-0 group-hover/card:opacity-100 transition-all">
+                                        <button onClick={() => setEditingProduct(product)} className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-700 hover:text-blue-600 shadow-lg transition-transform active:scale-90">
+                                            <Edit2 size={14} />
                                         </button>
-                                        <button onClick={() => { setProductToDelete(product); setIsDeleteDialogOpen(true); }} className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-600 hover:text-rose-500 shadow-sm border border-slate-200/50">
-                                            <Trash2 size={16} />
+                                        <button onClick={() => setPrintProduct(product)} className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-700 hover:text-blue-600 shadow-lg transition-transform active:scale-90" title="Print Barcode">
+                                            <Printer size={14} />
                                         </button>
-                                        <button onClick={() => setPrintProduct(product)} className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-600 hover:text-indigo-600 shadow-sm border border-slate-200/50" title="Print Barcode">
-                                            <Printer size={16} />
+                                        <button
+                                            onClick={() => {
+                                                setProductToDelete(product);
+                                                setIsDeleteDialogOpen(true);
+                                            }}
+                                            className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-700 hover:text-rose-600 shadow-lg transition-transform active:scale-90"
+                                            title="Purge"
+                                        >
+                                            <Trash2 size={14} />
                                         </button>
                                     </div>
-                                    <div className="absolute bottom-4 left-4">
-                                        <div className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm ${stock > 10 ? 'bg-white text-emerald-600 border-emerald-100' :
-                                            stock > 0 ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                                                'bg-black text-white border-black'
+                                    <div className="absolute bottom-3 left-3">
+                                        <div className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-lg ${stock > 10 ? 'bg-white text-blue-600 border-blue-100' :
+                                            stock > 0 ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                'bg-slate-900 text-white border-slate-900'
                                             }`}>
                                             {stock} Units
                                         </div>
                                     </div>
                                 </div>
-                                <div className="p-6 space-y-4 flex-1 flex flex-col">
-                                    <div className="flex justify-between items-start gap-4">
+                                <div className="p-5 flex-1 flex flex-col gap-3">
+                                    <div className="flex justify-between items-start gap-3">
                                         <div className="min-w-0">
-                                            <h3 className="font-bold text-slate-900 leading-tight uppercase truncate">{product.name}</h3>
-                                            <p className="text-[10px] text-slate-400 font-mono font-bold mt-1 uppercase tracking-widest">SKU: {product.sku}</p>
+                                            <h3 className="font-black text-slate-900 text-[11px] tracking-tight uppercase italic group-hover/card:text-blue-600 transition-colors truncate leading-tight">{product.name}</h3>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[7px] text-slate-400 font-black font-mono uppercase tracking-[0.2em] italic">SKU_{product.sku}</span>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="font-mono font-black text-primary text-xl tracking-tighter italic">{formatCurrency(product.price, symbol)}</div>
-                                            <div className="text-[8px] text-slate-400 font-bold uppercase">MSRP</div>
+                                        <div className="text-right shrink-0">
+                                            <div className="font-mono font-black text-slate-900 text-xs tracking-tighter italic">{formatCurrency(product.price, symbol)}</div>
+                                            <div className="text-[8px] text-blue-600 font-bold uppercase tracking-widest mt-0.5">SRP</div>
                                         </div>
                                     </div>
 
-                                    <div className="pt-4 mt-auto border-t border-slate-50 flex items-center justify-between">
-                                        <button onClick={() => setHistoryProduct(product)} className="text-[10px] font-bold text-slate-400 hover:text-primary flex items-center gap-1.5 uppercase tracking-widest transition-colors">
-                                            <TrendingUp size={14} />
-                                            <span>History</span>
+                                    <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
+                                        <button onClick={() => setHistoryProduct(product)} className="text-[8px] font-black text-slate-400 hover:text-blue-600 flex items-center gap-1.5 uppercase tracking-widest transition-colors italic">
+                                            <Activity size={12} />
+                                            <span>HISTORY</span>
                                         </button>
-                                        <button onClick={() => handleReportDamage(product)} className="text-[10px] font-bold text-slate-400 hover:text-amber-600 flex items-center gap-1.5 uppercase tracking-widest transition-colors">
-                                            <AlertTriangle size={14} />
-                                            <span>Log Damage</span>
+                                        <button onClick={() => handleReportDamage(product)} className="text-[8px] font-black text-slate-400 hover:text-rose-500 flex items-center gap-1.5 uppercase tracking-widest transition-colors italic">
+                                            <AlertTriangle size={12} />
+                                            <span>QC_LOG</span>
                                         </button>
                                     </div>
                                 </div>
@@ -511,76 +475,50 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                     }
 
                     return (
-                        <div key={product.id} className="bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-sm space-y-6">
+                        <div key={product.id} className="bg-white p-5 rounded-3xl border border-slate-300 shadow-sm space-y-5">
                             <div className="flex justify-between items-start gap-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 shadow-inner shrink-0">
-                                        <Package size={24} />
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 border border-slate-100 shrink-0 overflow-hidden">
+                                        {product.imageUrl ? <img src={product.imageUrl} className="w-full h-full object-cover" /> : <Package size={18} />}
                                     </div>
                                     <div className="min-w-0">
-                                        <div className="font-black text-slate-900 text-lg leading-tight truncate">{product.name}</div>
+                                        <div className="font-black text-slate-900 text-sm leading-tight truncate uppercase italic">{product.name}</div>
                                         <div className="flex flex-wrap items-center gap-2 mt-1">
-                                            <div className="text-[10px] text-slate-400 font-bold font-mono uppercase tracking-widest">SKU: {product.sku}</div>
-                                            {product.barcode && (
-                                                <button
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(product.barcode);
-                                                        toast.success('Barcode Copied: ' + product.barcode);
-                                                    }}
-                                                    className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-500 rounded-md border border-blue-100"
-                                                >
-                                                    <Barcode size={10} />
-                                                    <span className="text-[8px] font-black font-mono">{product.barcode}</span>
-                                                    <Copy size={8} />
-                                                </button>
-                                            )}
+                                            <div className="text-[9px] text-slate-500 font-bold font-mono uppercase tracking-widest">SKU: {product.sku}</div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border shrink-0 ${stock > 10 ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                                    stock > 0 ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                                        'bg-black text-white border-black'
+                                <div className={`px-3 py-1 pb-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border shrink-0 ${stock > 10 ? 'bg-white text-blue-600 border-blue-200' :
+                                    stock > 0 ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                        'bg-slate-900 text-white border-slate-900'
                                     }`}>
-                                    {stock} Units
+                                    {stock} U
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-50">
+                            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200">
                                 <div>
-                                    <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Price</div>
-                                    <div className="font-mono font-black text-slate-900 text-lg">{formatCurrency(product.price, symbol)}</div>
+                                    <div className="text-[8px] text-slate-500 font-black uppercase tracking-[0.2em] mb-0.5">Price</div>
+                                    <div className="font-mono font-black text-slate-900 text-base italic">{formatCurrency(product.price, symbol)}</div>
                                 </div>
                                 <div>
-                                    <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Cost</div>
-                                    <div className="font-mono font-black text-slate-900 text-lg">{formatCurrency(product.cost, symbol)}</div>
+                                    <div className="text-[8px] text-slate-500 font-black uppercase tracking-[0.2em] mb-0.5">Cost</div>
+                                    <div className="font-mono font-black text-slate-700 text-xs italic">{formatCurrency(product.cost, symbol)}</div>
                                 </div>
                             </div>
 
-                            <div className="flex gap-3">
-                                {product.barcode && (
-                                    <button
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(product.barcode);
-                                            toast.success('Barcode Copied: ' + product.barcode);
-                                        }}
-                                        className="flex-1 h-12 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl border-2 border-transparent hover:border-blue-200 transition-all gap-2"
-                                    >
-                                        <Copy size={16} />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Copy</span>
-                                    </button>
-                                )}
+                            <div className="grid grid-cols-4 gap-2">
                                 <button
                                     onClick={() => setPrintProduct(product)}
-                                    className="flex-1 h-12 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-xl border-2 border-transparent hover:border-indigo-200 transition-all gap-2"
+                                    className="h-9 flex items-center justify-center bg-white text-slate-400 rounded-lg border border-slate-200 hover:text-blue-600 transition-all font-black text-[8px] uppercase tracking-widest italic"
                                 >
-                                    <Printer size={16} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Print</span>
+                                    <Printer size={14} />
                                 </button>
-                                <button onClick={() => setEditingProduct(product)} className="flex-1 h-12 flex items-center justify-center bg-white border-2 border-slate-100 rounded-xl text-xs font-black uppercase tracking-widest text-slate-500 hover:border-blue-500 hover:text-blue-500 transition-all">
-                                    Config
+                                <button onClick={() => setEditingProduct(product)} className="col-span-2 h-9 flex items-center justify-center bg-slate-900 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all italic border border-slate-800">
+                                    Edit Product Details
                                 </button>
-                                <button onClick={() => { setProductToDelete(product); setIsDeleteDialogOpen(true); }} className="w-12 h-12 flex items-center justify-center bg-red-50 text-red-500 rounded-xl border-2 border-transparent hover:border-red-200 transition-all">
-                                    <Trash2 size={20} />
+                                <button onClick={() => { setProductToDelete(product); setIsDeleteDialogOpen(true); }} className="h-9 flex items-center justify-center bg-white text-slate-400 rounded-lg border border-slate-200 hover:text-rose-600 transition-all">
+                                    <Trash2 size={14} />
                                 </button>
                             </div>
                         </div>
@@ -590,36 +528,36 @@ export default function InventoryClient({ products: initialProducts, filter, sho
 
             {/* Edit Dialog */}
             <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
-                <DialogContent className="max-w-2xl max-h-[90vh] bg-white rounded-[3rem] p-0 overflow-hidden border-none shadow-2xl">
-                    <div className="bg-black p-10 text-white flex justify-between items-center">
-                        <div className="flex items-center gap-5">
-                            <div className="w-14 h-14 bg-blue-600 rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                <Settings2 size={24} />
+                <DialogContent className="max-w-2xl max-h-[90vh] bg-white rounded-2xl p-0 overflow-hidden border border-slate-300 shadow-2xl">
+                    <div className="bg-slate-900 px-8 py-6 text-white flex justify-between items-center border-b border-slate-800">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                <Settings2 size={20} />
                             </div>
                             <div>
-                                <DialogTitle className="text-xl font-black uppercase italic tracking-tighter">Modify Asset</DialogTitle>
-                                <DialogDescription className="text-[10px] font-black text-blue-400 uppercase tracking-widest">System Master Update</DialogDescription>
+                                <DialogTitle className="text-sm font-black uppercase italic tracking-tighter">Product Configuration</DialogTitle>
+                                <DialogDescription className="text-[8px] font-black text-blue-400 uppercase tracking-widest mt-0.5">Edit Inventory Records</DialogDescription>
                             </div>
                         </div>
-                        <button onClick={() => setEditingProduct(null)} className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
-                            <X size={20} />
+                        <button onClick={() => setEditingProduct(null)} className="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-colors">
+                            <X size={16} />
                         </button>
                     </div>
 
-                    <form onSubmit={handleUpdate} className="p-10 space-y-8 overflow-y-auto max-h-[calc(90vh-120px)]">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Product Name</label>
-                                <input name="name" defaultValue={editingProduct?.name} required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs" />
+                    <form onSubmit={handleUpdate} className="p-8 space-y-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">ASSET_NAME</label>
+                                <input name="name" defaultValue={editingProduct?.name} required className="w-full h-11 px-4 bg-slate-50 border-2 border-slate-200 rounded-lg font-black text-slate-900 focus:border-blue-600 focus:bg-white outline-none transition-all text-xs uppercase italic" />
                             </div>
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Global SKU</label>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">GLOBAL_SKU</label>
                                 <div className="relative group">
                                     <input
                                         name="sku"
                                         defaultValue={editingProduct?.sku}
                                         required
-                                        className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs pr-12"
+                                        className="w-full h-11 px-4 bg-slate-50 border-2 border-slate-200 rounded-lg font-black text-slate-900 focus:border-blue-600 focus:bg-white outline-none transition-all text-xs pr-12 font-mono"
                                     />
                                     <button
                                         type="button"
@@ -628,23 +566,22 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                             const nameInput = input.closest('form')?.querySelector('input[name="name"]') as HTMLInputElement;
                                             if (input) input.value = generateSKU(nameInput?.value || '');
                                         }}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                                        title="Generate SKU"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                     >
-                                        <RefreshCw size={18} />
+                                        <RefreshCw size={14} />
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Barcode (Master Identifier)</label>
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">MASTER_IDENTIFIER (BARCODE)</label>
                             <div className="relative group">
                                 <input
                                     name="barcode"
                                     defaultValue={editingProduct?.barcode}
-                                    className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs pr-12"
-                                    placeholder="Universal Barcode Reference..."
+                                    className="w-full h-11 px-4 bg-slate-50 border-2 border-slate-200 rounded-lg font-black text-slate-900 focus:border-blue-600 focus:bg-white outline-none transition-all text-xs pr-12 font-mono"
+                                    placeholder="REFERENCE..."
                                 />
                                 <button
                                     type="button"
@@ -652,141 +589,82 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                         const input = e.currentTarget.previousElementSibling as HTMLInputElement;
                                         if (input) input.value = generateBarcode();
                                     }}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                                    title="Generate EAN-13"
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                 >
-                                    <RefreshCw size={18} />
+                                    <RefreshCw size={14} />
                                 </button>
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Telemetry Description</label>
-                            <textarea name="description" defaultValue={editingProduct?.description} className="w-full h-32 p-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs resize-none" />
-                        </div>
-
-                        <div className="bg-slate-50 p-6 rounded-[2rem] border-2 border-slate-50">
-                            <ImageUpload
-                                value={editingProduct?.imageUrl || ''}
-                                onChange={(url) => setEditingProduct({ ...editingProduct!, imageUrl: url })}
-                                label="Update Visual Meta"
-                            />
-                            <input type="hidden" name="imageUrl" value={editingProduct?.imageUrl || ''} />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Customer Price ({currencyCode})</label>
-                                <input name="price" type="number" step="0.01" defaultValue={editingProduct?.price} required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs font-mono" />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">PRICE ({currencyCode})</label>
+                                <input name="price" type="number" step="0.01" defaultValue={editingProduct?.price} required className="w-full h-11 px-4 bg-white border-2 border-slate-200 rounded-lg font-black text-slate-900 focus:border-blue-600 outline-none transition-all text-[11px] font-mono italic text-right" />
                             </div>
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Discount Price ({currencyCode})</label>
-                                <input name="discountPrice" type="number" step="0.01" defaultValue={editingProduct?.discountPrice} className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs font-mono" placeholder="Optional" />
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">DISC ({currencyCode})</label>
+                                <input name="discountPrice" type="number" step="0.01" defaultValue={editingProduct?.discountPrice} className="w-full h-11 px-4 bg-white border-2 border-slate-200 rounded-lg font-black text-slate-900 focus:border-blue-600 outline-none transition-all text-[11px] font-mono italic text-right" />
                             </div>
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Acquisition Cost ({currencyCode})</label>
-                                <input name="cost" type="number" step="0.01" defaultValue={editingProduct?.cost} required className="w-full h-14 px-6 bg-slate-50 border-2 border-slate-50 rounded-2xl font-bold text-black focus:border-blue-400 focus:bg-white outline-none transition-all text-xs font-mono" />
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">COST ({currencyCode})</label>
+                                <input name="cost" type="number" step="0.01" defaultValue={editingProduct?.cost} required className="w-full h-11 px-4 bg-white border-2 border-slate-200 rounded-lg font-black text-slate-700 focus:border-blue-600 outline-none transition-all text-[11px] font-mono italic text-right" />
                             </div>
                         </div>
 
                         {/* Inventory Quantities Section */}
                         {editingProduct?.inventory && editingProduct.inventory.length > 0 && (
-                            <div className="space-y-4 pt-4 border-t-2 border-slate-100">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Inventory Levels</label>
-                                <div className="space-y-3">
+                            <div className="space-y-3 pt-6 border-t border-slate-100">
+                                <div className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] font-mono italic">LIVE_REGISTRY_LEVELS</div>
+                                <div className="grid grid-cols-1 gap-2">
                                     {editingProduct.inventory.map((inv: any) => {
-                                        const locationName = inv.shop?.name || inv.warehouse?.name || 'Unknown Location';
-                                        const locationType = inv.shopId ? 'Shop' : 'Warehouse';
+                                        const locationName = inv.shop?.name || inv.warehouse?.name || 'Unknown';
+                                        const locationType = inv.shopId ? 'SHOP' : 'WHSE';
                                         const locationId = inv.shopId || inv.warehouseId;
 
                                         return (
-                                            <div key={inv.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border-2 border-slate-100">
-                                                <div className="flex-1">
-                                                    <div className="font-bold text-black text-sm">{locationName}</div>
-                                                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{locationType}</div>
+                                            <div key={inv.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                <div className="min-w-0">
+                                                    <div className="font-black text-slate-900 text-[10px] truncate uppercase italic">{locationName}</div>
+                                                    <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest font-mono mt-0.5">{locationType}</div>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    <div className="text-center px-4">
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            value={inv.quantity}
-                                                            onChange={async (e) => {
-                                                                const val = parseInt(e.target.value);
-                                                                if (isNaN(val) || val < 0) return;
-                                                                if (!locationId) return;
-
-                                                                // Optimistic local update
-                                                                const updated = { ...editingProduct };
-                                                                const invIndex = updated.inventory.findIndex((i: any) => i.id === inv.id);
-                                                                if (invIndex !== -1) {
-                                                                    updated.inventory[invIndex].quantity = val;
-                                                                    setEditingProduct(updated);
-                                                                }
-
-                                                                const res = await setStockLevel(editingProduct.id, val, locationId);
-                                                                if (res.success) {
-                                                                    router.refresh();
-                                                                } else {
-                                                                    toast.error(res.error || 'Failed to set stock level');
-                                                                }
-                                                            }}
-                                                            className="w-20 h-10 bg-white border-2 border-slate-200 rounded-lg text-center font-black text-black font-mono focus:border-blue-500 outline-none"
-                                                        />
-                                                        <div className="text-[8px] font-bold text-slate-400 uppercase mt-1">Units</div>
-                                                    </div>
-                                                    <div className="flex gap-2">
+                                                    <input
+                                                        type="number"
+                                                        value={inv.quantity}
+                                                        onChange={async (e) => {
+                                                            const val = parseInt(e.target.value);
+                                                            if (isNaN(val) || val < 0) return;
+                                                            const updated = { ...editingProduct };
+                                                            const invIndex = updated.inventory.findIndex((i: any) => i.id === inv.id);
+                                                            if (invIndex !== -1) {
+                                                                updated.inventory[invIndex].quantity = val;
+                                                                setEditingProduct(updated);
+                                                            }
+                                                            await setStockLevel(editingProduct.id, val, locationId);
+                                                            router.refresh();
+                                                        }}
+                                                        className="w-16 h-9 bg-white border-2 border-slate-200 rounded-lg text-center font-black text-slate-900 font-mono text-[11px] focus:border-blue-600 outline-none"
+                                                    />
+                                                    <div className="flex gap-1">
                                                         <button
                                                             type="button"
                                                             onClick={async () => {
-                                                                if (!locationId) return;
-                                                                setLoading(true);
                                                                 const res = await quickAddStock(editingProduct.id, -1, locationId);
-                                                                if (res.success) {
-                                                                    toast.success('Quantity decreased');
-                                                                    router.refresh();
-                                                                    // Update local state
-                                                                    const updated = { ...editingProduct };
-                                                                    const invIndex = updated.inventory.findIndex((i: any) => i.id === inv.id);
-                                                                    if (invIndex !== -1) {
-                                                                        updated.inventory[invIndex].quantity = Math.max(0, updated.inventory[invIndex].quantity - 1);
-                                                                        setEditingProduct(updated);
-                                                                    }
-                                                                } else {
-                                                                    toast.error(res.error || 'Failed to adjust quantity');
-                                                                }
-                                                                setLoading(false);
+                                                                if (res.success) router.refresh();
                                                             }}
-                                                            disabled={loading || inv.quantity === 0}
-                                                            className="w-10 h-10 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-all shadow-sm border border-red-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                                            className="w-9 h-9 flex items-center justify-center bg-white border-2 border-slate-200 rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all shadow-sm"
                                                         >
-                                                            <Minus size={16} />
+                                                            <Minus size={14} />
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={async () => {
-                                                                if (!locationId) return;
-                                                                setLoading(true);
                                                                 const res = await quickAddStock(editingProduct.id, 1, locationId);
-                                                                if (res.success) {
-                                                                    toast.success('Quantity increased');
-                                                                    router.refresh();
-                                                                    // Update local state
-                                                                    const updated = { ...editingProduct };
-                                                                    const invIndex = updated.inventory.findIndex((i: any) => i.id === inv.id);
-                                                                    if (invIndex !== -1) {
-                                                                        updated.inventory[invIndex].quantity += 1;
-                                                                        setEditingProduct(updated);
-                                                                    }
-                                                                } else {
-                                                                    toast.error(res.error || 'Failed to adjust quantity');
-                                                                }
-                                                                setLoading(false);
+                                                                if (res.success) router.refresh();
                                                             }}
-                                                            disabled={loading}
-                                                            className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-lg hover:bg-emerald-100 transition-all shadow-sm border border-emerald-100 flex items-center justify-center"
+                                                            className="w-9 h-9 flex items-center justify-center bg-white border-2 border-slate-200 rounded-lg text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm"
                                                         >
-                                                            <Plus size={16} />
+                                                            <Plus size={14} />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -797,13 +675,13 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                             </div>
                         )}
 
-                        <div className="flex gap-4 pt-4">
-                            <button type="button" onClick={() => setEditingProduct(null)} className="flex-1 h-16 border-2 border-slate-100 text-slate-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all">
-                                Abort Changes
+                        <div className="flex items-center gap-3 pt-6 border-t border-slate-100 italic">
+                            <button type="submit" disabled={loading} className="flex-1 h-12 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                                {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                Save Changes
                             </button>
-                            <button disabled={loading} type="submit" className="flex-1 h-16 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 disabled:opacity-50 flex items-center justify-center gap-3">
-                                {loading && <Loader2 className="animate-spin" size={16} />}
-                                Persist System Data
+                            <button type="button" onClick={() => setEditingProduct(null)} className="px-6 h-12 bg-white text-slate-500 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] border-2 border-slate-200 hover:bg-slate-50">
+                                Cancel
                             </button>
                         </div>
                     </form>
@@ -812,20 +690,20 @@ export default function InventoryClient({ products: initialProducts, filter, sho
 
             {/* Delete Confirmation */}
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <DialogContent className="max-w-md bg-white rounded-[2.5rem] p-10 border-none shadow-2xl">
+                <DialogContent className="max-w-md bg-white rounded-[2rem] p-10 border border-slate-300 shadow-2xl">
                     <div className="text-center space-y-6">
-                        <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                        <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
                             <AlertCircle size={40} />
                         </div>
                         <div>
                             <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-slate-900 leading-tight">
                                 {productToDelete?.isBulk ? 'Authorize Bulk Deletion?' : 'Authorize Item Deletion?'}
                             </DialogTitle>
-                            <DialogDescription className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2 px-4">
+                            <DialogDescription className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-2 px-4">
                                 {productToDelete?.isBulk ? (
-                                    <>Warning: This action will purge <span className="text-red-500">{productToDelete.count} product(s)</span> from the master registry.</>
+                                    <>Warning: This action will purge <span className="text-rose-600">{productToDelete.count} product(s)</span> from the master registry.</>
                                 ) : (
-                                    <>Warning: This action will purge all telemetry for <span className="text-red-500">{productToDelete?.name}</span> from the master registry.</>
+                                    <>Warning: This action will purge all telemetry for <span className="text-rose-600">{productToDelete?.name}</span> from the master registry.</>
                                 )}
                             </DialogDescription>
                         </div>
@@ -836,7 +714,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                             <button
                                 onClick={productToDelete?.isBulk ? handleBulkDelete : handleDelete}
                                 disabled={loading}
-                                className="flex-1 h-14 bg-red-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-red-700 transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 flex items-center justify-center gap-3"
+                                className="flex-1 h-14 bg-rose-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-rose-700 transition-all shadow-lg shadow-rose-500/20 disabled:opacity-50 flex items-center justify-center gap-3"
                             >
                                 {loading && <Loader2 className="animate-spin" size={14} />}
                                 Confirm Purge
@@ -861,13 +739,31 @@ export default function InventoryClient({ products: initialProducts, filter, sho
 
             {
                 showScanner && (
-                    <BarcodeScanner
-                        onScan={(code) => {
-                            setSearch(code);
-                            setShowScanner(false);
-                        }}
-                        onClose={() => setShowScanner(false)}
-                    />
+                    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+                        <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-white/20">
+                            <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                                        <Camera size={20} />
+                                    </div>
+                                    <div className="font-black text-sm uppercase italic tracking-tighter">Scan System Asset</div>
+                                </div>
+                                <button onClick={() => setShowScanner(false)} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center">
+                                    <X size={16} />
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <BarcodeScanner
+                                    onScan={(code) => {
+                                        setSearch(code);
+                                        setShowScanner(false);
+                                        toast.success(`Asset Identifier Captured: ${code}`);
+                                    }}
+                                    onClose={() => setShowScanner(false)}
+                                />
+                            </div>
+                        </div>
+                    </div>
                 )
             }
         </div>

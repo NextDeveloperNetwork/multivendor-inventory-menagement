@@ -71,82 +71,80 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
     };
 
     return (
-        <div className="space-y-12">
+        <div className="space-y-6 bg-white p-2 md:p-6">
             {/* Header Area */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                <div className="space-y-2">
-                    <h1 className="text-6xl font-black uppercase tracking-tighter italic text-slate-900">
-                        Personnel <span className="text-primary">Registry</span>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50 p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+                <div>
+                    <h1 className="text-2xl font-black uppercase tracking-tighter italic text-slate-900 line-through decoration-blue-500/30">
+                        Personnel <span className="text-blue-600">Matrix</span>
                     </h1>
-                    <p className="text-slate-400 font-bold uppercase text-xs tracking-widest pl-2 border-l-4 border-primary">
-                        Managing {users.length} Active Node Operators
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 italic">
+                        Managing {users.length} Active Node Operators & Network Identities
                     </p>
                 </div>
 
-                <div className="relative group w-full md:w-96">
-                    <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-slate-300 group-focus-within:text-primary transition-colors" />
-                    </div>
+                <div className="relative group w-full md:w-80">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                     <input
                         type="text"
-                        placeholder="SEARCH OPERATORS..."
+                        placeholder="SEARCH_OPERATORS..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-14 pr-8 py-5 bg-white border border-slate-200 rounded-3xl text-sm font-black uppercase tracking-widest outline-none focus:border-primary shadow-sm focus:shadow-xl focus:shadow-primary/5 transition-all"
+                        className="w-full pl-10 pr-4 h-10 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] outline-none focus:border-blue-600 transition-all font-mono italic text-slate-900"
                     />
                 </div>
             </div>
 
             {/* Users Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredUsers.map((user) => (
-                    <div key={user.id} className="group bg-white rounded-[2.5rem] p-8 border-2 border-slate-50 hover:border-blue-100 transition-all shadow-xl shadow-slate-100/50 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <User size={120} />
+                    <div key={user.id} className="group bg-white rounded-2xl p-6 border border-slate-200 hover:border-slate-900 transition-all shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
+                            <User size={80} />
                         </div>
 
-                        <div className="flex items-start justify-between relative">
-                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-primary shadow-inner group-hover:bg-primary group-hover:text-white transition-all duration-500">
-                                {user.role === 'ADMIN' ? <ShieldCheck size={32} /> : <User size={32} />}
+                        <div className="flex items-start justify-between relative z-10">
+                            <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg shadow-black/10 group-hover:bg-blue-600 transition-all">
+                                {user.role === 'ADMIN' ? <ShieldCheck size={20} /> : <User size={20} />}
                             </div>
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setEditingUser(user)}
-                                    className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-primary/5 hover:text-primary transition-all"
+                                    className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-lg hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm"
                                 >
-                                    <Edit2 size={18} />
+                                    <Edit2 size={14} />
                                 </button>
                                 <button
                                     onClick={() => {
                                         setUserToDelete(user);
                                         setIsDeleteDialogOpen(true);
                                     }}
-                                    className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-all"
+                                    className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-lg hover:text-rose-600 hover:border-rose-600 transition-all shadow-sm"
                                 >
-                                    <Trash2 size={18} />
+                                    <Trash2 size={14} />
                                 </button>
                             </div>
                         </div>
 
-                        <div className="mt-8 space-y-4 relative">
+                        <div className="mt-6 space-y-4 relative z-10">
                             <div>
-                                <h3 className="text-xl font-black uppercase tracking-tight text-black italic leading-none">{user.name || 'Anonymous Operator'}</h3>
-                                <div className="flex items-center gap-2 mt-2 text-slate-400">
-                                    <Mail size={12} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">{user.email}</span>
+                                <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 italic leading-none">{user.name || 'Anonymous Operator'}</h3>
+                                <div className="flex items-center gap-2 mt-1 text-slate-400 italic">
+                                    <Mail size={12} className="text-blue-500" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest font-mono text-slate-500">{user.email}</span>
                                 </div>
                             </div>
 
-                            <div className="pt-4 flex flex-wrap gap-2">
-                                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${user.role === 'ADMIN' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-primary/5 text-primary border border-primary/10'
+                            <div className="pt-2 flex flex-wrap gap-2">
+                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border font-mono italic ${user.role === 'ADMIN' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-blue-50 text-blue-600 border-blue-200'
                                     }`}>
                                     <Shield size={10} />
                                     {user.role}
                                 </div>
 
-                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-50 text-slate-600 border border-slate-100 text-[10px] font-black uppercase tracking-widest">
-                                    <Store size={10} />
-                                    {user.shop?.name || 'UNASSIGNED NODE'}
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-900 text-white border border-slate-900 text-[8px] font-black uppercase tracking-widest font-mono italic">
+                                    <Store size={10} className="text-slate-400" />
+                                    {user.shop?.name || 'UNASSIGNED_NODE'}
                                 </div>
                             </div>
                         </div>
@@ -156,55 +154,55 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
 
             {/* EDIT MODAL */}
             <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-                <DialogContent className="max-w-md bg-white rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
-                    <div className="bg-gradient-to-br from-primary to-primary/80 p-8 text-white relative">
+                <DialogContent className="max-w-md bg-white rounded-[2rem] border border-slate-200 shadow-2xl p-0 overflow-hidden">
+                    <div className="bg-slate-900 p-8 text-white relative">
                         <div className="absolute top-0 right-0 p-8 opacity-10">
-                            <ShieldAlert size={120} />
+                            <ShieldAlert size={80} />
                         </div>
                         <DialogHeader>
-                            <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">Identity Management</DialogTitle>
-                            <DialogDescription className="text-white/70 font-bold uppercase text-[10px] tracking-widest mt-2 px-1 border-l-4 border-white/30">
-                                Updating Node Permissions
+                            <DialogTitle className="text-2xl font-black uppercase tracking-tighter italic line-through decoration-blue-500/30">Identity Management</DialogTitle>
+                            <DialogDescription className="text-blue-400 font-black uppercase text-[9px] tracking-[0.2em] mt-2 italic flex items-center gap-2">
+                                <div className="w-1 h-1 bg-blue-500" /> Updating Node Permissions & Credentials
                             </DialogDescription>
                         </DialogHeader>
                     </div>
 
-                    <form action={handleUpdate} className="p-8 space-y-6">
+                    <form action={handleUpdate} className="p-8 space-y-6 bg-white">
                         <div className="space-y-4">
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block px-1">Display Name</label>
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Operator Alias</label>
                                 <input
                                     name="name"
                                     defaultValue={editingUser?.name}
-                                    className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-slate-900 font-black focus:border-blue-500 focus:bg-white transition-all outline-none uppercase"
+                                    className="w-full h-12 px-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black focus:border-blue-600 focus:bg-white transition-all outline-none uppercase text-xs italic"
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block px-1">Email Node</label>
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Network Uplink (Email)</label>
                                 <input
                                     name="email"
                                     defaultValue={editingUser?.email}
-                                    className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-slate-900 font-black focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                    className="w-full h-12 px-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black focus:border-blue-600 focus:bg-white transition-all outline-none text-xs font-mono"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block px-1">Access Tier</label>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Access Tier</label>
                                     <select
                                         name="role"
                                         defaultValue={editingUser?.role}
-                                        className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-slate-900 font-black focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                        className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black focus:border-blue-600 focus:bg-white transition-all outline-none text-[10px] uppercase italic"
                                     >
                                         <option value="USER">OPERATOR</option>
-                                        <option value="ADMIN">ADMIN</option>
+                                        <option value="ADMIN">ADMIN_NODE</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block px-1">Node Assignment</label>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Node Affinity</label>
                                     <select
                                         name="shopId"
                                         defaultValue={editingUser?.shopId || ''}
-                                        className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-slate-900 font-black focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                        className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black focus:border-blue-600 focus:bg-white transition-all outline-none text-[10px] uppercase italic"
                                     >
                                         <option value="">DE-ASSIGNED</option>
                                         {shops.map(shop => (
@@ -219,43 +217,45 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex-1 bg-black hover:bg-slate-900 text-white font-black py-5 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs italic disabled:opacity-50"
+                                className="flex-1 bg-slate-900 hover:bg-blue-600 text-white font-black h-14 rounded-xl transition-all shadow-lg active:scale-95 uppercase tracking-[0.2em] text-[10px] italic disabled:opacity-50"
                             >
-                                {loading ? 'UPDATING...' : 'COMMIT CHANGES'}
+                                {loading ? 'SYNCHRONIZING...' : 'COMMIT_IDENTITY_CHANGES'}
                             </button>
                         </div>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            {/* DELETE CONFIRMATION */}
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <DialogContent className="max-w-md bg-white rounded-[2rem] p-12 text-center border-none shadow-2xl">
-                    <div className="w-24 h-24 bg-rose-50 text-rose-500 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
-                        <Trash2 size={40} />
+                <DialogContent className="max-w-md bg-white rounded-[2rem] p-0 overflow-hidden border border-slate-200 shadow-2xl">
+                    <div className="bg-rose-600 p-8 text-white flex flex-col items-center text-center">
+                        <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center mb-4">
+                            <Trash2 size={32} />
+                        </div>
+                        <h2 className="text-2xl font-black uppercase tracking-tighter italic">Purge Profile?</h2>
+                        <p className="text-rose-100 font-black uppercase text-[9px] tracking-widest mt-2 italic">Revoking Network Access Tier</p>
                     </div>
-                    <DialogHeader>
-                        <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic text-slate-900 leading-tight">
-                            Purge Profile?
-                        </DialogTitle>
-                        <DialogDescription className="text-slate-400 font-bold mt-4 leading-relaxed">
-                            This action will permanently revoke all network access for <span className="text-rose-500 underline decoration-rose-200 underline-offset-4 font-black">{userToDelete?.email}</span>. Data history will be preserved as orphans.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex flex-col gap-4 mt-12">
-                        <button
-                            onClick={handleDelete}
-                            disabled={loading}
-                            className="w-full py-5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black uppercase italic tracking-widest transition-all shadow-xl shadow-rose-200"
-                        >
-                            {loading ? 'PURGING...' : 'EXECUTE PURGE'}
-                        </button>
-                        <button
-                            onClick={() => setIsDeleteDialogOpen(false)}
-                            className="w-full py-5 bg-slate-50 text-slate-400 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
-                        >
-                            ABORT MISSION
-                        </button>
+
+                    <div className="p-8 space-y-8 text-center bg-white">
+                        <p className="text-slate-500 font-bold text-xs leading-relaxed uppercase tracking-wide">
+                            This action will permanently revoke all network access for <span className="text-rose-600 underline decoration-rose-200 underline-offset-4 font-black font-mono">{userToDelete?.email}</span>. Data history will be preserved as orphans.
+                        </p>
+
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={handleDelete}
+                                disabled={loading}
+                                className="w-full h-14 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black uppercase italic tracking-[0.2em] text-[10px] transition-all shadow-lg shadow-rose-200"
+                            >
+                                {loading ? 'PURGING...' : 'EXECUTE_PURGE_COMMAND'}
+                            </button>
+                            <button
+                                onClick={() => setIsDeleteDialogOpen(false)}
+                                className="w-full h-14 bg-slate-50 text-slate-400 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-100 transition-all italic border border-slate-200"
+                            >
+                                ABORT_MISSION
+                            </button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

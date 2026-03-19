@@ -21,47 +21,45 @@ export default async function WarehousesPage() {
     });
 
     return (
-        <div className="space-y-12 fade-in relative pb-20">
+        <div className="space-y-6 fade-in relative pb-20 p-2 md:p-6">
             {/* Header Section */}
-            <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="space-y-3">
-                        <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase italic">
-                            Depot <span className="text-primary">Infrastructure</span>
-                        </h1>
-                        <p className="text-slate-400 text-sm font-bold uppercase tracking-[0.2em] flex items-center gap-4">
-                            <Warehouse size={20} className="text-primary" />
-                            Manage Global Distribution Centers & Logistics Hubs
-                        </p>
-                    </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
+                        Warehouse <span className="text-blue-600">Assets</span>
+                    </h1>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 italic">
+                        Location Registry & Inventory Distribution Management
+                    </p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Creation Form */}
-                <div className="lg:col-span-1">
-                    <div className="sticky top-12">
-                        <div className="mb-8 px-4">
-                            <h2 className="text-2xl font-black text-black uppercase tracking-tighter italic flex items-center gap-4">
-                                <Plus size={24} className="text-primary" />
-                                Initialize Node
-                            </h2>
-                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-2">Append new distribution hub terminal</p>
+                <div className="lg:col-span-4 self-start">
+                    <div className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm sticky top-6">
+                        <div className="mb-6 flex items-center gap-4 border-b border-slate-100 pb-4">
+                            <div className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center">
+                                <Plus size={16} />
+                            </div>
+                            <div>
+                                <h2 className="text-sm font-black text-slate-900 uppercase tracking-tight italic">Register Location</h2>
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Add New Storage Warehouse</p>
+                            </div>
                         </div>
                         <WarehouseForm selectedBusinessId={selectedBusinessId} />
                     </div>
                 </div>
 
                 {/* Warehouse List */}
-                <div className="lg:col-span-2 space-y-8">
+                <div className="lg:col-span-8 space-y-4">
                     {warehouses.length === 0 ? (
-                        <div className="bg-white border-2 border-dashed border-slate-100 rounded-[3rem] p-32 text-center">
-                            <div className="w-24 h-24 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-200 mx-auto mb-8">
-                                <Warehouse size={48} />
+                        <div className="bg-white border border-slate-200 border-dashed rounded-[2rem] py-24 text-center">
+                            <div className="w-16 h-16 bg-slate-50 rounded-xl flex items-center justify-center text-slate-200 mx-auto mb-6">
+                                <Warehouse size={32} />
                             </div>
-                            <p className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Registry Empty</p>
-                            <p className="text-slate-300 text-xs font-bold uppercase tracking-widest mt-3">No active warehouse nodes detected in system telemetry.</p>
+                            <p className="text-lg font-black text-slate-900 uppercase tracking-tighter italic">No Locations Registered</p>
+                            <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mt-2 italic">Start by adding your first storage location in the sidebar.</p>
                         </div>
                     ) : (
                         (warehouses as any[]).map(wh => {
@@ -69,48 +67,45 @@ export default async function WarehousesPage() {
                             const productCount = wh.inventory.filter((inv: any) => inv.quantity > 0).length;
 
                             return (
-                                <div key={wh.id} className="bg-white border border-slate-100 p-10 rounded-[3rem] shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20 transition-all group relative overflow-hidden">
-                                    <div className="absolute right-0 top-0 w-40 h-40 bg-primary/5 rounded-full -mr-20 -mt-20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                                    <div className="flex justify-between items-start relative z-10">
-                                        <div className="flex gap-6">
-                                            <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center text-primary border border-slate-100 group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-sm">
-                                                <Warehouse size={36} />
+                                <div key={wh.id} className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm hover:border-blue-600/50 transition-all group relative overflow-hidden">
+                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+                                        <div className="flex gap-4 items-center">
+                                            <div className="w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 border border-slate-200 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                                <Warehouse size={24} />
                                             </div>
                                             <div>
-                                                <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter italic group-hover:text-primary transition-colors uppercase underline decoration-primary/10 decoration-4 underline-offset-8 decoration-transparent group-hover:decoration-primary/20">{wh.name}</h3>
-                                                <div className="flex items-center gap-6 mt-4">
-                                                    <div className="flex items-center gap-2.5 bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
-                                                        <Package size={14} className="text-primary" />
-                                                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{productCount} ASSETS</span>
+                                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter italic group-hover:text-blue-600 transition-colors leading-tight">{wh.name}</h3>
+                                                <div className="flex flex-wrap items-center gap-3 mt-2">
+                                                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 font-mono italic">
+                                                        <Package size={10} className="text-blue-600" />
+                                                        <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest leading-none">{productCount} Unique Items</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2.5 bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
-                                                        <Calendar size={14} className="text-primary" />
-                                                        <span className="text-[10px] font-black text-black uppercase tracking-widest font-mono">EST {new Date(wh.createdAt).getFullYear()}</span>
+                                                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 font-mono italic">
+                                                        <MapPin size={10} className="text-blue-600" />
+                                                        <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest leading-none">Registered {new Date(wh.createdAt).getFullYear()}</span>
                                                     </div>
-                                                    {(wh.latitude || wh.longitude) && (
-                                                        <div className="flex items-center gap-2.5 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
-                                                            <MapPin size={14} className="text-slate-400" />
-                                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-mono">
-                                                                {wh.latitude?.toFixed(4)}, {wh.longitude?.toFixed(4)}
-                                                            </span>
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="text-5xl font-black text-slate-900 font-mono tracking-tighter italic">{totalStock.toLocaleString()}</div>
-                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-300 mt-2">UNITS IN RESERVE</div>
+                                        <div className="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-4 border-t md:border-t-0 border-slate-100 pt-4 md:pt-0">
+                                            <div className="text-right">
+                                                <div className="text-3xl font-black text-slate-900 font-mono tracking-tighter italic leading-none">{totalStock.toLocaleString()}</div>
+                                                <div className="text-[8px] font-black uppercase tracking-widest text-slate-400 mt-1 italic">Total Stock Units</div>
+                                            </div>
+                                            <div className="flex gap-2 relative z-10">
+                                                <Link href={`/admin/inventory?filter=specific_warehouse&warehouseId=${wh.id}`} className="h-10 px-4 bg-slate-900 text-white rounded-xl font-black shadow-lg shadow-black/10 hover:bg-blue-600 transition-all flex items-center gap-2 uppercase tracking-[0.2em] text-[9px] italic">
+                                                    View Stock <ArrowRight size={14} />
+                                                </Link>
+                                                <DeleteWarehouseButton id={wh.id} />
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="mt-10 flex gap-4 relative z-10">
-                                        <Link href={`/admin/inventory?filter=specific_warehouse&warehouseId=${wh.id}`} className="h-14 px-8 bg-slate-900 text-white rounded-2xl font-bold shadow-xl shadow-black/10 hover:bg-primary transition-all active:scale-[0.98] flex items-center gap-3 uppercase tracking-widest text-xs">
-                                            Inventory <ArrowRight size={18} />
-                                        </Link>
-                                        <DeleteWarehouseButton id={wh.id} />
-                                    </div>
+                                    {(wh.latitude || wh.longitude) && (
+                                        <div className="absolute bottom-4 right-4 text-[7px] font-black font-mono text-slate-200 uppercase tracking-widest italic group-hover:text-slate-300 transition-colors pointer-events-none">
+                                            LOC_{wh.latitude?.toFixed(4)}, {wh.longitude?.toFixed(4)}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })

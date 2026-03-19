@@ -104,109 +104,121 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
     };
 
     return (
-        <div className="space-y-12 bg-white p-4">
+        <div className="space-y-6 bg-white p-2 md:p-6">
             {/* Create/Edit Supplier Button */}
             {!showForm && (
                 <button
                     onClick={() => setShowForm(true)}
-                    className="bg-primary text-white px-10 py-5 rounded-2xl font-bold uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:opacity-90 transition-all active:scale-95 flex items-center gap-4 text-sm"
+                    className="h-12 bg-slate-900 text-white px-8 rounded-xl font-black uppercase tracking-[0.2em] shadow-lg shadow-black/10 hover:bg-blue-600 transition-all active:scale-95 flex items-center gap-3 text-[10px] italic"
                 >
-                    <Plus size={20} />
-                    Register New Supplier
+                    <Plus size={16} />
+                    REGISTER_NEW_SUPPLIER
                 </button>
             )}
 
             {/* Supplier Form */}
             {showForm && (
-                <div className="bg-primary/[0.02] border-2 border-primary/10 rounded-[2.5rem] shadow-sm p-12 lg:p-16 animate-in slide-in-from-top-4 duration-500">
-                    <div className="flex justify-between items-center mb-12 pb-8 border-b border-primary/10">
-                        <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 bg-white border border-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-sm">
-                                <Users size={32} />
+                <div className="bg-white border border-slate-200 rounded-[2rem] shadow-sm overflow-hidden animate-in slide-in-from-top-2 duration-300">
+                    <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+                                <Users size={20} />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic line-through decoration-primary/30">
+                                <h2 className="text-xl font-black text-white tracking-tighter uppercase italic">
                                     {editingSupplier ? 'Modify Registry' : 'Supplier Interface'}
                                 </h2>
-                                <p className="text-[11px] font-bold text-primary uppercase tracking-widest mt-1 opacity-60">
+                                <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest italic mt-0.5 leading-none">
                                     {editingSupplier ? 'Synchronizing existing node parameters' : 'Initializing new external resource node'}
                                 </p>
                             </div>
                         </div>
                         <button
                             onClick={resetForm}
-                            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white border-2 border-blue-100 text-blue-200 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 border border-white/10 text-white hover:bg-rose-600 hover:border-rose-600 transition-all"
                         >
-                            <X size={28} />
+                            <X size={20} />
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-12">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8 bg-white">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {/* Name */}
-                            <div className="space-y-4">
-                                <label className="text-[10px] font-black text-black uppercase tracking-[0.3em] px-2">Entity Legal Name</label>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+                                    <div className="w-1 h-1 bg-blue-600" /> Entity Legal Name
+                                </label>
                                 <input
                                     type="text"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-6 h-16 bg-white border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary transition-all outline-none text-sm placeholder:text-slate-200"
+                                    className="w-full px-4 h-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:border-blue-600 transition-all outline-none text-sm placeholder:text-slate-300 placeholder:italic"
                                     placeholder="e.g. Global Logistics Corp"
                                     required
                                 />
                             </div>
 
                             {/* Email */}
-                            <div className="space-y-4">
-                                <label className="text-[10px] font-black text-black uppercase tracking-[0.3em] px-2">Data Channel (Email)</label>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+                                    <div className="w-1 h-1 bg-blue-600" /> Data Uplink (Email)
+                                </label>
                                 <input
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full px-6 h-16 bg-white border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary transition-all outline-none text-sm placeholder:text-slate-200"
+                                    className="w-full px-4 h-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:border-blue-600 transition-all outline-none text-sm font-mono placeholder:text-slate-300 placeholder:italic"
                                     placeholder="contact@entity-node.com"
                                 />
                             </div>
 
                             {/* Phone */}
-                            <div className="space-y-4">
-                                <label className="text-[10px] font-black text-black uppercase tracking-[0.3em] px-2">Voice Interface (Phone)</label>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+                                    <div className="w-1 h-1 bg-blue-600" /> Voice Proxy (Phone)
+                                </label>
                                 <input
                                     type="tel"
                                     value={formData.phone}
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    className="w-full px-6 h-16 bg-white border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary transition-all outline-none text-sm placeholder:text-slate-200"
+                                    className="w-full px-4 h-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:border-blue-600 transition-all outline-none text-sm font-mono placeholder:text-slate-300 placeholder:italic"
                                     placeholder="+1-800-SUPPLY-OPS"
                                 />
                             </div>
 
                             {/* Latitude */}
-                            <div className="space-y-4">
-                                <label className="text-[10px] font-black text-black uppercase tracking-[0.3em] px-2">Global Latitude</label>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+                                    <div className="w-1 h-1 bg-blue-600" /> Global Latitude
+                                </label>
                                 <input
                                     type="text"
                                     value={formData.latitude}
                                     onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                                    className="w-full px-6 h-16 bg-white border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary transition-all outline-none text-sm placeholder:text-slate-200"
-                                    placeholder="e.g. 51.5074"
+                                    className="w-full px-4 h-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:border-blue-600 transition-all outline-none text-sm font-mono placeholder:text-slate-300 placeholder:italic"
+                                    placeholder="0.0000"
                                 />
                             </div>
 
                             {/* Longitude */}
-                            <div className="space-y-4">
-                                <label className="text-[10px] font-black text-black uppercase tracking-[0.3em] px-2">Global Longitude</label>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+                                    <div className="w-1 h-1 bg-blue-600" /> Global Longitude
+                                </label>
                                 <input
                                     type="text"
                                     value={formData.longitude}
                                     onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                                    className="w-full px-6 h-16 bg-white border border-slate-200 rounded-2xl text-slate-900 font-bold focus:border-primary transition-all outline-none text-sm placeholder:text-slate-200"
-                                    placeholder="e.g. -0.1278"
+                                    className="w-full px-4 h-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:border-blue-600 transition-all outline-none text-sm font-mono placeholder:text-slate-300 placeholder:italic"
+                                    placeholder="0.0000"
                                 />
                             </div>
 
                             {/* Map Selector */}
-                            <div className="space-y-4">
-                                <label className="text-[10px] font-black text-black uppercase tracking-[0.3em] px-2">Spatial Matrix Selector</label>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+                                    <div className="w-1 h-1 bg-blue-600" /> Spatial Matrix Selector
+                                </label>
                                 <MapPicker onSelect={(lat, lng) => {
                                     setFormData({ ...formData, latitude: lat.toString(), longitude: lng.toString() });
                                 }} />
@@ -214,20 +226,20 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
                         </div>
 
                         {/* Submit */}
-                        <div className="flex gap-8 pt-6">
+                        <div className="flex gap-4 pt-6 border-t border-slate-50">
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex-1 h-16 bg-primary text-white rounded-2xl font-bold shadow-xl shadow-primary/20 hover:opacity-90 transition-all active:scale-[0.98] uppercase tracking-widest text-xs disabled:opacity-30"
+                                className="flex-1 h-12 bg-slate-900 text-white rounded-xl font-black shadow-lg shadow-black/10 hover:bg-blue-600 transition-all active:scale-[0.98] uppercase tracking-widest text-[10px] disabled:opacity-30 italic border border-slate-800"
                             >
-                                {loading ? 'SYNCHRONIZING...' : editingSupplier ? 'Commit Updates' : 'Initialize Registry Entry'}
+                                {loading ? 'SYNCHRONIZING...' : editingSupplier ? 'COMMIT_REGISTRY_UPDATES' : 'INITIALIZE_REGISTRY_ENTRY'}
                             </button>
                             <button
                                 type="button"
                                 onClick={resetForm}
-                                className="px-12 h-16 bg-white text-slate-400 rounded-2xl font-bold hover:text-rose-500 border border-slate-200 hover:border-rose-100 transition-all uppercase tracking-widest text-[10px] shadow-sm"
+                                className="px-8 h-12 bg-white text-slate-400 rounded-xl font-black hover:text-rose-600 border border-slate-200 hover:border-rose-100 transition-all uppercase tracking-widest text-[10px] shadow-sm italic"
                             >
-                                Abort
+                                ABORT
                             </button>
                         </div>
                     </form>
@@ -235,73 +247,78 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
             )}
 
             {/* Suppliers List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {suppliers.length === 0 ? (
-                    <div className="col-span-full bg-blue-50/50 border-2 border-dashed border-blue-100 p-24 text-center rounded-[3rem]">
-                        <div className="w-24 h-24 bg-white border-2 border-blue-100 rounded-full flex items-center justify-center mx-auto mb-10 shadow-sm">
-                            <Users className="text-blue-200" size={40} />
+                    <div className="col-span-full bg-slate-50 border border-slate-200 border-dashed p-16 text-center rounded-[2rem]">
+                        <div className="w-16 h-16 bg-white border border-slate-200 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-sm text-slate-300">
+                            <Users size={32} />
                         </div>
-                        <p className="text-2xl font-black text-black mb-4 uppercase tracking-tighter italic">No Supplier Data Detected</p>
-                        <p className="text-blue-300 font-bold max-w-sm mx-auto text-[10px] uppercase tracking-widest leading-relaxed opacity-80">System requires at least one external supply node to initialize logistics chain.</p>
+                        <p className="text-xl font-black text-slate-900 mb-2 uppercase tracking-tighter italic">No Supplier Data Detected</p>
+                        <p className="text-slate-400 font-bold max-w-sm mx-auto text-[9px] uppercase tracking-widest leading-relaxed italic opacity-80">
+                            System requires at least one external supply node to initialize logistics chain.
+                        </p>
                     </div>
                 ) : (
                     suppliers.map((supplier) => (
-                        <div key={supplier.id} className="bg-white border border-slate-100 rounded-[2rem] p-10 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20 transition-all group relative overflow-hidden">
-                            <div className="flex justify-between items-start mb-10 relative z-10">
-                                <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all shadow-sm">
-                                    <Users className="text-slate-400 group-hover:text-white" size={28} />
+                        <div key={supplier.id} className="bg-white border border-slate-200 rounded-[2rem] p-6 hover:shadow-md transition-all group relative overflow-hidden flex flex-col border-b-4 border-b-slate-100 hover:border-b-blue-600">
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 group-hover:text-white transition-all shadow-sm text-slate-400">
+                                    <Users size={20} />
                                 </div>
-                                <div className="flex gap-3">
+                                <div className="flex gap-2">
                                     <button
                                         onClick={() => handleEdit(supplier)}
-                                        className="p-3.5 text-slate-300 hover:text-primary bg-white rounded-xl shadow-sm border border-slate-100 transition-all"
+                                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 bg-white border border-slate-200 rounded-lg shadow-sm transition-all"
                                         title="Edit Entity"
                                     >
-                                        <Edit2 size={20} />
+                                        <Edit2 size={12} />
                                     </button>
                                     <button
                                         onClick={() => setDeleteId(supplier.id)}
-                                        className="p-3.5 text-slate-300 hover:text-rose-500 bg-white rounded-xl shadow-sm border border-slate-100 transition-all"
+                                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-600 bg-white border border-slate-200 rounded-lg shadow-sm transition-all"
                                         title="Purge Registry"
                                     >
-                                        <Trash2 size={20} />
+                                        <Trash2 size={12} />
                                     </button>
                                 </div>
                             </div>
 
-                            <h3 className="text-2xl font-black text-black mb-8 uppercase tracking-tighter italic group-hover:translate-x-1 transition-transform">{supplier.name}</h3>
+                            <h3 className="text-lg font-black text-slate-900 mb-6 uppercase tracking-tighter italic truncate">{supplier.name}</h3>
 
-                            <div className="space-y-6 text-[11px] font-bold uppercase tracking-widest relative z-10">
+                            <div className="space-y-3 text-[9px] font-black uppercase tracking-widest flex-1">
                                 {supplier.email && (
-                                    <div className="flex items-center gap-4 text-blue-400 group-hover:text-black transition-colors">
-                                        <Mail size={18} className="text-blue-200 group-hover:text-blue-500" />
-                                        <span className="truncate">{supplier.email}</span>
+                                    <div className="flex items-center gap-3 text-slate-500 group-hover:text-slate-900 transition-colors">
+                                        <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-blue-600 shrink-0">
+                                            <Mail size={12} />
+                                        </div>
+                                        <span className="truncate font-mono italic">{supplier.email}</span>
                                     </div>
                                 )}
                                 {supplier.phone && (
-                                    <div className="flex items-center gap-4 text-blue-400 group-hover:text-black transition-colors">
-                                        <Phone size={18} className="text-blue-200 group-hover:text-blue-500" />
-                                        <span>{supplier.phone}</span>
+                                    <div className="flex items-center gap-3 text-slate-500 group-hover:text-slate-900 transition-colors">
+                                        <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-blue-600 shrink-0">
+                                            <Phone size={12} />
+                                        </div>
+                                        <span className="font-mono italic">{supplier.phone}</span>
                                     </div>
                                 )}
                                 {supplier.address && (
-                                    <div className="flex items-center gap-4 text-blue-400 group-hover:text-black transition-colors">
-                                        <MapPin size={18} className="text-blue-200 group-hover:text-blue-500" />
-                                        <span className="truncate">{supplier.address}</span>
+                                    <div className="flex items-center gap-3 text-slate-500 group-hover:text-slate-900 transition-colors">
+                                        <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-blue-600 shrink-0">
+                                            <MapPin size={12} />
+                                        </div>
+                                        <span className="truncate italic">{supplier.address}</span>
                                     </div>
                                 )}
                             </div>
 
                             {supplier.invoices && supplier.invoices.length > 0 && (
-                                <div className="mt-10 pt-8 border-t border-blue-100/50 relative z-10">
-                                    <div className="text-[10px] font-black text-white bg-blue-500 inline-block px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-blue-500/20">
-                                        {supplier.invoices.length} ACTIVE BATCHES
-                                    </div>
+                                <div className="mt-6 pt-4 border-t border-slate-100">
+                                    <span className="text-[8px] font-black text-white bg-slate-900 px-3 py-1 rounded-full uppercase tracking-widest font-mono italic">
+                                        {supplier.invoices.length} ACTIVE_BATCHES
+                                    </span>
                                 </div>
                             )}
-
-                            {/* Accent graphics */}
-                            <div className="absolute top-0 right-0 w-48 h-48 bg-blue-100/20 rounded-full -mr-24 -mt-24 group-hover:bg-blue-500/5 transition-all"></div>
                         </div>
                     ))
                 )}
@@ -311,9 +328,9 @@ export default function SupplierClient({ suppliers, selectedBusinessId }: Suppli
                 isOpen={deleteId !== null}
                 onClose={() => setDeleteId(null)}
                 onConfirm={handleDelete}
-                title="Delete Supplier"
-                description="Are you sure you want to delete this supplier? This action cannot be undone."
-                confirmText="Delete Supplier"
+                title="Purge Supplier Registry"
+                description={`Initialize protocol to purge registry entry [${deleteId}]? This action will permanently remove the supplier from the Matrix.`}
+                confirmText="PURGE_REGISTRY"
                 variant="danger"
             />
         </div>

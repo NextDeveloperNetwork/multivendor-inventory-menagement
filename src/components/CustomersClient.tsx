@@ -59,171 +59,163 @@ export default function CustomersClient({ initialCustomers, selectedBusinessId }
     };
 
     return (
-        <div className="space-y-12 fade-in pb-20">
+        <div className="space-y-6 fade-in pb-20 p-2 md:p-6">
             {/* Header Section */}
-            <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full -mr-32 -mt-32 blur-[100px]"></div>
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                    <div>
-                        <div className="flex items-center gap-4 mb-3">
-                            <div className="px-3 py-1 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-primary/20">
-                                CRM Node
-                            </div>
-                        </div>
-                        <h1 className="text-6xl font-black text-slate-900 tracking-tighter uppercase italic">
-                            Customer <span className="text-primary underline underline-offset-8 decoration-primary/10 decoration-8">Registry</span>
-                        </h1>
-                        <p className="text-slate-400 text-sm font-bold uppercase tracking-[0.2em] mt-6 flex items-center gap-3 italic font-mono px-2 border-l-4 border-primary/20">
-                            <Heart size={18} className="text-primary" /> Manage loyalty, contact data, and spending habits
-                        </p>
-                    </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
+                        Customer <span className="text-blue-600">Registry</span>
+                    </h1>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1">
+                        Client Identity & Intelligence Archive
+                    </p>
+                </div>
 
+                <div className="flex flex-wrap gap-3 items-center">
+                    <div className="px-4 h-12 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-3 shadow-inner">
+                        <Star size={16} className="text-blue-600" />
+                        <div>
+                            <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Global Sector</div>
+                            <div className="text-xs font-black text-slate-900 italic font-mono">{customers.length} PROFILES</div>
+                        </div>
+                    </div>
                     <button
                         onClick={() => setIsAddOpen(true)}
-                        className="h-20 px-10 bg-slate-900 hover:bg-primary text-white rounded-[2.5rem] font-black uppercase tracking-widest text-xs flex items-center gap-4 transition-all active:scale-95 shadow-2xl shadow-black/10"
+                        className="h-12 px-6 bg-slate-900 hover:bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 transition-all shadow-lg shadow-black/10"
                     >
-                        <UserPlus size={20} />
-                        Acquire New Profile
+                        <UserPlus size={16} className="text-blue-400" />
+                        Acquire Profile
                     </button>
                 </div>
             </div>
 
-            {/* Search & Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <div className="lg:col-span-3">
-                    <div className="relative group">
-                        <div className="absolute inset-0 bg-primary/5 rounded-[2rem] blur-xl opacity-0 group-focus-within:opacity-50 transition-opacity"></div>
-                        <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors" size={24} />
-                        <input
-                            type="text"
-                            placeholder="Search by name, email, or digital identifier..."
-                            className="relative w-full h-20 pl-20 pr-10 bg-white border border-slate-200 rounded-[2rem] text-lg font-bold outline-none focus:border-primary transition-all shadow-sm focus:shadow-xl focus:shadow-primary/5 text-slate-900"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between shadow-sm">
-                    <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-primary shadow-inner">
-                        <Star size={24} />
-                    </div>
-                    <div className="text-right">
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Reach</div>
-                        <div className="text-3xl font-black text-slate-900 italic">{customers.length} Profiles</div>
-                    </div>
-                </div>
+            {/* Search Bar */}
+            <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+                <input
+                    type="text"
+                    placeholder="Search by name, email, or digital identifier..."
+                    className="w-full h-12 pl-12 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600/10 transition-all shadow-sm text-slate-900 placeholder:text-slate-300"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
             </div>
 
             {/* Customers Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filteredCustomers.length === 0 ? (
-                    <div className="col-span-full py-32 flex flex-col items-center justify-center text-center opacity-30">
-                        <div className="w-24 h-24 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-200 mb-8">
-                            <UserPlus size={48} />
+                    <div className="col-span-full py-20 bg-white border border-slate-200 border-dashed rounded-[2rem] flex flex-col items-center justify-center text-center">
+                        <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mb-4 border border-slate-100">
+                            <UserPlus size={24} />
                         </div>
-                        <p className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">No profiles detected</p>
-                        <p className="text-slate-300 text-xs font-bold uppercase tracking-widest mt-3">Registry empty for current sector sector.</p>
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No profiles detected in current matrix</p>
                     </div>
                 ) : (
                     filteredCustomers.map((customer, i) => (
-                        <div key={i} className="bg-white group rounded-[3rem] border border-slate-100 p-10 hover:border-primary/20 transition-all shadow-sm hover:shadow-xl hover:shadow-primary/5 relative overflow-hidden flex flex-col">
-                            <div className="absolute top-0 right-0 p-8 text-primary/5 group-hover:scale-125 transition-transform duration-700">
-                                <Heart size={120} />
-                            </div>
-
-                            <div className="relative z-10 flex-1">
-                                <div className="flex justify-between items-start mb-8">
-                                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-primary font-black text-2xl shadow-inner group-hover:bg-primary group-hover:text-white transition-all duration-500">
-                                        {customer.name.charAt(0)}
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Assets Out</div>
-                                        <div className="text-2xl font-black text-slate-900 font-mono italic">
-                                            ${customer.sales.reduce((sum: number, s: any) => sum + Number(s.total), 0).toLocaleString()}
-                                        </div>
-                                    </div>
+                        <div key={i} className="bg-white group rounded-[2rem] border border-slate-200 p-6 hover:border-blue-600/30 transition-all shadow-sm hover:shadow-md relative overflow-hidden flex flex-col border-b-4 border-b-slate-100 hover:border-b-blue-600">
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-lg group-hover:bg-blue-600 transition-colors shadow-lg shadow-black/5">
+                                    {customer.name.charAt(0)}
                                 </div>
-
-                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic mb-6 break-words underline decoration-primary/10 decoration-4 underline-offset-8 decoration-transparent group-hover:decoration-primary/20 transition-all">{customer.name}</h3>
-
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3 text-slate-500 font-bold text-sm">
-                                        <Mail size={16} className="text-primary/40 group-hover:text-primary transition-colors" /> {customer.email || 'NO_IDENTIFIER'}
-                                    </div>
-                                    <div className="flex items-center gap-3 text-slate-500 font-bold text-sm">
-                                        <Phone size={16} className="text-primary/40 group-hover:text-primary transition-colors" /> {customer.phone || 'NO_V_ENTRY'}
-                                    </div>
-                                    <div className="flex items-center gap-3 text-slate-500 font-bold text-sm font-mono text-[10px] uppercase tracking-widest">
-                                        <Calendar size={16} className="text-primary/40 group-hover:text-primary transition-colors" /> JOINED {new Date(customer.createdAt).toLocaleDateString()}
+                                <div className="text-right">
+                                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Net Output</div>
+                                    <div className="text-sm font-black text-slate-900 font-mono italic">
+                                        ${customer.sales.reduce((sum: number, s: any) => sum + Number(s.total), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                     </div>
                                 </div>
                             </div>
 
-                            <button className="relative z-10 w-full mt-10 h-14 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-2xl border border-slate-100 transition-all flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-600 group/btn shadow-sm">
-                                Intelligence Report <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+                            <div className="flex-1">
+                                <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight italic mb-4 truncate group-hover:text-blue-600 transition-colors">{customer.name}</h3>
+
+                                <div className="space-y-2.5">
+                                    <div className="flex items-center gap-3 text-slate-500 font-black text-[10px] uppercase truncate">
+                                        <Mail size={14} className="text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
+                                        <span className="truncate">{customer.email || 'NO_IDENTIFIER'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-slate-500 font-black text-[10px] uppercase">
+                                        <Phone size={14} className="text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
+                                        <span>{customer.phone || 'NO_V_ENTRY'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-slate-400 font-black text-[9px] uppercase tracking-widest font-mono pt-3 border-t border-slate-50 group-hover:border-blue-50 transition-colors">
+                                        <Calendar size={12} className="text-slate-200 shrink-0" />
+                                        EST. {new Date(customer.createdAt).toLocaleDateString()}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button className="w-full mt-6 h-10 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-600 group/btn">
+                                Intelligence Report <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                             </button>
                         </div>
                     ))
                 )}
             </div>
 
-            {/* Add Customer Modal */}
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                <DialogContent className="max-w-2xl bg-white rounded-[3.5rem] p-0 overflow-hidden border-none shadow-2xl">
-                    <div className="bg-slate-900 p-12 text-white relative">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full -mr-32 -mt-32 blur-[60px]"></div>
-                        <DialogTitle className="text-4xl font-black uppercase italic tracking-tighter relative z-10">New Profile <span className="text-primary">Acquisition</span></DialogTitle>
-                        <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-3 relative z-10 px-1 border-l-4 border-primary/30">
-                            Establish a new customer entry in the global registry
+                <DialogContent className="max-w-xl bg-white rounded-[2rem] p-0 overflow-hidden border border-slate-200 shadow-2xl">
+                    <div className="bg-slate-900 p-8 text-white">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="px-2 py-0.5 bg-blue-600 text-[8px] font-black uppercase tracking-[0.2em] rounded">SYSTEM_MASTER</div>
+                        </div>
+                        <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">Profile <span className="text-blue-400">Acquisition</span></DialogTitle>
+                        <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 italic">
+                            Initialize secure customer entry in registry matrix
                         </DialogDescription>
                     </div>
 
-                    <form onSubmit={handleAddCustomer} className="p-12 space-y-8">
-                        <div className="space-y-6">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Legal Name / Entity</label>
+                    <form onSubmit={handleAddCustomer} className="p-8 space-y-6 bg-white">
+                        <div className="space-y-5">
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+                                    <div className="w-1 h-1 bg-blue-600" /> Legal Entity Identity
+                                </label>
                                 <input
                                     name="name"
                                     required
-                                    className="w-full h-16 px-8 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-lg focus:border-primary outline-none transition-all focus:bg-white"
-                                    placeholder="e.g. Johnathan Sentinel"
+                                    className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm focus:border-blue-600 outline-none transition-all placeholder:text-slate-300 placeholder:italic"
+                                    placeholder="Enter full name or business entity..."
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Digital Email</label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+                                        <div className="w-1 h-1 bg-blue-600" /> Digital Email
+                                    </label>
                                     <input
                                         name="email"
                                         type="email"
-                                        className="w-full h-16 px-8 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-lg focus:border-primary outline-none transition-all focus:bg-white"
-                                        placeholder="nexus@client.com"
+                                        className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm focus:border-blue-600 outline-none transition-all placeholder:text-slate-300 placeholder:italic"
+                                        placeholder="nexus@matrix.com"
                                     />
                                 </div>
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Voice Identifier</label>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+                                        <div className="w-1 h-1 bg-blue-600" /> Voice Identifier
+                                    </label>
                                     <input
                                         name="phone"
-                                        className="w-full h-16 px-8 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-lg focus:border-primary outline-none transition-all focus:bg-white"
-                                        placeholder="+1 (555) 000-0000"
+                                        className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm focus:border-blue-600 outline-none transition-all placeholder:text-slate-300 placeholder:italic"
+                                        placeholder="+1 --- --- ----"
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex gap-4 pt-4">
+                        <div className="flex gap-3 pt-4">
                             <button
                                 type="button"
                                 onClick={() => setIsAddOpen(false)}
-                                className="flex-1 h-16 border border-slate-200 text-slate-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all font-mono"
+                                className="flex-1 h-12 border border-slate-200 text-slate-400 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all italic"
                             >
-                                [ ABORT_PROCESS ]
+                                ABORT
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex-1 h-16 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-primary transition-all shadow-xl shadow-black/10 disabled:opacity-50 flex items-center justify-center gap-3"
+                                className="flex-2 h-12 bg-slate-900 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 transition-all shadow-xl shadow-black/10 disabled:opacity-50 flex items-center justify-center gap-3 px-8"
                             >
-                                {loading ? <Loader2 className="animate-spin" size={16} /> : '[ COMMIT_PROFILE ]'}
+                                {loading ? <Loader2 className="animate-spin" size={16} /> : 'COMMIT_PROFILE'}
                             </button>
                         </div>
                     </form>

@@ -67,45 +67,44 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     const currency = sanitizeData(baseCurrency) || { symbol: '$', rate: 1, code: 'USD' };
 
     return (
-        <div className="space-y-12 fade-in relative pb-20">
-            {/* Header Section */}
-            <div className="bg-white p-12 rounded-[3.5rem] border-2 border-blue-50 shadow-2xl shadow-blue-500/5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="space-y-3">
-                        <h1 className="text-5xl font-black text-black tracking-tighter uppercase italic">
-                            Inbound <span className="text-blue-600">Logistics</span>
+        <div className="space-y-6 fade-in relative pb-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Compact Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mt-4">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                            <Package size={20} />
+                        </div>
+                        <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                            INBOUND <span className="text-blue-600">LOGISTICS</span>
                         </h1>
-                        <p className="text-blue-300 text-sm font-bold uppercase tracking-[0.2em] flex items-center gap-4">
-                            <Package size={20} className="text-blue-500" />
-                            Synchronize Resource Acquisition Manifests
-                        </p>
                     </div>
+                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] pl-[3.25rem]">
+                        Resource Acquisition & Manifest Management
+                    </p>
+                </div>
+
+                {/* Compact Stats Row */}
+                <div className="flex flex-wrap items-center gap-6 md:gap-12">
+                    {[
+                        { label: 'MANIFESTS', value: invoices.length, icon: FileText },
+                        { label: 'TODAY', value: invoices.filter((inv: any) => new Date(inv.date).toDateString() === new Date().toDateString()).length, icon: Calendar },
+                        { label: 'VALUATION', value: `${currency.symbol}${(invoices.reduce((sum: number, inv: any) => sum + inv.items.reduce((itemSum: number, item: any) => itemSum + (Number(item.cost) * item.quantity), 0), 0)).toLocaleString()}`, icon: DollarSign }
+                    ].map((stat, idx) => (
+                        <div key={idx} className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                                <stat.icon size={16} />
+                            </div>
+                            <div>
+                                <div className="text-sm font-black text-slate-900 leading-none">{stat.value}</div>
+                                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-1">{stat.label}</div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {[
-                    { label: 'MANIFEST COUNT', value: invoices.length, icon: FileText, sub: 'Total Procurement Scripts' },
-                    { label: 'ACTIVE BATCHES', value: invoices.filter((inv: any) => new Date(inv.date).toDateString() === new Date().toDateString()).length, icon: Calendar, sub: 'Current Interval Cycles' },
-                    { label: 'ASSET VALUATION', value: `${currency.symbol}${(invoices.reduce((sum: number, inv: any) => sum + inv.items.reduce((itemSum: number, item: any) => itemSum + (Number(item.cost) * item.quantity), 0), 0)).toLocaleString()}`, icon: DollarSign, sub: 'Net Inventory Worth' }
-                ].map((stat, idx) => (
-                    // ... (rest of stats render remains same)
-                    <div key={idx} className="bg-white p-12 rounded-[2.5rem] border-2 border-blue-50 shadow-2xl shadow-blue-500/5 relative group hover:bg-blue-50 transition-all duration-500">
-                        <div className="flex justify-between items-start mb-10">
-                            <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
-                                <stat.icon size={32} />
-                            </div>
-                            <span className="text-[10px] font-black text-blue-200 group-hover:text-blue-400 transition-colors uppercase tracking-widest font-mono">0{idx + 1} // PRCR</span>
-                        </div>
-                        <div className="text-4xl font-black text-black mb-2 tracking-tighter underline decoration-4 decoration-blue-500/10 underline-offset-8 group-hover:decoration-blue-500/30 transition-all">{stat.value}</div>
-                        <div className="text-[10px] font-black text-blue-300 uppercase tracking-widest mt-6">{stat.label}</div>
-                    </div>
-                ))}
-            </div>
-
-            <div className="bg-white border-2 border-blue-50 rounded-[3rem] p-1 shadow-2xl shadow-blue-500/5 overflow-hidden">
+            <div className="bg-white border border-slate-300 rounded-[2rem] p-1 shadow-xl shadow-blue-500/5 overflow-hidden">
                 <InvoiceClient
                     invoices={invoices}
                     products={products}

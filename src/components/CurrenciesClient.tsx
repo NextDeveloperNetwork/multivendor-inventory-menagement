@@ -98,120 +98,104 @@ export default function CurrenciesClient({ initialCurrencies }: CurrenciesClient
     };
 
     return (
-        <div className="space-y-12 animate-in fade-in duration-1000">
-            {/* Vivid Header */}
-            <div className="relative overflow-hidden bg-white rounded-[3rem] p-10 md:p-14 shadow-xl border border-slate-100">
-                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/5 rounded-full -mr-72 -mt-72 blur-[100px]"></div>
-
-                <div className="relative z-10 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-10">
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-100">
-                                <Activity className="text-white" size={24} />
-                            </div>
-                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Global Finance System</span>
-                        </div>
-                        <div>
-                            <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-                                Currency <span className="text-blue-600">Management</span>
-                            </h1>
-                            <p className="mt-4 text-slate-400 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                                System Status: <span className="text-emerald-500">Operational</span>
-                            </p>
-                        </div>
+        <div className="space-y-6 animate-in fade-in duration-1000">
+            {/* Action Bar */}
+            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm px-6">
+                <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-lg shadow-black/20">
+                        <Activity size={16} />
                     </div>
-
-                    {!isAdding && (
-                        <button
-                            onClick={() => setIsAdding(true)}
-                            className="group h-20 px-10 bg-blue-600 hover:bg-slate-900 text-white rounded-[2rem] font-black shadow-xl shadow-blue-100 transition-all active:scale-[0.98] flex items-center gap-4 uppercase tracking-widest text-[11px]"
-                        >
-                            <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
-                                <Plus size={20} strokeWidth={3} />
-                            </div>
-                            <span>Add Currency</span>
-                        </button>
-                    )}
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">
+                        System Protocol Status: <span className="text-blue-600">Active_Link</span>
+                    </div>
                 </div>
+                {!isAdding && !editingId && (
+                    <button
+                        onClick={() => setIsAdding(true)}
+                        className="h-10 px-6 bg-slate-900 hover:bg-blue-600 text-white rounded-lg font-black shadow-lg shadow-black/10 transition-all active:scale-[0.98] flex items-center gap-3 uppercase tracking-[0.2em] text-[10px] italic"
+                    >
+                        <Plus size={16} /> INITIALIZE_PROTOCOL
+                    </button>
+                )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Visual Registry */}
-                <div className="lg:col-span-8 space-y-8">
-                    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden">
-                        <div className="p-8 md:p-10 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-3">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div> Active Currencies
+                <div className="lg:col-span-8 space-y-6">
+                    <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2 italic">
+                                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></div> Active Financial Protocols
                             </h3>
-                            <div className="text-[10px] font-black text-slate-500 bg-white border border-slate-200 px-4 py-2 rounded-xl uppercase tracking-widest">
-                                {currencies.length} Available
+                            <div className="text-[8px] font-black text-slate-400 bg-white border border-slate-200 px-3 py-1.5 rounded-lg uppercase tracking-widest font-mono italic">
+                                TOTAL_NODES_{currencies.length}
                             </div>
                         </div>
 
                         {/* Desktop Table View */}
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-50 text-slate-400 text-[9px] font-black uppercase tracking-widest">
+                                <thead className="bg-slate-50 text-slate-400 text-[8px] font-black uppercase tracking-widest italic border-b border-slate-100">
                                     <tr>
-                                        <th className="px-8 md:px-12 py-6">Currency</th>
-                                        <th className="px-6 md:px-8 py-6">Symbol</th>
-                                        <th className="px-6 md:px-8 py-6 text-right">Exchange Rate</th>
-                                        <th className="px-6 md:px-8 py-6 text-center">Type</th>
-                                        <th className="px-8 md:px-12 py-6 text-right">Actions</th>
+                                        <th className="px-8 py-4">Protocol Identity</th>
+                                        <th className="px-6 py-4">Symbol</th>
+                                        <th className="px-6 py-4 text-right whitespace-nowrap">Synchronization Rate</th>
+                                        <th className="px-6 py-4 text-center">Status</th>
+                                        <th className="px-8 py-4 text-right">Auth</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y divide-slate-50">
                                     {currencies.map((c) => (
-                                        <tr key={c.id} className="group hover:bg-blue-50/30 transition-all">
-                                            <td className="px-8 md:px-12 py-8">
-                                                <div className="flex items-center gap-5">
-                                                    <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-600 font-black text-lg group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                        <tr key={c.id} className="group hover:bg-slate-50/50 transition-all">
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-sm group-hover:bg-blue-600 transition-all shadow-lg shadow-black/10 italic">
                                                         {c.code.slice(0, 2)}
                                                     </div>
                                                     <div>
-                                                        <div className="text-base font-black text-slate-900 uppercase tracking-tight">{c.name}</div>
-                                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{c.code}</div>
+                                                        <div className="text-[10px] font-black text-slate-900 uppercase tracking-tight italic line-through decoration-slate-300/50 group-hover:decoration-blue-400/30 transition-all">{c.name}</div>
+                                                        <div className="text-[8px] text-slate-400 font-black font-mono uppercase tracking-[0.2em] mt-0.5">{c.code}</div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 md:px-8 py-8">
-                                                <div className="w-10 h-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center font-black text-lg text-slate-700">
+                                            <td className="px-6 py-6">
+                                                <div className="w-8 h-8 bg-white border border-slate-200 rounded-lg flex items-center justify-center font-black text-sm text-slate-900 shadow-sm italic">
                                                     {c.symbol}
                                                 </div>
                                             </td>
-                                            <td className="px-6 md:px-8 py-8 text-right">
+                                            <td className="px-6 py-6 text-right">
                                                 <div className="flex flex-col items-end">
-                                                    <div className="text-xl font-black text-slate-900 tabular-nums tracking-tight">
+                                                    <div className="text-lg font-black text-slate-900 tabular-nums tracking-tighter font-mono italic leading-none group-hover:text-blue-600 transition-colors">
                                                         {Number(c.rate).toFixed(6)}
                                                     </div>
-                                                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                                        Ratio
+                                                    <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">
+                                                        LOGIT_DELTA
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 md:px-8 py-8 text-center">
+                                            <td className="px-6 py-6 text-center">
                                                 {c.isBase ? (
-                                                    <span className="inline-flex px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-widest">
-                                                        Base Currency
+                                                    <span className="inline-flex px-3 py-1 bg-blue-600 text-white rounded text-[8px] font-black uppercase tracking-widest italic shadow-lg shadow-blue-500/20">
+                                                        Root Protocol
                                                     </span>
                                                 ) : (
-                                                    <span className="text-slate-400 font-bold text-[9px] uppercase tracking-widest">Standard</span>
+                                                    <span className="text-slate-400 font-black text-[8px] uppercase tracking-widest italic font-mono opacity-30">V_SLAVE</span>
                                                 )}
                                             </td>
-                                            <td className="px-8 md:px-12 py-8 text-right">
-                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                                            <td className="px-8 py-6 text-right">
+                                                <div className="flex justify-end gap-2">
                                                     <button
                                                         onClick={() => startEdit(c)}
-                                                        className="h-10 w-10 bg-white text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl border border-slate-200 transition-all flex items-center justify-center"
+                                                        className="h-8 w-8 bg-white text-slate-400 hover:text-blue-600 hover:border-blue-600 rounded-lg border border-slate-200 transition-all flex items-center justify-center shadow-sm"
                                                     >
-                                                        <Edit2 size={16} />
+                                                        <Edit2 size={12} />
                                                     </button>
                                                     {!c.isBase && (
                                                         <button
                                                             onClick={() => handleDelete(c.id)}
-                                                            className="h-10 w-10 bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-slate-200 transition-all flex items-center justify-center"
+                                                            className="h-8 w-8 bg-white text-slate-400 hover:text-rose-600 hover:border-rose-600 rounded-lg border border-slate-200 transition-all flex items-center justify-center shadow-sm"
                                                         >
-                                                            <Trash2 size={16} />
+                                                            <Trash2 size={12} />
                                                         </button>
                                                     )}
                                                 </div>
@@ -223,58 +207,53 @@ export default function CurrenciesClient({ initialCurrencies }: CurrenciesClient
                         </div>
 
                         {/* Mobile Card View */}
-                        <div className="md:hidden p-4 space-y-4">
+                        <div className="md:hidden p-4 space-y-3">
                             {currencies.map((c) => (
-                                <div key={c.id} className="bg-gradient-to-br from-blue-50 to-purple-50 p-5 rounded-2xl border-2 border-blue-100 space-y-4">
-                                    {/* Header */}
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-base shadow-lg shrink-0">
+                                <div key={c.id} className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-4">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white font-black text-xs italic shadow-lg">
                                                 {c.code.slice(0, 2)}
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="text-base font-black text-slate-900 uppercase tracking-tight truncate">{c.name}</div>
-                                                <div className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-0.5">{c.code}</div>
+                                            <div>
+                                                <div className="text-[10px] font-black text-slate-900 uppercase tracking-tight italic">{c.name}</div>
+                                                <div className="text-[8px] text-blue-600 font-black font-mono uppercase tracking-widest mt-0.5">{c.code}</div>
                                             </div>
                                         </div>
                                         {c.isBase && (
-                                            <span className="inline-flex px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-[8px] font-black uppercase tracking-widest shrink-0">
-                                                Base
+                                            <span className="px-2 py-0.5 bg-blue-600 text-white rounded text-[7px] font-black uppercase tracking-widest italic">
+                                                Root
                                             </span>
                                         )}
                                     </div>
-
-                                    {/* Info Grid */}
-                                    <div className="grid grid-cols-2 gap-3 pt-3 border-t-2 border-blue-200">
-                                        <div className="space-y-1">
-                                            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Symbol</div>
-                                            <div className="w-10 h-10 bg-white border-2 border-blue-200 rounded-xl flex items-center justify-center font-black text-lg text-slate-700 shadow-sm">
+                                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200">
+                                        <div>
+                                            <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">V_SYM</div>
+                                            <div className="w-8 h-8 bg-white border border-slate-200 rounded-lg flex items-center justify-center font-black text-xs text-slate-900 shadow-sm italic">
                                                 {c.symbol}
                                             </div>
                                         </div>
-                                        <div className="space-y-1">
-                                            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Exchange Rate</div>
-                                            <div className="text-lg font-black text-slate-900 tabular-nums tracking-tight font-mono">
+                                        <div className="text-right">
+                                            <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">V_DELTA</div>
+                                            <div className="text-sm font-black text-slate-900 tabular-nums tracking-tighter font-mono italic">
                                                 {Number(c.rate).toFixed(6)}
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Actions */}
-                                    <div className="flex gap-2 pt-3 border-t-2 border-blue-200">
+                                    <div className="flex gap-2 pt-3 border-t border-slate-200">
                                         <button
                                             onClick={() => startEdit(c)}
-                                            className="flex-1 h-11 bg-white text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl border-2 border-blue-200 transition-all flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest shadow-sm"
+                                            className="flex-1 h-9 bg-white text-slate-900 rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest italic shadow-sm"
                                         >
-                                            <Edit2 size={14} />
-                                            Edit
+                                            <Edit2 size={12} />
+                                            Modify
                                         </button>
                                         {!c.isBase && (
                                             <button
                                                 onClick={() => handleDelete(c.id)}
-                                                className="w-11 h-11 bg-white text-rose-400 hover:bg-rose-500 hover:text-white rounded-xl border-2 border-rose-200 transition-all flex items-center justify-center shadow-sm"
+                                                className="w-9 h-9 bg-white text-rose-600 rounded-lg border border-slate-200 transition-all flex items-center justify-center shadow-sm"
                                             >
-                                                <Trash2 size={16} />
+                                                <Trash2 size={14} />
                                             </button>
                                         )}
                                     </div>
@@ -287,60 +266,60 @@ export default function CurrenciesClient({ initialCurrencies }: CurrenciesClient
                 {/* Adjustment Interface */}
                 <div className="lg:col-span-4 relative">
                     {(isAdding || editingId) && (
-                        <div className="bg-white rounded-[3rem] p-10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] sticky top-12 border border-slate-100 animate-in slide-in-from-right-8 duration-500">
-                            <div className="flex justify-between items-center mb-10">
+                        <div className="bg-white rounded-[2rem] p-8 shadow-sm sticky top-12 border border-slate-200 animate-in slide-in-from-right-8 duration-500">
+                            <div className="flex justify-between items-center mb-8 border-b border-slate-50 pb-4">
                                 <div>
-                                    <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
-                                        {isAdding ? 'New Currency' : 'Edit Currency'}
+                                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight italic line-through decoration-blue-500/30">
+                                        {isAdding ? 'New Protocol' : 'Modify Protocol'}
                                     </h3>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Configuration Panel</p>
+                                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 italic leading-none">V_PARAMETER_NODE</p>
                                 </div>
                                 <button
                                     onClick={() => { setIsAdding(false); setEditingId(null); }}
-                                    className="w-10 h-10 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center border border-slate-100 transition-all"
+                                    className="w-8 h-8 bg-slate-50 hover:bg-slate-100 rounded-lg flex items-center justify-center border border-slate-100 transition-all"
                                 >
-                                    <X size={20} className="text-slate-400" />
+                                    <X size={16} strokeWidth={3} className="text-slate-400" />
                                 </button>
                             </div>
 
-                            <form onSubmit={editingId ? (e) => { e.preventDefault(); handleUpdate(editingId); } : handleAdd} className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">ISO Code</label>
+                            <form onSubmit={editingId ? (e) => { e.preventDefault(); handleUpdate(editingId); } : handleAdd} className="space-y-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 italic">ISO_MATCH_CODE</label>
                                     <input
                                         required
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 outline-none focus:border-blue-500 focus:bg-white transition-all font-bold text-slate-900 placeholder:text-slate-300 uppercase"
-                                        placeholder="USD"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 h-10 outline-none focus:border-blue-600 transition-all font-black text-slate-900 text-[10px] uppercase italic"
+                                        placeholder="ISO_CODE"
                                         value={formData.code}
                                         onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                                         maxLength={3}
                                     />
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Currency Name</label>
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 italic">PROTOCOL_LABEL</label>
                                     <input
                                         required
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 outline-none focus:border-blue-500 focus:bg-white transition-all font-bold text-slate-900 placeholder:text-slate-300"
-                                        placeholder="United States Dollar"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 h-10 outline-none focus:border-blue-600 transition-all font-black text-slate-900 text-[10px] uppercase italic"
+                                        placeholder="UNITED_STATES_DOLLAR..."
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Symbol</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 italic">SYMB_NODE</label>
                                         <input
                                             required
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 outline-none focus:border-blue-500 focus:bg-white transition-all font-black text-center text-lg text-slate-900 placeholder:text-slate-300"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 h-10 outline-none focus:border-blue-600 transition-all font-black text-center text-sm text-slate-900 italic"
                                             placeholder="$"
                                             value={formData.symbol}
                                             onChange={(e) => setFormData({ ...formData, symbol: e.target.value })}
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Primary Base</label>
-                                        <div className="flex items-center justify-center w-full h-[62px] bg-slate-50 border border-slate-200 rounded-2xl">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 italic">ROOT_ACCESS</label>
+                                        <div className="flex items-center justify-center w-full h-10 bg-slate-50 border border-slate-200 rounded-xl">
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
                                                     type="checkbox"
@@ -348,48 +327,48 @@ export default function CurrenciesClient({ initialCurrencies }: CurrenciesClient
                                                     checked={formData.isBase}
                                                     onChange={(e) => setFormData({ ...formData, isBase: e.target.checked, rate: e.target.checked ? '1' : formData.rate })}
                                                 />
-                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                                             </label>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Exchange Rate</label>
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 italic">EXCH_SYNC_RATE</label>
                                     <div className="relative">
                                         <input
                                             required
                                             type="number"
                                             step="0.0000000001"
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 outline-none focus:border-blue-500 focus:bg-white transition-all font-mono font-black text-lg text-slate-900 placeholder:text-slate-300"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 h-10 outline-none focus:border-blue-600 transition-all font-mono font-black text-sm text-slate-900 italic"
                                             placeholder="1.0000"
                                             value={formData.rate}
                                             onChange={(e) => setFormData({ ...formData, rate: e.target.value })}
                                             disabled={formData.isBase}
                                         />
                                         {formData.isBase && (
-                                            <Lock className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                            <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 opacity-30" size={14} />
                                         )}
                                     </div>
                                 </div>
 
                                 <button
                                     type="submit"
-                                    className="w-full h-16 bg-blue-600 hover:bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-blue-100 transition-all active:scale-[0.98] mt-6"
+                                    className="w-full h-12 bg-slate-900 hover:bg-blue-600 text-white rounded-xl font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-black/10 transition-all active:scale-[0.98] mt-4 italic border border-slate-800"
                                 >
-                                    {isAdding ? 'Create Currency' : 'Save Changes'}
+                                    {isAdding ? 'AUTHORIZE_PROTOCOL' : 'COMMIT_PROTOCOL_AUTH'}
                                 </button>
                             </form>
                         </div>
                     )}
 
                     {!isAdding && !editingId && (
-                        <div className="bg-white border-2 border-dashed border-slate-100 rounded-[3rem] p-12 text-center h-[400px] flex flex-col items-center justify-center relative shadow-sm">
-                            <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 border border-slate-100">
-                                <Coins size={32} className="text-slate-300" />
+                        <div className="bg-white border border-dashed border-slate-200 rounded-[2rem] p-12 text-center h-[400px] flex flex-col items-center justify-center relative shadow-sm">
+                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-6 border border-slate-100">
+                                <Coins size={28} className="text-slate-300" />
                             </div>
-                            <h4 className="text-lg font-black text-slate-300 uppercase tracking-widest">No Selection</h4>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Select an item to edit details</p>
+                            <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] italic">NULL_SELECTION</h4>
+                            <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest mt-2 italic">Awaiting parameter input</p>
                         </div>
                     )}
                 </div>
