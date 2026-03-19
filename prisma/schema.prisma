@@ -79,8 +79,9 @@ model Product {
   name          String
   sku           String         @unique
   description   String?
-  price         Decimal        @db.Decimal(10, 2)
-  cost          Decimal        @default(0) @db.Decimal(10, 2)
+  price         Decimal?       @db.Decimal(10, 2)
+  cost          Decimal?       @default(0) @db.Decimal(10, 2)
+  isPriceManual Boolean        @default(false)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   barcode       String?        @unique
@@ -90,6 +91,32 @@ model Product {
   saleItems     SaleItem[]
   transferItems TransferItem[]
   imageUrl      String?
+  unitId        String?
+  unit          ProductUnit?   @relation(fields: [unitId], references: [id])
+  categoryId    String?
+  category      ProductCategory? @relation(fields: [categoryId], references: [id])
+
+  @@index([businessId])
+}
+
+model ProductCategory {
+  id          String    @id @default(cuid())
+  businessId  String?
+  name        String
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([businessId])
+}
+
+model ProductUnit {
+  id          String    @id @default(cuid())
+  businessId  String?
+  name        String
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([businessId])
 }
@@ -109,17 +136,20 @@ model Inventory {
 }
 
 model Supplier {
-  id         String    @id @default(cuid())
-  businessId String?
-  name       String
-  email      String?
-  phone      String?
-  address    String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  latitude   Float?
-  longitude  Float?
-  invoices   Invoice[]
+  id            String    @id @default(cuid())
+  businessId    String?
+  name          String
+  email         String?
+  phone         String?
+  address       String?
+  taxId         String?
+  contactPerson String?
+  website       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  latitude      Float?
+  longitude     Float?
+  invoices      Invoice[]
 
   @@index([businessId])
 }
@@ -198,6 +228,8 @@ model Customer {
   name       String
   phone      String?
   email      String?
+  address    String?
+  taxId      String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   sales      Sale[]

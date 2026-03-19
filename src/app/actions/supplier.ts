@@ -11,6 +11,9 @@ export async function createSupplier(formData: FormData) {
     const email = formData.get('email') as string;
     const phone = formData.get('phone') as string;
     const address = formData.get('address') as string;
+    const taxId = formData.get('taxId') as string;
+    const contactPerson = formData.get('contactPerson') as string;
+    const website = formData.get('website') as string;
     const latitude = parseFloat(formData.get('latitude') as string || '0') || null;
     const longitude = parseFloat(formData.get('longitude') as string || '0') || null;
     const businessId = formData.get('businessId') as string;
@@ -22,6 +25,9 @@ export async function createSupplier(formData: FormData) {
                 email: email || null,
                 phone: phone || null,
                 address: address || null,
+                taxId: taxId || null,
+                contactPerson: contactPerson || null,
+                website: website || null,
                 latitude,
                 longitude,
                 businessId
@@ -41,6 +47,9 @@ export async function updateSupplier(id: string, formData: FormData) {
     const email = formData.get('email') as string;
     const phone = formData.get('phone') as string;
     const address = formData.get('address') as string;
+    const taxId = formData.get('taxId') as string;
+    const contactPerson = formData.get('contactPerson') as string;
+    const website = formData.get('website') as string;
     const latitude = parseFloat(formData.get('latitude') as string || '0') || null;
     const longitude = parseFloat(formData.get('longitude') as string || '0') || null;
 
@@ -52,9 +61,12 @@ export async function updateSupplier(id: string, formData: FormData) {
                 email: email || null,
                 phone: phone || null,
                 address: address || null,
+                taxId: taxId || null,
+                contactPerson: contactPerson || null,
+                website: website || null,
                 latitude,
                 longitude,
-            },
+            } as any,
         });
 
         revalidatePath('/admin/suppliers');

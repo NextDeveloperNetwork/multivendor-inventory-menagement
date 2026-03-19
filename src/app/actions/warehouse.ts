@@ -47,3 +47,29 @@ export async function deleteWarehouse(id: string) {
         return { error: 'Failed to delete warehouse. Ensure it has no inventory.' };
     }
 }
+
+export async function updateWarehouse(id: string, formData: FormData) {
+    const name = formData.get('name') as string;
+    const latitude = parseFloat(formData.get('latitude') as string || '0') || null;
+    const longitude = parseFloat(formData.get('longitude') as string || '0') || null;
+
+    if (!name) return { error: "Name is required" };
+
+    try {
+        await prisma.warehouse.update({
+            where: { id },
+            data: {
+                name,
+                latitude,
+                longitude
+            }
+        });
+
+        revalidatePath('/admin/warehouses');
+        revalidatePath('/admin/inventory');
+        revalidatePath('/admin/map');
+        return { success: true };
+    } catch (error) {
+        return { error: "Failed to update warehouse" };
+    }
+}

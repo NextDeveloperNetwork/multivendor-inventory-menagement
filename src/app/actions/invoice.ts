@@ -11,6 +11,7 @@ export async function createInvoice(formData: FormData) {
     const manualNumber = formData.get('number') as string;
     const warehouseId = formData.get('warehouseId') as string;
     const shopId = formData.get('shopId') as string;
+    const date = formData.get('date') as string;
 
     // Validation: Require either warehouseId OR shopId, but not both or neither
     if ((!warehouseId && !shopId) || (warehouseId && shopId)) {
@@ -23,7 +24,7 @@ export async function createInvoice(formData: FormData) {
         if (!invoiceNumber) {
             // Generate numerical invoice number (YYYYMMDDXXXX) as fallback
             const count = await prisma.invoice.count();
-            const now = new Date();
+            const now = date ? new Date(date) : new Date();
             const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
             invoiceNumber = `${dateStr}${String(count + 1).padStart(4, '0')}`;
         }
@@ -31,6 +32,7 @@ export async function createInvoice(formData: FormData) {
         const invoice = await prisma.invoice.create({
             data: {
                 number: invoiceNumber,
+                date: date ? new Date(date) : undefined,
                 warehouse: warehouseId ? { connect: { id: warehouseId } } : undefined,
                 shop: shopId ? { connect: { id: shopId } } : undefined,
                 supplier: (supplierId ? { connect: { id: supplierId } } : undefined) as any,
@@ -132,11 +134,29 @@ export async function createInvoice(formData: FormData) {
                     newAvgCost = (oldTotalValue + newTotalValue) / currentTotalQty;
                 }
 
+                let isPriceManual = false;
+                try {
+                    const [res]: any[] = await (prisma as any).$queryRawUnsafe(
+                        `SELECT "isPriceManual" FROM "Product" WHERE "id" = $1`,
+                        item.productId
+                    );
+                    if (res) isPriceManual = res.isPriceManual;
+                } catch (e) {
+                    console.error('Invoice Price Flag Check Failed:', e);
+                }
+
+                const updateData: any = {
+                    cost: newAvgCost,
+                };
+
+                // Only update price if it's not manually set
+                if (!isPriceManual) {
+                    updateData.price = newAvgCost * 1.4;
+                }
+
                 await prisma.product.update({
                     where: { id: item.productId },
-                    data: {
-                        cost: newAvgCost
-                    }
+                    data: updateData
                 });
             }
         }

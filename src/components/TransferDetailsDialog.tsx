@@ -77,116 +77,122 @@ export default function TransferDetailsDialog({ transfer, children }: TransferDe
             <DialogTrigger asChild>
                 {children}
             </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden rounded-3xl border-none shadow-2xl flex flex-col">
+            <DialogContent className="max-w-4xl max-h-[95vh] p-0 overflow-hidden rounded-2xl border border-slate-200 shadow-2xl flex flex-col bg-white">
                 {/* Header Section */}
-                <div className="px-8 py-6 bg-slate-50 border-b border-slate-100">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                                <TruckIcon size={24} />
-                            </div>
-                            <div>
-                                <DialogTitle className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2 uppercase italic mb-0.5">
-                                    Transfer Details
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase bg-slate-200 px-3 py-1 rounded-full not-italic">
-                                        #TR-{transfer.id.slice(-6).toUpperCase()}
-                                    </span>
-                                </DialogTitle>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Inventory movement and location synchronization</p>
+                <DialogHeader className="bg-white px-10 py-8 flex-row items-center justify-between space-y-0 shrink-0 border-b border-slate-100">
+                    <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 bg-slate-50 border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm">
+                            <TruckIcon size={28} strokeWidth={1.5} />
+                        </div>
+                        <div>
+                            <DialogTitle className="text-slate-900 font-serif text-3xl tracking-tight leading-none">
+                                Movement Manifest
+                            </DialogTitle>
+                            <div className="flex items-center gap-3 mt-2">
+                                <span className="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-black italic">Ref Code: #TR-{transfer.id.slice(-6).toUpperCase()}</span>
+                                <div className="w-1 h-1 rounded-full bg-slate-200" />
+                                <span className="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold">Logistic Deployment</span>
                             </div>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-3">
                         <button
                             onClick={downloadPDF}
-                            className="h-10 px-4 flex items-center gap-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all shadow-sm italic"
+                            className="h-12 px-6 flex items-center gap-3 bg-white border-2 border-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm active:scale-95"
                         >
-                            <Download size={14} /> Download PDF
+                            <Download size={16} strokeWidth={2.5} /> Export Manifest
                         </button>
                     </div>
-                </div>
+                </DialogHeader>
 
-                <div className="p-8 bg-white overflow-y-auto">
+                <div className="flex-1 overflow-y-auto px-10 py-10 bg-white">
                     {/* Route Section */}
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-8 bg-slate-50 p-8 rounded-2xl border border-slate-100 relative shadow-sm">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-12 mb-12 bg-slate-50/50 p-10 rounded-2xl border border-slate-100 relative shadow-sm">
                         <div className="flex-1 flex flex-col items-center md:items-start w-full">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-white rounded-lg text-blue-600 border border-slate-100 shadow-sm">
-                                    {transfer.fromWarehouseId ? <Warehouse size={16} /> : <Store size={16} />}
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2.5 bg-white rounded-xl text-slate-900 border border-slate-200 shadow-sm">
+                                    {transfer.fromWarehouseId ? <Warehouse size={18} strokeWidth={1.5} /> : <Store size={18} strokeWidth={1.5} />}
                                 </div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic leading-none">ORIGIN</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] italic leading-none">ORIGIN_NODE</p>
                             </div>
-                            <p className="text-xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">{sourceName}</p>
-                            <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest">{transfer.fromWarehouseId ? 'WAREHOUSE' : 'RETAIL'}</p>
+                            <p className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">{sourceName}</p>
+                            <p className="text-[10px] font-bold text-slate-400 mt-3 uppercase tracking-widest">{transfer.fromWarehouseId ? 'WAREHOUSE_ENTITY' : 'RETAIL_POINT'}</p>
                         </div>
 
-                        <div className="flex flex-col items-center justify-center text-blue-300">
-                            <ArrowRight size={32} className="hidden md:block" />
-                            <ArrowRight size={32} className="md:hidden rotate-90" />
-                            <span className="text-[8px] font-black uppercase tracking-[0.3em] mt-3 italic whitespace-nowrap">Stock Route</span>
+                        <div className="flex flex-col items-center justify-center text-slate-300">
+                            <div className="w-16 h-16 rounded-full border-2 border-slate-200 flex items-center justify-center group-hover:border-slate-900 transition-colors">
+                                <ArrowRight size={32} strokeWidth={1} className="hidden md:block" />
+                                <ArrowRight size={32} strokeWidth={1} className="md:hidden rotate-90" />
+                            </div>
+                            <span className="text-[8px] font-black uppercase tracking-[0.4em] mt-4 italic text-slate-400 whitespace-nowrap">DEPLOY_VECTOR</span>
                         </div>
 
                         <div className="flex-1 flex flex-col items-center md:items-end w-full">
-                            <div className="flex items-center gap-3 mb-3">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic leading-none">DESTINATION</p>
-                                <div className="p-2 bg-white rounded-lg text-blue-600 border border-slate-100 shadow-sm">
-                                    {transfer.toWarehouseId ? <Warehouse size={16} /> : <Store size={16} />}
+                            <div className="flex items-center gap-3 mb-4 md:flex-row-reverse">
+                                <div className="p-2.5 bg-white rounded-xl text-slate-900 border border-slate-200 shadow-sm">
+                                    {transfer.toWarehouseId ? <Warehouse size={18} strokeWidth={1.5} /> : <Store size={18} strokeWidth={1.5} />}
                                 </div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] italic leading-none">TARGET_NODE</p>
                             </div>
-                            <p className="text-xl font-black text-slate-900 uppercase italic tracking-tighter text-right leading-none">{destName}</p>
-                            <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest">{transfer.toWarehouseId ? 'WAREHOUSE' : 'RETAIL'}</p>
+                            <p className="text-2xl font-black text-slate-900 uppercase tracking-tighter text-right leading-none">{destName}</p>
+                            <p className="text-[10px] font-bold text-slate-400 mt-3 uppercase tracking-widest text-right">{transfer.toWarehouseId ? 'WAREHOUSE_ENTITY' : 'RETAIL_POINT'}</p>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <div className="p-2.5 bg-white rounded-lg text-blue-600 border border-slate-100 shadow-sm">
-                                <Calendar size={18} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12">
+                        <div className="flex items-center gap-5 bg-white p-6 rounded-2xl border-2 border-slate-50 shadow-sm">
+                            <div className="p-3 bg-slate-50 rounded-xl text-slate-900 border border-slate-100">
+                                <Calendar size={20} strokeWidth={1.5} />
                             </div>
                             <div>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">TRANSFER DATE</p>
-                                <p className="text-sm font-black text-slate-900 uppercase italic font-mono">{formatDateTime(transfer.date)}</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">TRANSFER_TIMESTAMP</p>
+                                <p className="text-sm font-black text-slate-900 uppercase italic tabular-nums">{formatDateTime(transfer.date)}</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <div className="p-2.5 bg-white rounded-lg text-blue-600 border border-slate-100 shadow-sm">
-                                <Package size={18} />
+                        <div className="flex items-center gap-5 bg-white p-6 rounded-2xl border-2 border-slate-50 shadow-sm">
+                            <div className="p-3 bg-slate-50 rounded-xl text-slate-900 border border-slate-100">
+                                <Package size={20} strokeWidth={1.5} />
                             </div>
                             <div>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">STOCK VOLUME</p>
-                                <p className="text-sm font-black text-slate-900 uppercase italic font-mono">{totalUnits} Units Total</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">LOGISTIC_VOLUME</p>
+                                <p className="text-sm font-black text-slate-900 uppercase italic tabular-nums">{totalUnits} UNITS TOTAL</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Stock Table Section */}
-                    <div className="space-y-4">
-                        <h3 className="text-[10px] font-black text-slate-950 uppercase tracking-[0.2em] mb-4 italic flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-blue-600" />
-                            Transfer Items List
-                        </h3>
-                        <div className="rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xl font-serif text-slate-900 tracking-tight italic flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-slate-900 animate-pulse" />
+                                Logistic Loadout
+                            </h3>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{transfer.items.length} LINE ARTICLES</span>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                             <Table>
-                                <TableHeader className="bg-slate-50/50 border-b border-slate-100">
+                                <TableHeader className="bg-slate-50/50 border-b border-slate-200">
                                     <TableRow className="hover:bg-transparent border-none">
-                                        <TableHead className="px-6 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Product</TableHead>
-                                        <TableHead className="px-6 py-4 text-center text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Quantity</TableHead>
-                                        <TableHead className="px-6 py-4 text-right text-[9px] font-black text-slate-500 uppercase tracking-widest italic">SKU</TableHead>
+                                        <TableHead className="px-8 py-5 text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">Product Identifier</TableHead>
+                                        <TableHead className="px-8 py-5 text-center text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">Load</TableHead>
+                                        <TableHead className="px-8 py-5 text-right text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">Global SKU</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {transfer.items.map((item: any) => (
-                                        <TableRow key={item.id} className="group hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 h-14">
-                                            <TableCell className="px-6 py-4">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-8 h-8 rounded-lg bg-blue-50/50 flex items-center justify-center text-blue-600 border border-blue-100 shadow-sm">
-                                                        <Package size={14} />
+                                        <TableRow key={item.id} className="group hover:bg-slate-50/50 transition-all border-b border-slate-100 last:border-0 h-16">
+                                            <TableCell className="px-8">
+                                                <div className="flex items-center gap-5">
+                                                    <div className="w-10 h-10 rounded-xl bg-slate-50/50 flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all">
+                                                        <Package size={16} strokeWidth={1.5} />
                                                     </div>
                                                     <span className="font-black text-slate-900 uppercase italic text-[11px] tracking-tight">{item.product.name}</span>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="px-6 py-4 text-center font-black text-slate-900 bg-slate-50/10 italic text-[11px]">
+                                            <TableCell className="px-8 text-center font-black text-slate-900 italic text-[11px] tabular-nums">
                                                 {item.quantity}
                                             </TableCell>
-                                            <TableCell className="px-6 py-4 text-right font-black text-slate-400 font-mono text-[10px]">
+                                            <TableCell className="px-8 text-right font-black text-slate-400 text-[10px] tracking-widest">
                                                 {item.product.sku}
                                             </TableCell>
                                         </TableRow>
@@ -197,14 +203,24 @@ export default function TransferDetailsDialog({ transfer, children }: TransferDe
                     </div>
 
                     {/* Status Summary */}
-                    <div className="mt-8 flex justify-end">
-                        <div className="bg-slate-900 rounded-2xl p-6 text-white text-right min-w-[200px] shadow-xl shadow-slate-200 border border-slate-800">
-                            <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-2 italic">Transfer Status</p>
-                            <p className="text-3xl font-black italic uppercase tracking-tighter text-blue-400">{transfer.status || 'COMPLETED'}</p>
+                    <div className="mt-12 flex justify-between items-end border-t border-slate-100 pt-10">
+                        <div className="max-w-xs">
+                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.25em] mb-4 flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-slate-100" /> Operational Status
+                            </p>
+                            <p className="text-[9px] text-slate-400 font-bold leading-relaxed uppercase italic">
+                                This manifest represents a synchronized state change across the local node network. Authorized personnel must verify loadouts upon arrival at targeted destination nodes.
+                            </p>
+                        </div>
+                        <div className="bg-slate-900 rounded-2xl p-8 text-white text-right min-w-[300px] shadow-[0_20px_50px_rgba(15,23,42,0.1)] relative overflow-hidden group border border-slate-800">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 -rotate-45 translate-x-10 -translate-y-10 group-hover:scale-150 transition-transform duration-1000" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-4 italic">Transfer authorization</p>
+                            <p className="text-3xl font-black italic uppercase tracking-tighter text-slate-100 drop-shadow-lg">{transfer.status || 'DEPLOYED'}</p>
                         </div>
                     </div>
                 </div>
             </DialogContent>
+
         </Dialog>
     );
 }

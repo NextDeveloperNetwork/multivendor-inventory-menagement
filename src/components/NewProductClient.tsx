@@ -1,25 +1,28 @@
 'use client';
 
-import { createProduct } from '@/app/actions/inventory';
+import { createProduct, createCategory, createUnit } from '@/app/actions/inventory';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     ArrowLeft, Save, Package, RefreshCw, AlertTriangle,
-    Tag, DollarSign, Barcode, MapPin, ChevronDown, Activity,
+    Tag, DollarSign, Barcode, MapPin, ChevronDown, Activity, Plus,
 } from 'lucide-react';
 import Link from 'next/link';
 import { generateBarcode, generateSKU } from '@/lib/utils';
 import { toast } from 'sonner';
 import ImageUpload from '@/components/ImageUpload';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface NewProductClientProps {
     selectedBusinessId: string | null;
     currency: { symbol: string; code: string };
     shops: any[];
     warehouses: any[];
+    categories: any[];
+    units: any[];
 }
 
-export default function NewProductClient({ selectedBusinessId, currency, shops, warehouses }: NewProductClientProps) {
+export default function NewProductClient({ selectedBusinessId, currency, shops, warehouses, categories: initialCategories = [], units: initialUnits = [] }: NewProductClientProps) {
     const symbol = currency?.symbol || '$';
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -29,6 +32,18 @@ export default function NewProductClient({ selectedBusinessId, currency, shops, 
     const [imageUrl, setImageUrl] = useState('');
     const [targetType, setTargetType] = useState<'warehouse' | 'shop'>('warehouse');
     const [targetId, setTargetId] = useState('');
+
+    // New Dialog states
+    const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+    const [isUnitDialogOpen, setIsUnitDialogOpen] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [newUnitName, setNewUnitName] = useState('');
+    const [localCategories, setLocalCategories] = useState(initialCategories);
+    const [localUnits, setLocalUnits] = useState(initialUnits);
+    const [cost, setCost] = useState('');
+    const [price, setPrice] = useState('');
+    const [isPriceEdited, setIsPriceEdited] = useState(false);
+
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -141,14 +156,56 @@ export default function NewProductClient({ selectedBusinessId, currency, shops, 
                             </div>
                         </div>
 
-                        {/* Category */}
-                        <div className="space-y-1.5">
-                            <label className={labelCls}><Tag size={10} /> Category</label>
-                            <input
-                                name="category"
-                                placeholder="e.g. Beverages"
-                                className={inputCls}
-                            />
+                        {/* Category & Unit */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className={labelCls}><Tag size={10} /> Category</label>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <select
+                                            name="categoryId"
+                                            className={inputCls + ' appearance-none pr-8 cursor-pointer'}
+                                        >
+                                            <option value="">Select Category</option>
+                                            {localCategories.map(cat => (
+                                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCategoryDialogOpen(true)}
+                                        className="w-10 h-10 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-300 transition-all active:scale-95"
+                                    >
+                                        <Plus size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className={labelCls}><Activity size={10} /> Unit</label>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <select
+                                            name="unitId"
+                                            className={inputCls + ' appearance-none pr-8 cursor-pointer'}
+                                        >
+                                            <option value="">Select Unit</option>
+                                            {localUnits.map(unit => (
+                                                <option key={unit.id} value={unit.id}>{unit.name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsUnitDialogOpen(true)}
+                                        className="w-10 h-10 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-300 transition-all active:scale-95"
+                                    >
+                                        <Plus size={18} />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Description */}
@@ -175,7 +232,7 @@ export default function NewProductClient({ selectedBusinessId, currency, shops, 
                         <div className="grid grid-cols-3 gap-4">
                             {/* Selling price */}
                             <div className="space-y-1.5">
-                                <label className={labelCls}>Selling Price *</label>
+                                <label className={labelCls}>Selling Price</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold pointer-events-none">{symbol}</span>
                                     <input
@@ -183,15 +240,19 @@ export default function NewProductClient({ selectedBusinessId, currency, shops, 
                                         type="number"
                                         step="0.01"
                                         min="0"
-                                        required
-                                        placeholder="0.00"
+                                        value={price}
+                                        onChange={e => {
+                                            setPrice(e.target.value);
+                                            setIsPriceEdited(true);
+                                        }}
+                                        placeholder="0.00 (Optional)"
                                         className={inputCls + ' pl-7 text-right font-mono'}
                                     />
                                 </div>
                             </div>
                             {/* Cost */}
                             <div className="space-y-1.5">
-                                <label className={labelCls}>Purchase Cost *</label>
+                                <label className={labelCls}>Purchase Cost</label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold pointer-events-none">{symbol}</span>
                                     <input
@@ -199,8 +260,16 @@ export default function NewProductClient({ selectedBusinessId, currency, shops, 
                                         type="number"
                                         step="0.01"
                                         min="0"
-                                        required
-                                        placeholder="0.00"
+                                        value={cost}
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            setCost(val);
+                                            if (!isPriceEdited && val) {
+                                                const calc = (Number(val) * 1.4).toFixed(2);
+                                                setPrice(calc);
+                                            }
+                                        }}
+                                        placeholder="0.00 (Optional)"
                                         className={inputCls + ' pl-7 text-right font-mono'}
                                     />
                                 </div>
@@ -330,6 +399,83 @@ export default function NewProductClient({ selectedBusinessId, currency, shops, 
                     </button>
                 </div>
             </form>
+
+            {/* ── Dialogs ── */}
+            <CategoryUnitDialog
+                isOpen={isCategoryDialogOpen}
+                onClose={() => setIsCategoryDialogOpen(false)}
+                title="Add New Category"
+                value={newCategoryName}
+                onChange={setNewCategoryName}
+                id="category_dialog"
+                onAdd={async () => {
+                    const res = await createCategory(newCategoryName, selectedBusinessId);
+                    if (res.success) {
+                        setLocalCategories([...localCategories, res.category]);
+                        setNewCategoryName('');
+                        setIsCategoryDialogOpen(false);
+                        toast.success('Category added');
+                    }
+                }}
+            />
+
+            <CategoryUnitDialog
+                isOpen={isUnitDialogOpen}
+                onClose={() => setIsUnitDialogOpen(false)}
+                title="Add New Unit"
+                value={newUnitName}
+                onChange={setNewUnitName}
+                id="unit_dialog"
+                onAdd={async () => {
+                    const res = await createUnit(newUnitName, selectedBusinessId);
+                    if (res.success) {
+                        setLocalUnits([...localUnits, res.unit]);
+                        setNewUnitName('');
+                        setIsUnitDialogOpen(false);
+                        toast.success('Unit added');
+                    }
+                }}
+            />
         </div>
+    );
+}
+
+function CategoryUnitDialog({ isOpen, onClose, title, value, onChange, onAdd, id }: any) {
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-md bg-white p-6 rounded-[2rem] border-none shadow-2xl overflow-hidden">
+                <DialogHeader className="mb-4">
+                    <DialogTitle className="text-xl font-black text-slate-900 tracking-tight uppercase italic">{title}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 font-mono italic">Name / Descriptor</label>
+                        <input
+                            autoFocus
+                            value={value}
+                            onChange={(e) => onChange(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && onAdd()}
+                            className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-base font-black text-slate-900 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 outline-none transition-all placeholder:text-slate-300 italic"
+                            placeholder="Type name..."
+                        />
+                    </div>
+                    <div className="flex gap-3 justify-end pt-2">
+                        <button
+                            onClick={onClose}
+                            className="h-10 px-5 rounded-xl border border-slate-200 text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all font-mono"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={onAdd}
+                            disabled={!value.trim()}
+                            className="h-10 px-8 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-600 disabled:opacity-30 disabled:hover:bg-slate-900 transition-all shadow-lg active:scale-95 italic"
+                        >
+                            Create Item
+                        </button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 }

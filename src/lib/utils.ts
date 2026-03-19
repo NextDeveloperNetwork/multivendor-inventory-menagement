@@ -23,9 +23,14 @@ export function formatDateTime(date: Date | string): string {
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
-export function formatCurrency(amount: number | string, symbol: string = '$'): string {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return `${symbol}${num.toFixed(2)}`;
+export function formatCurrency(amount: any, symbol: string = '$'): string {
+  try {
+    const num = Number(amount || 0);
+    if (isNaN(num)) return `${symbol}0.00`;
+    return `${symbol}${num.toFixed(2)}`;
+  } catch (e) {
+    return `${symbol}0.00`;
+  }
 }
 
 export function sanitizeData(data: any): any {

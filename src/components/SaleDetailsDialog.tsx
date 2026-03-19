@@ -10,6 +10,14 @@ import {
     DialogDescription,
     DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -68,130 +76,134 @@ export default function SaleDetailsDialog({ sale, children }: SaleDetailsDialogP
             <DialogTrigger asChild>
                 {children}
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl flex flex-col bg-white">
+            <DialogContent className="max-w-4xl max-h-[95vh] p-0 overflow-hidden rounded-2xl border border-slate-200 shadow-2xl flex flex-col bg-white">
                 {/* Header Section */}
-                <div className="px-10 py-10 bg-slate-900 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full -mr-32 -mt-32 blur-[80px]"></div>
-                    <div className="relative z-10 flex justify-between items-center">
-                        <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                                <ShoppingBag size={32} />
-                            </div>
-                            <div>
-                                <DialogTitle className="text-3xl font-black text-white tracking-tighter uppercase italic flex items-center gap-4">
-                                    Sale <span className="text-primary/60">Details</span>
-                                    <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] bg-white/10 px-3 py-1 rounded-full border border-white/10 not-italic">
-                                        REF #{sale.number || sale.id.slice(-6).toUpperCase()}
-                                    </span>
-                                </DialogTitle>
-                                <DialogDescription className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 italic flex items-center gap-2">
-                                    <Hash size={12} className="text-primary" /> Transaction identifier & spectral breakdown
-                                </DialogDescription>
+                <DialogHeader className="bg-white px-10 py-8 flex-row items-center justify-between space-y-0 shrink-0 border-b border-slate-100">
+                    <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 bg-slate-50 border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm">
+                            <ShoppingBag size={28} strokeWidth={1.5} />
+                        </div>
+                        <div>
+                            <DialogTitle className="text-slate-900 font-serif text-3xl tracking-tight leading-none uppercase italic">
+                                Receipt Manifest
+                            </DialogTitle>
+                            <div className="flex items-center gap-3 mt-2">
+                                <span className="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-black italic">Ref Code: #{sale.number || sale.id.slice(-6).toUpperCase()}</span>
+                                <div className="w-1 h-1 rounded-full bg-slate-200" />
+                                <span className="text-slate-400 text-[10px] uppercase tracking-[0.15em] font-bold">Transaction Record</span>
                             </div>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-3">
                         <button
                             onClick={downloadPDF}
-                            className="h-14 px-8 flex items-center gap-3 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-xl shadow-black/20 group"
+                            className="h-12 px-6 flex items-center gap-3 bg-white border-2 border-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm active:scale-95"
                         >
-                            <Download size={18} className="group-hover:translate-y-0.5 transition-transform" /> Save Receipt
+                            <Download size={16} strokeWidth={2.5} /> Export Ledger
                         </button>
                     </div>
-                </div>
+                </DialogHeader>
 
-                <div className="p-10 bg-white overflow-y-auto custom-scrollbar">
+                <div className="flex-1 overflow-y-auto px-10 py-10 bg-white">
                     {/* Meta Info Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 group hover:border-primary/20 transition-colors">
-                            <div className="w-10 h-10 bg-white rounded-xl text-primary border border-slate-100 shadow-sm flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-white transition-all">
-                                <Store size={20} />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12 bg-slate-50/50 p-8 rounded-2xl border border-slate-100">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic flex items-center gap-2">
+                                <Store size={12} className="text-slate-900" /> Node Origin
+                            </label>
+                            <div className="pl-5 border-l-2 border-slate-200">
+                                <p className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tighter">{sale.shop.name}</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest leading-none">Retail Terminal</p>
                             </div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Shop Node</p>
-                            <p className="text-sm font-black text-slate-900 uppercase italic tracking-tight">{sale.shop.name}</p>
                         </div>
-                        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 group hover:border-primary/20 transition-colors">
-                            <div className="w-10 h-10 bg-white rounded-xl text-primary border border-slate-100 shadow-sm flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-white transition-all">
-                                <User size={20} />
+
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic flex items-center gap-2">
+                                <User size={12} className="text-slate-900" /> Authorized By
+                            </label>
+                            <div className="pl-5 border-l-2 border-slate-200">
+                                <p className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tighter">{sale.user.name}</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest leading-none">Verified Cashier</p>
                             </div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Authorized Cashier</p>
-                            <p className="text-sm font-black text-slate-900 uppercase italic tracking-tight">{sale.user.name}</p>
                         </div>
-                        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 group hover:border-primary/20 transition-colors">
-                            <div className="w-10 h-10 bg-white rounded-xl text-primary border border-slate-100 shadow-sm flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-white transition-all">
-                                <Calendar size={20} />
+
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic flex items-center gap-2">
+                                <Calendar size={12} className="text-slate-900" /> Logistics Stamp
+                            </label>
+                            <div className="pl-5 border-l-2 border-slate-200">
+                                <p className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tighter tabular-nums">{formatDateTime(sale.date)}</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest leading-none">Transaction Timestamp</p>
                             </div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Timestamp</p>
-                            <p className="text-sm font-black text-slate-900 uppercase italic tracking-tight">{formatDateTime(sale.date)}</p>
                         </div>
                     </div>
 
                     {/* Items Table Section */}
                     <div className="space-y-6">
-                        <div className="flex items-center gap-4 mb-6">
-                            <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em] italic">Spectral Breakdown</h3>
-                            <div className="h-[1px] flex-1 bg-slate-100"></div>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xl font-serif text-slate-900 tracking-tight italic">Inventory Articles</h3>
+                            <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-1.5 rounded-full bg-slate-900 animate-pulse" />
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{sale.items.length} LINE ARTICLES</span>
+                            </div>
                         </div>
-                        <div className="rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
-                            <table className="w-full text-left bg-white">
-                                <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                                    <tr>
-                                        <th className="px-8 py-5 italic">Inventory Article</th>
-                                        <th className="px-8 py-5 text-center italic">Quantity</th>
-                                        <th className="px-8 py-5 text-right italic">Unit Price</th>
-                                        <th className="px-8 py-5 text-right italic">Subtotal</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
+
+                        <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                            <Table className="w-full text-left bg-white border-collapse">
+                                <TableHeader className="bg-slate-50/50 border-b border-slate-200">
+                                    <TableRow className="hover:bg-transparent border-none">
+                                        <TableHead className="px-8 py-5 text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">Article Descriptor</TableHead>
+                                        <TableHead className="px-8 py-5 text-center text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">Volume</TableHead>
+                                        <TableHead className="px-8 py-5 text-right text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">Unit Price</TableHead>
+                                        <TableHead className="px-8 py-5 text-right text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">Subtotal</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     {sale.items.map((item: any) => (
-                                        <tr key={item.id} className="text-sm group/row hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-primary shadow-sm group-hover/row:scale-110 transition-transform">
-                                                        <Package size={18} />
+                                        <TableRow key={item.id} className="group hover:bg-slate-50/50 transition-colors border-b border-slate-100 last:border-0 h-16">
+                                            <TableCell className="px-8">
+                                                <div className="flex items-center gap-5">
+                                                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all border border-slate-100 shadow-sm">
+                                                        <Package size={16} strokeWidth={1.5} />
                                                     </div>
-                                                    <span className="font-black text-slate-900 uppercase tracking-tight italic group-hover/row:underline decoration-primary/20 decoration-4 underline-offset-4">{item.product.name}</span>
+                                                    <span className="font-black text-slate-900 uppercase italic text-[11px] tracking-tight">{item.product.name}</span>
                                                 </div>
-                                            </td>
-                                            <td className="px-8 py-6 text-center">
-                                                <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-900 font-black font-mono">
-                                                    {item.quantity}
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6 text-right text-slate-400 font-bold italic">
+                                            </TableCell>
+                                            <TableCell className="px-8 text-center font-black text-slate-900 italic text-[11px] tabular-nums">
+                                                {item.quantity}
+                                            </TableCell>
+                                            <TableCell className="px-8 text-right text-slate-500 font-bold tabular-nums">
                                                 {formatCurrency(item.price)}
-                                            </td>
-                                            <td className="px-8 py-6 text-right">
-                                                <span className="font-black text-slate-900 text-lg italic tracking-tighter">
-                                                    {formatCurrency(item.price * item.quantity)}
-                                                </span>
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                            <TableCell className="px-8 text-right font-black text-slate-900 italic text-lg tabular-nums">
+                                                {formatCurrency(item.price * item.quantity)}
+                                            </TableCell>
+                                        </TableRow>
                                     ))}
-                                </tbody>
-                            </table>
+                                </TableBody>
+                            </Table>
                         </div>
                     </div>
 
                     {/* Total Summary */}
-                    <div className="mt-12 flex justify-between items-end bg-slate-50 p-8 rounded-[2rem] border border-slate-100 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 group-hover:opacity-10 transition-all pointer-events-none">
-                            <ShoppingBag size={120} />
+                    <div className="mt-12 flex justify-between items-end border-t border-slate-100 pt-10">
+                        <div className="max-w-xs">
+                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.25em] mb-4 flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" /> Transaction Status
+                            </p>
+                            <p className="text-[9px] text-slate-400 font-bold leading-relaxed uppercase italic">
+                                This transaction has been settled, verified, and synchronized across all localized retail nodes. Capital flow is finalized as of the confirmed timestamp.
+                            </p>
                         </div>
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Status</p>
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                <span className="text-emerald-500 font-black uppercase text-[10px] tracking-widest italic">Settled & Verified</span>
-                            </div>
-                        </div>
-                        <div className="text-right border-l border-slate-200 pl-10">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Grand Total</p>
-                            <div className="text-5xl font-black text-primary italic tracking-tighter font-mono flex items-start justify-end">
-                                <span className="text-xl mt-1">$</span>{sale.total.toLocaleString()}
-                            </div>
+                        <div className="bg-slate-900 rounded-2xl p-8 text-white text-right min-w-[300px] shadow-[0_20px_50px_rgba(15,23,42,0.1)] relative overflow-hidden group border border-slate-800">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 -rotate-45 translate-x-10 -translate-y-10 group-hover:scale-150 transition-transform duration-1000" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-4 italic">Settled valuation</p>
+                            <p className="text-4xl font-black italic tracking-tighter drop-shadow-lg">{formatCurrency(sale.total)}</p>
                         </div>
                     </div>
                 </div>
             </DialogContent>
+
         </Dialog>
     );
 }

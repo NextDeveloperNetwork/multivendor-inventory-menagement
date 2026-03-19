@@ -57,14 +57,14 @@ export default function WarehouseForm({ selectedBusinessId }: { selectedBusiness
                     <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                         <WarehouseIcon size={12} className="text-white" />
                     </div>
-                    Location Details
+                    Warehouse Designation
                 </h3>
             </div>
 
             <div className="p-6 space-y-6">
                 {/* Name Input */}
                 <div className="space-y-2">
-                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1 italic">Warehouse Name</label>
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1 italic">Warehouse Identifier</label>
                     <div className="relative group">
                         <input
                             type="text"
@@ -83,7 +83,7 @@ export default function WarehouseForm({ selectedBusinessId }: { selectedBusiness
                 {/* Coordinates Section */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between px-1 border-b border-slate-100 pb-2">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Geographic Records</label>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Geospatial Registry</label>
                         <Globe size={12} className="text-slate-300" />
                     </div>
 

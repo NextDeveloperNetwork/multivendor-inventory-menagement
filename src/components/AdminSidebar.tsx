@@ -26,19 +26,19 @@ import { useEffect } from 'react';
 import { BusinessSelector } from './BusinessSelector';
 
 const menuItems = [
-    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/admin/intelligence', label: 'Intelligence', icon: Activity },
-    { href: '/admin/businesses', label: 'Businesses', icon: Briefcase },
-    { href: '/admin/inventory', label: 'Inventory', icon: Package, hasBadge: 'N' },
-    { href: '/admin/customers', label: 'Customers', icon: Heart },
-    { href: '/admin/invoices', label: 'Invoices', icon: FileText },
-    { href: '/admin/users', label: 'Personnel', icon: Users },
-    { href: '/admin/transfers', label: 'Transfers', icon: Send },
-    { href: '/admin/warehouses', label: 'Warehouses', icon: Warehouse },
-    { href: '/admin/suppliers', label: 'Suppliers', icon: Users },
-    { href: '/admin/shops', label: 'Shops', icon: Store },
-    { href: '/admin/currencies', label: 'Currencies', icon: Coins },
-    { href: '/admin/map', label: 'Map', icon: Map },
+    { href: '/admin', label: 'Management Console', icon: LayoutDashboard },
+    { href: '/admin/intelligence', label: 'Financial Intelligence', icon: Activity },
+    { href: '/admin/businesses', label: 'Business Entities', icon: Briefcase },
+    { href: '/admin/inventory', label: 'Inventory Assets', icon: Package, hasBadge: 'N' },
+    { href: '/admin/customers', label: 'Customer Directory', icon: Heart },
+    { href: '/admin/invoices', label: 'Invoices & Receipts', icon: FileText },
+    { href: '/admin/users', label: 'System Users', icon: Users },
+    { href: '/admin/transfers', label: 'Inventory Transfers', icon: Send },
+    { href: '/admin/warehouses', label: 'Warehouse Assets', icon: Warehouse },
+    { href: '/admin/suppliers', label: 'Supplier Directory', icon: Users },
+    { href: '/admin/shops', label: 'Retail Shop Registry', icon: Store },
+    { href: '/admin/currencies', label: 'Currencies Registry', icon: Coins },
+    { href: '/admin/map', label: 'Geospatial Map', icon: Map },
 ];
 
 interface AdminSidebarProps {
@@ -74,7 +74,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
                                 <Store size={20} strokeWidth={2.5} />
                             </div>
                             <div>
-                                <h1 className="text-lg font-bold text-slate-900 leading-tight">Busines Menagement</h1>
+                                <h1 className="text-lg font-bold text-slate-900 leading-tight">Business Management</h1>
                                 <p className="text-[10px] text-slate-400 font-medium">Professional Plan</p>
                             </div>
                         </div>
@@ -91,7 +91,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
 
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto px-4 space-y-1 custom-scrollbar">
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-2">Main Menu</div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-2">CORE ARCHITECTURE</div>
                     {menuItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = pathname === item.href;

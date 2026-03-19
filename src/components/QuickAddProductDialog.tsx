@@ -39,143 +39,134 @@ export default function QuickAddProductDialog({ onAdd }: { onAdd?: (product: any
                 </button>
             </DialogTrigger>
 
-            <DialogContent className="max-w-md w-[95vw] p-0 gap-0 rounded-3xl overflow-hidden border-none shadow-2xl max-h-[92vh] flex flex-col">
-                {/* Header */}
-                <DialogHeader className="bg-slate-900 px-6 py-5 flex-row items-center justify-between space-y-0 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
-                            <Package size={18} className="text-white" />
+            <DialogContent className="max-w-md w-[95vw] p-0 overflow-hidden rounded-2xl border border-slate-200 shadow-2xl flex flex-col bg-white">
+                {/* Header Section */}
+                <DialogHeader className="bg-white px-8 py-6 flex-row items-center justify-between space-y-0 shrink-0 border-b border-slate-100">
+                    <div className="flex items-center gap-5">
+                        <div className="w-12 h-12 bg-slate-50 border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-900 shadow-sm">
+                            <Plus size={24} strokeWidth={1.5} />
                         </div>
                         <div>
-                            <DialogTitle className="text-white font-bold text-base tracking-tight">
-                                Add New Product
+                            <DialogTitle className="text-slate-900 font-serif text-2xl tracking-tight leading-none italic uppercase">
+                                New Asset
                             </DialogTitle>
-                            <p className="text-slate-400 text-[10px] mt-0.5">Create a new catalog item</p>
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className="text-slate-400 text-[9px] uppercase tracking-[0.2em] font-black italic">Catalog Deployment</span>
+                            </div>
                         </div>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => setOpen(false)}
-                        className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all"
-                    >
-                        <X size={16} />
-                    </button>
                 </DialogHeader>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="flex flex-col overflow-y-auto flex-1 bg-white">
-                    <div className="px-6 py-5 space-y-4">
-
+                {/* Form Section */}
+                <form onSubmit={handleSubmit} className="flex flex-col overflow-y-auto max-h-[75vh] bg-white">
+                    <div className="px-8 py-8 space-y-6">
                         {/* Product Name */}
-                        <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                <Tag size={10} /> Product Name
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic flex items-center gap-2">
+                                <Tag size={12} className="text-slate-900" /> Descriptor Identity
                             </label>
                             <input
                                 name="name"
                                 required
-                                placeholder="e.g. Blue Widget Pro"
-                                className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                                placeholder="PRO_ARTICLE_NAME"
+                                className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-50 transition-all shadow-sm placeholder:text-slate-300 placeholder:italic uppercase"
                             />
                         </div>
 
                         {/* SKU + Barcode */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    <Barcode size={10} /> SKU
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic flex items-center gap-2">
+                                    <Barcode size={12} className="text-slate-900" /> Stock_UID
                                 </label>
                                 <input
                                     name="sku"
                                     required
-                                    placeholder="SKU-0001"
-                                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all font-mono"
+                                    placeholder="SKU_REF"
+                                    className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-50 transition-all shadow-sm font-mono uppercase placeholder:text-slate-300"
                                 />
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    <Barcode size={10} /> Barcode
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic flex items-center gap-2">
+                                    <Barcode size={12} className="text-slate-900" /> Global_BCD
                                 </label>
                                 <input
                                     name="barcode"
-                                    placeholder="Optional"
-                                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all font-mono"
+                                    placeholder="OPTIONAL"
+                                    className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-50 transition-all shadow-sm font-mono uppercase placeholder:text-slate-300"
                                 />
                             </div>
                         </div>
 
-                        {/* Prices */}
-                        <div className="grid grid-cols-3 gap-3">
-                            <div className="space-y-1.5">
-                                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    <DollarSign size={10} /> Cost
-                                </label>
-                                <input
-                                    name="cost"
-                                    type="number"
-                                    step="0.01"
-                                    required
-                                    placeholder="0.00"
-                                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all font-mono text-right"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    <DollarSign size={10} /> Price
-                                </label>
-                                <input
-                                    name="price"
-                                    type="number"
-                                    step="0.01"
-                                    required
-                                    placeholder="0.00"
-                                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all font-mono text-right"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    <DollarSign size={10} /> Discount
-                                </label>
-                                <input
-                                    name="discountPrice"
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="—"
-                                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all font-mono text-right"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Image */}
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                Product Image (optional)
+                        {/* Valuation Logic */}
+                        <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-6">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 mb-2">
+                                <DollarSign size={10} className="text-slate-900" /> Capital Valuation Logic
                             </label>
-                            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                                <ImageUpload value={imageUrl} onChange={setImageUrl} label="Upload image" />
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="space-y-2">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic">Acq_Cost</p>
+                                    <input
+                                        name="cost"
+                                        type="number"
+                                        step="0.01"
+                                        required
+                                        placeholder="0.00"
+                                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-[11px] font-black text-slate-900 outline-none focus:border-slate-900 transition-all shadow-sm tabular-nums text-right"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic">Target_Val</p>
+                                    <input
+                                        name="price"
+                                        type="number"
+                                        step="0.01"
+                                        required
+                                        placeholder="0.00"
+                                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-[11px] font-black text-slate-900 outline-none focus:border-slate-900 transition-all shadow-sm tabular-nums text-right"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic">Disc_Offset</p>
+                                    <input
+                                        name="discountPrice"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="NULL"
+                                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-[11px] font-black text-slate-900 outline-none focus:border-slate-900 transition-all shadow-sm tabular-nums text-right"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Imagery */}
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Visual Identity Reference</label>
+                            <div className="bg-white border-2 border-dashed border-slate-100 rounded-2xl p-6 hover:border-slate-300 transition-all group">
+                                <ImageUpload value={imageUrl} onChange={setImageUrl} label="Upload Image Manifest" />
                                 <input type="hidden" name="imageUrl" value={imageUrl} />
                             </div>
                         </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="shrink-0 px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-white">
+                    {/* Footer Section */}
+                    <div className="px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between shrink-0">
                         <button
                             type="button"
                             onClick={() => setOpen(false)}
-                            className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all"
+                            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors italic"
                         >
-                            Cancel
+                            Abort_Action
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-sm font-bold uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                            className="h-12 px-8 bg-slate-900 hover:bg-black disabled:opacity-40 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center gap-3 shadow-xl shadow-slate-900/10"
                         >
                             {loading ? (
-                                <><Activity size={15} className="animate-spin" /> Saving…</>
+                                <><Activity size={14} className="animate-spin" /> Finalizing...</>
                             ) : (
-                                <><Package size={15} /> Create Product</>
+                                <><Package size={14} /> Commit Entry</>
                             )}
                         </button>
                     </div>

@@ -97,11 +97,11 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                             <Store className="text-white" size={18} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-white tracking-tighter uppercase italic line-through decoration-blue-500/30">
-                                {editingShop ? 'Modify Terminal' : 'Terminal Registration'}
+                            <h2 className="text-xl font-black text-white tracking-tighter uppercase italic">
+                                {editingShop ? 'Modify Business Branch' : 'Branch Registration'}
                             </h2>
-                            <p className="text-[9px] text-blue-400 font-black uppercase tracking-[0.2em] italic leading-none mt-1">
-                                {editingShop ? `Updating Node: ${editingShop.id.slice(-8).toUpperCase()}` : 'Initialize Centralized Commercial Node'}
+                            <p className="text-[9px] text-blue-400 font-black uppercase tracking-[0.2em] mt-1 italic leading-none">
+                                {editingShop ? `Updating Branch ID: ${editingShop.id.slice(-8).toUpperCase()}` : 'Register New Commercial Branch Office'}
                             </p>
                         </div>
                     </div>
@@ -111,7 +111,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                             onClick={handleCancelEdit}
                             className="bg-white/10 hover:bg-white/20 text-white px-4 h-10 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 italic"
                         >
-                            ABORT_EDIT
+                            Cancel Changes
                         </button>
                     )}
                 </div>
@@ -127,7 +127,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black text-[10px] focus:border-blue-600 focus:bg-white transition-all outline-none uppercase italic"
-                                    placeholder="HUB_NODE_BRANCH..."
+                                    placeholder="BRANCH_NAME / LOCATION_UNIT..."
                                 />
                             </div>
                             <div className="space-y-2">
@@ -160,7 +160,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">Spatial Proxy</label>
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">Branch Location Matrix</label>
                                 <MapPicker onSelect={(latitude, longitude) => {
                                     setLat(latitude.toString());
                                     setLng(longitude.toString());
@@ -178,7 +178,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                         onChange={(e) => setCurrencyId(e.target.value)}
                                         className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black text-[9px] focus:border-blue-600 focus:bg-white transition-all outline-none appearance-none italic uppercase"
                                     >
-                                        <option value="">Matrix Sovereign...</option>
+                                        <option value="">Currency Profile...</option>
                                         {currencies.map(c => (
                                             <option key={c.id} value={c.id}>{c.code} // {c.name.toUpperCase()}</option>
                                         ))}
@@ -198,7 +198,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                         onChange={(e) => setBusinessId(e.target.value)}
                                         className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black text-[9px] focus:border-blue-600 focus:bg-white transition-all outline-none appearance-none italic uppercase"
                                     >
-                                        <option value="">Root Domain...</option>
+                                        <option value="">Business Entity...</option>
                                         {businesses.map(b => (
                                             <option key={b.id} value={b.id}>{b.name.toUpperCase()}</option>
                                         ))}
@@ -215,11 +215,11 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                 >
                                     {editingShop ? (
                                         <>
-                                            <Check size={16} strokeWidth={3} /> COMMIT_SYSTEM_CHANGES
+                                            <Check size={16} strokeWidth={3} /> Save Unit Changes
                                         </>
                                     ) : (
                                         <>
-                                            <Plus size={16} strokeWidth={3} /> INITIALIZE_COMMERCIAL_NODE
+                                            <Plus size={16} strokeWidth={3} /> Register Business Branch
                                         </>
                                     )}
                                 </button>
@@ -241,7 +241,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                     <h3 className="text-sm font-black tracking-tight text-slate-900 uppercase italic truncate">{shop.name}</h3>
                                     <div className="flex items-center gap-2 mt-0.5">
                                         <MapPin size={10} className="text-blue-600" />
-                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic truncate">{shop.location || 'GLOBAL_NODE'}</span>
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic truncate">{shop.location || 'GLOBAL_ENTITY_BRANCH'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -249,7 +249,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                 <button
                                     onClick={() => handleEditClick(shop)}
                                     className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm"
-                                    title="Modify Node"
+                                    title="Modify Branch"
                                 >
                                     <Edit2 size={12} />
                                 </button>
@@ -267,15 +267,15 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                     <Shield size={10} className="text-blue-600" /> Authorized Personnel
                                 </p>
                                 <span className="text-[8px] font-black text-slate-400 tracking-widest font-mono italic">
-                                    {shop.users.length} ACTIVE_NODES
+                                    {shop.users.length} ACTIVE_SESSIONS
                                 </span>
                             </div>
 
                             <div className="space-y-2 flex-1">
                                 {shop.users.length === 0 ? (
                                     <div className="py-8 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 border-dashed rounded-xl">
-                                        <div className="text-[8px] text-slate-300 font-black uppercase tracking-widest italic mb-1">Station Unmanned</div>
-                                        <p className="text-[7px] text-slate-200 font-black uppercase tracking-widest italic">Awaiting operator assignment</p>
+                                        <div className="text-[8px] text-slate-300 font-black uppercase tracking-widest italic mb-1">Branch Unassigned</div>
+                                        <p className="text-[7px] text-slate-200 font-black uppercase tracking-widest italic">Awaiting personnel assignment</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
@@ -316,7 +316,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                                                 const select = document.getElementById(`select-${shop.id}`) as HTMLSelectElement;
                                                 const result = await assignUserToShop(select.value, shop.id);
                                                 if (result.success) {
-                                                    toast.success('Matrix Access Granted');
+                                                    toast.success('System Access Granted');
                                                     router.refresh();
                                                 } else {
                                                     toast.error(result.error);
@@ -348,9 +348,9 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                     }
                     setRemoveUser(null);
                 }}
-                title="Revoke Node Access"
-                description={`Initialize protocol to revoke access for ID [${removeUser?.name}]? Target will lose all node visibility.`}
-                confirmText="REVOKE_ACCESS_PROTOCOL"
+                title="Deactivate Branch Access"
+                description={`Initialize protocol to revoke access for ID [${removeUser?.name}]? Target will lose all branch visibility.`}
+                confirmText="DEACTIVATE_ACCESS_PROFILE"
                 variant="warning"
             />
         </div>

@@ -30,9 +30,9 @@ interface InvoiceClientProps {
     selectedBusinessId: string | null;
 }
 
-type LineItem = { productId: string; productName: string; quantity: string; cost: string };
+type LineItem = { productId: string; productName: string; quantity: string; cost: string; total: string };
 
-const emptyItem = (): LineItem => ({ productId: '', productName: '', quantity: '', cost: '' });
+const emptyItem = (): LineItem => ({ productId: '', productName: '', quantity: '', cost: '', total: '' });
 
 export default function InvoiceClient({
     invoices, products, suppliers, warehouses, shops, currency, selectedBusinessId,
@@ -50,6 +50,7 @@ export default function InvoiceClient({
     const [destinationType, setDestinationType] = useState<'warehouse' | 'shop'>('warehouse');
     const [warehouseId, setWarehouseId] = useState('');
     const [shopId, setShopId] = useState('');
+    const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
 
     // Line items
     const [items, setItems] = useState<LineItem[]>([emptyItem()]);
@@ -72,6 +73,7 @@ export default function InvoiceClient({
         setShopId('');
         setDestinationType('warehouse');
         setItems([emptyItem()]);
+        setInvoiceDate(new Date().toISOString().split('T')[0]);
     };
 
     const addRow = () => setItems(prev => [...prev, emptyItem()]);
@@ -80,7 +82,34 @@ export default function InvoiceClient({
     const updateItemField = (index: number, field: keyof LineItem, value: string) => {
         setItems(prev => {
             const next = [...prev];
-            next[index] = { ...next[index], [field]: value };
+            const item = { ...next[index], [field]: value };
+            
+            if (field === 'cost') {
+                const q = parseFloat(item.quantity) || 0;
+                const c = parseFloat(value) || 0;
+                item.total = (q * c).toFixed(2);
+            } else if (field === 'total') {
+                const q = parseFloat(item.quantity) || 0;
+                const t = parseFloat(value) || 0;
+                if (q > 0) {
+                    item.cost = (t / q).toFixed(4);
+                }
+            } else if (field === 'quantity') {
+                const q = parseFloat(value) || 0;
+                const c = parseFloat(item.cost) || 0;
+                const t = parseFloat(item.total) || 0;
+                
+                // If we have cost but no total, or if we have both, update total
+                if (c > 0) {
+                    item.total = (q * c).toFixed(2);
+                } 
+                // If we have total but no cost, update cost
+                else if (t > 0) {
+                    item.cost = (t / q).toFixed(4);
+                }
+            }
+            
+            next[index] = item;
             return next;
         });
     };
@@ -119,6 +148,7 @@ export default function InvoiceClient({
         formData.append('supplierId', supplierId);
         if (destinationType === 'warehouse') formData.append('warehouseId', warehouseId);
         else formData.append('shopId', shopId);
+        formData.append('date', invoiceDate);
         if (selectedBusinessId) formData.append('businessId', selectedBusinessId);
         formData.append('items', JSON.stringify(validItems));
 
@@ -149,7 +179,7 @@ export default function InvoiceClient({
                         className="bg-blue-600 hover:bg-blue-700 text-white h-10 px-5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 shadow-md shadow-blue-500/10"
                     >
                         <Plus size={16} strokeWidth={3} />
-                        New Entry
+                        Register Invoice
                     </button>
 
                     <div className="h-4 w-[1px] bg-slate-300 mx-1 hidden sm:block" />
@@ -176,7 +206,7 @@ export default function InvoiceClient({
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-600 transition-colors" size={16} />
                     <input
                         type="text"
-                        placeholder="Search manifest by number..."
+                        placeholder="Search records by number..."
                         defaultValue={searchParams.get('q') || ''}
                         className="w-full pl-10 pr-4 h-10 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold placeholder:text-slate-500 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none text-slate-900"
                         onKeyDown={e => {
@@ -190,7 +220,7 @@ export default function InvoiceClient({
             <div className="bg-slate-50/80 border-b border-slate-200 flex items-center gap-6 px-6 py-2">
                 <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
-                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{invoices.length} Entries Recorded</span>
+                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{invoices.length} Financial Records Managed</span>
                 </div>
             </div>
 
@@ -203,7 +233,7 @@ export default function InvoiceClient({
                         </div>
                         <div>
                             <p className="text-sm font-black text-slate-600 uppercase tracking-widest">No matching records found</p>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1 italic">Clear filters or create a new manifest</p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1 italic">Clear filters or create a new entry</p>
                         </div>
                     </div>
                 ) : (
@@ -213,11 +243,11 @@ export default function InvoiceClient({
                             <Table>
                                 <TableHeader>
                                     <TableRow className="bg-slate-100 hover:bg-slate-100 border-b border-slate-300">
-                                        <TableHead className="w-[180px] py-4 px-6 text-[10px] font-black uppercase tracking-widest text-slate-700">Identity</TableHead>
-                                        <TableHead className="py-4 text-[10px] font-black uppercase tracking-widest text-slate-700">Timeline</TableHead>
-                                        <TableHead className="py-4 text-[10px] font-black uppercase tracking-widest text-slate-700">Origin / Source</TableHead>
-                                        <TableHead className="py-4 text-[10px] font-black uppercase tracking-widest text-slate-700">Payload</TableHead>
-                                        <TableHead className="py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-700">Net Valuation</TableHead>
+                                        <TableHead className="w-[180px] py-4 px-6 text-[10px] font-black uppercase tracking-widest text-slate-700">Invoice #</TableHead>
+                                        <TableHead className="py-4 text-[10px] font-black uppercase tracking-widest text-slate-700">Entry Date</TableHead>
+                                        <TableHead className="py-4 text-[10px] font-black uppercase tracking-widest text-slate-700">Supplier / Vendor</TableHead>
+                                        <TableHead className="py-4 text-[10px] font-black uppercase tracking-widest text-slate-700">Quantity</TableHead>
+                                        <TableHead className="py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-700">Total Cost</TableHead>
                                         <TableHead className="w-[120px] py-4 px-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-700">Control</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -234,7 +264,7 @@ export default function InvoiceClient({
                                                              </div>
                                                              <div>
                                                                  <div className="font-black text-slate-900 text-xs uppercase tracking-tight">{invoice.number}</div>
-                                                                 <div className="text-[9px] text-slate-500 font-bold font-mono tracking-tighter uppercase">Manifest ID</div>
+                                                                 <div className="text-[9px] text-slate-500 font-bold font-mono tracking-tighter uppercase">Record ID</div>
                                                              </div>
                                                          </div>
                                                      </TableCell>
@@ -252,8 +282,8 @@ export default function InvoiceClient({
                                                                  <Store size={12} />
                                                              </div>
                                                              <div className="flex flex-col">
-                                                                 <span className="font-bold text-slate-900 text-xs">{invoice.supplier?.name || 'GENERIC SOURCE'}</span>
-                                                                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-tight line-clamp-1">{invoice.supplier?.email || 'OFFLINE DATA'}</span>
+                                                                 <span className="font-bold text-slate-900 text-xs">{invoice.supplier?.name || 'Unknown Supplier'}</span>
+                                                                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-tight line-clamp-1">{invoice.supplier?.email || 'No Email Provided'}</span>
                                                              </div>
                                                          </div>
                                                      </TableCell>
@@ -263,7 +293,7 @@ export default function InvoiceClient({
                                                                  <Package size={11} className="mr-1.5" />
                                                                  <span className="text-[10px] font-black uppercase tracking-tighter">{invoice.items.length} Units</span>
                                                              </div>
-                                                             <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Aggregated</span>
+                                                             <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Itemized</span>
                                                          </div>
                                                      </TableCell>
                                                      <TableCell className="text-right">
@@ -273,7 +303,7 @@ export default function InvoiceClient({
                                                              </span>
                                                              <div className="flex items-center gap-1">
                                                                  <div className={`w-1 h-1 rounded-full ${subTotalValue > 1000 ? 'bg-emerald-600' : 'bg-blue-600'}`} />
-                                                                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">Validated</span>
+                                                                 <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic">Verified</span>
                                                              </div>
                                                          </div>
                                                      </TableCell>
@@ -322,11 +352,11 @@ export default function InvoiceClient({
                                             
                                             <div className="flex justify-between items-center">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Origin</span>
-                                                    <span className="text-xs font-black text-slate-800 uppercase tracking-tight">{invoice.supplier?.name || 'GENERIC SOURCE'}</span>
+                                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Supplier</span>
+                                                    <span className="text-xs font-black text-slate-800 uppercase tracking-tight">{invoice.supplier?.name || 'Unknown Supplier'}</span>
                                                 </div>
                                                 <div className="flex flex-col items-end">
-                                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Payload</span>
+                                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Quantity</span>
                                                     <div className="flex items-center gap-1.5 text-xs font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
                                                         <Package size={10} /> {invoice.items.length} Items
                                                     </div>
@@ -347,49 +377,55 @@ export default function InvoiceClient({
 
             {/* ── Create Invoice Dialog ── */}
             <Dialog open={open} onOpenChange={open => { setOpen(open); if (!open) resetForm(); }}>
-                <DialogContent className="max-w-5xl w-[95vw] p-0 gap-0 rounded-3xl overflow-hidden border-none shadow-2xl max-h-[92vh] flex flex-col">
+                <DialogContent className="max-w-[1200px] w-[98vw] p-0 gap-0 rounded-2xl overflow-hidden border border-slate-200 shadow-2xl max-h-[95vh] flex flex-col bg-white">
                     {/* Header */}
-                    <DialogHeader className="bg-slate-900 px-8 py-6 flex-row items-center justify-between space-y-0 shrink-0">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                                <FileText size={20} className="text-white" />
+                    <DialogHeader className="bg-white px-10 py-8 flex-row items-center justify-between space-y-0 shrink-0 border-b border-slate-100">
+                        <div className="flex items-center gap-6">
+                            <div className="w-14 h-14 bg-slate-50 border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm">
+                                <FileText size={28} strokeWidth={1.5} />
                             </div>
                             <div>
-                                <DialogTitle className="text-white font-bold text-lg tracking-tight">
-                                    New Entry Manifest
+                                <DialogTitle className="text-slate-900 font-serif text-3xl tracking-tight leading-none uppercase italic">
+                                    Purchase Invoice Registry
                                 </DialogTitle>
-                                <p className="text-slate-300 text-xs mt-0.5 uppercase tracking-[0.1em] font-bold">Synchronize Inbound Resource Data</p>
+                                <p className="text-slate-500 text-[10px] mt-2 uppercase tracking-[0.2em] font-black italic">Inventory Procurement & Asset Entry</p>
                             </div>
                         </div>
-                        <button
-                            onClick={() => { setOpen(false); resetForm(); }}
-                            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-all"
-                        >
-                            <X size={18} />
-                        </button>
+                        <div className="flex items-center gap-4">
+                            <div className="h-10 px-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                Financial Entry
+                            </div>
+                            <button
+                                onClick={() => { setOpen(false); resetForm(); }}
+                                className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all border border-slate-200 shadow-sm"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden flex-1 bg-white">
+                    <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden flex-1">
                         {/* ── Info Row ── */}
-                        <div className="bg-slate-100 border-b border-slate-300 px-8 py-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 shrink-0 shadow-inner">
+                        <div className="bg-slate-50/50 border-b border-slate-200 px-10 py-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 shrink-0">
                             {/* Invoice # */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] flex items-center gap-1.5 mb-1">
-                                    <Hash size={10} /> Manifest ID
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center gap-2 italic">
+                                    01. Invoice Reference #
                                 </label>
                                 <input
                                     type="text"
                                     value={invoiceNumber}
                                     onChange={e => setInvoiceNumber(e.target.value)}
-                                    placeholder="INV-XXX"
-                                    className="w-full h-11 px-4 bg-white border border-slate-300 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 transition-all uppercase placeholder:text-slate-400"
+                                    placeholder="INV-XXXX-XX"
+                                    className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all placeholder:text-slate-300 font-mono"
                                 />
                             </div>
 
                             {/* Supplier */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] flex items-center justify-between mb-1">
-                                    <span className="flex items-center gap-1.5"><Store size={10} /> Origin Source</span>
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center justify-between leading-none italic">
+                                    <span>02. Issuing Supplier</span>
                                     <QuickAddSupplierDialog onAdd={s => { setSupplierId(s.id); router.refresh(); }} />
                                 </label>
                                 <div className="relative">
@@ -397,95 +433,102 @@ export default function InvoiceClient({
                                         value={supplierId}
                                         onChange={e => setSupplierId(e.target.value)}
                                         required
-                                        className="w-full h-11 pl-4 pr-10 bg-white border border-slate-300 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 transition-all appearance-none"
+                                        className="w-full h-12 pl-5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all appearance-none cursor-pointer"
                                     >
-                                        <option value="">Select source…</option>
-                                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        <option value="">Select vendor…</option>
+                                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name.toUpperCase()}</option>)}
                                     </select>
-                                    <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                    <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                 </div>
                             </div>
 
-                            {/* Destination type toggle */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] flex items-center gap-1.5 mb-1">
-                                    <MapPin size={10} /> Endpoint Type
+                            {/* Date Selector */}
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center gap-2 italic">
+                                    03. Document Fiscal Date
                                 </label>
-                                <div className="flex h-11 p-1 bg-white border border-slate-300 rounded-xl gap-1">
-                                    {(['warehouse', 'shop'] as const).map(t => (
-                                        <button
-                                            key={t} type="button"
-                                            onClick={() => setDestinationType(t)}
-                                            className={`flex-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${destinationType === t ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
-                                        >
-                                            {t}
-                                        </button>
-                                    ))}
-                                </div>
+                                <input
+                                    type="date"
+                                    value={invoiceDate}
+                                    onChange={e => setInvoiceDate(e.target.value)}
+                                    required
+                                    className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all uppercase font-mono"
+                                />
                             </div>
 
-                            {/* Destination selector */}
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-1 block">
-                                    Target {destinationType === 'warehouse' ? 'Repository' : 'Location'}
-                                </label>
+                            {/* Destination */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] italic">
+                                        04. Target Inventory Unit
+                                    </label>
+                                    <div className="flex bg-slate-200 p-0.5 rounded-lg scale-90 origin-right">
+                                        {(['warehouse', 'shop'] as const).map(t => (
+                                            <button
+                                                key={t} type="button"
+                                                onClick={() => setDestinationType(t)}
+                                                className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-tighter transition-all ${destinationType === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+                                            >
+                                                {t === 'warehouse' ? 'Warehouse' : 'Retail Shop'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                                 <div className="relative">
                                     {destinationType === 'warehouse' ? (
                                         <select
                                             value={warehouseId}
                                             onChange={e => setWarehouseId(e.target.value)}
                                             required
-                                            className="w-full h-11 pl-4 pr-10 bg-white border border-slate-300 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 transition-all appearance-none"
+                                            className="w-full h-12 pl-5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all appearance-none cursor-pointer"
                                         >
-                                            <option value="">Select repository…</option>
-                                            {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                            <option value="">Select location…</option>
+                                            {warehouses.map(w => <option key={w.id} value={w.id}>{w.name.toUpperCase()}</option>)}
                                         </select>
                                     ) : (
                                         <select
                                             value={shopId}
                                             onChange={e => setShopId(e.target.value)}
                                             required
-                                            className="w-full h-11 pl-4 pr-10 bg-white border border-slate-300 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5 transition-all appearance-none"
+                                            className="w-full h-12 pl-5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all appearance-none cursor-pointer"
                                         >
                                             <option value="">Select location…</option>
-                                            {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                            {shops.map(s => <option key={s.id} value={s.id}>{s.name.toUpperCase()}</option>)}
                                         </select>
                                     )}
-                                    <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                    <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                 </div>
                             </div>
                         </div>
 
                         {/* ── Articles Table ── */}
-                        <div className="flex-1 overflow-y-auto px-8 py-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-[0.2em]">
-                                        Resource Payload — {items.filter(i => i.productId).length} Matched
-                                    </span>
+                        <div className="flex-1 overflow-y-auto px-10 py-10 bg-white">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="space-y-1">
+                                    <h3 className="text-xl font-serif text-slate-900 tracking-tight">Invoice Line Items</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Itemized Purchase List</p>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={addRow}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 lg:hover:bg-blue-600 text-blue-700 lg:hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95"
+                                    className="group flex items-center gap-3 px-6 py-3 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-slate-900 hover:text-white active:scale-95 shadow-sm"
                                 >
-                                    <Plus size={14} strokeWidth={3} /> Append Block
+                                    <Plus size={16} strokeWidth={3} className="group-hover:rotate-90 transition-transform" /> Add Product
                                 </button>
                             </div>
 
-                            {/* Excel-style grid */}
-                            <div className="border border-slate-300 rounded-2xl overflow-hidden shadow-sm">
+                            <div className="border-t border-x border-slate-100 rounded-t-2xl overflow-hidden shadow-sm">
                                 {/* Column headers */}
-                                <div className="grid grid-cols-[1fr_100px_130px_130px_48px] bg-slate-100 border-b border-slate-300 text-[10px] font-black text-slate-700 uppercase tracking-[0.2em]">
-                                    <div className="px-5 py-3">Resource / Identifier</div>
-                                    <div className="px-4 py-3 text-center border-l border-slate-300/50">Volume</div>
-                                    <div className="px-4 py-3 text-right border-l border-slate-300/50">Unit Val.</div>
-                                    <div className="px-5 py-3 text-right border-l border-slate-300/50">Aggregated</div>
-                                    <div className="border-l border-slate-300/50" />
+                                <div className="grid grid-cols-[1fr_120px_160px_160px_60px] bg-slate-50/80 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                                    <div className="px-6 py-4">Description / Product Asset</div>
+                                    <div className="px-6 py-4 text-center border-l border-slate-100">Quantity</div>
+                                    <div className="px-6 py-4 text-right border-l border-slate-100 italic">Unit Cost ({symbol})</div>
+                                    <div className="px-6 py-4 text-right border-l border-slate-100">Aggregate Total ({symbol})</div>
+                                    <div className="border-l border-slate-100" />
                                 </div>
 
                                 {/* Rows */}
-                                <div className="divide-y divide-slate-200">
+                                <div className="divide-y divide-slate-100">
                                     {items.map((item, index) => {
                                         const matched = products.find(p => p.id === item.productId);
                                         const subtotal = (parseFloat(item.cost) || 0) * (parseInt(item.quantity) || 0);
@@ -494,31 +537,28 @@ export default function InvoiceClient({
                                         return (
                                             <div
                                                 key={index}
-                                                className={`grid grid-cols-[1fr_100px_130px_130px_48px] items-stretch transition-colors ${rowIsValid ? 'bg-white' : 'bg-slate-100/50'}`}
+                                                className={`grid grid-cols-[1fr_120px_160px_160px_60px] items-stretch transition-all ${rowIsValid ? 'bg-white' : 'bg-white/50'}`}
                                             >
                                                 {/* Product name */}
-                                                <div className="px-4 py-3 flex flex-col justify-center border-r border-transparent focus-within:border-blue-300 focus-within:bg-blue-50 transition-all">
+                                                <div className="px-6 py-4 flex flex-col justify-center focus-within:bg-slate-50/50 transition-all border-r border-transparent focus-within:border-slate-200">
                                                     <input
                                                         type="text"
                                                         list="inv-products"
                                                         value={item.productName}
                                                         onChange={e => handleProductNameChange(index, e.target.value)}
-                                                        placeholder="Scan or type identifier…"
-                                                        className="w-full h-8 px-2 bg-transparent border-none text-xs text-slate-900 font-black outline-none placeholder:text-slate-400 uppercase tracking-tight"
+                                                        placeholder="Item description or SKU…"
+                                                        className="w-full h-8 px-0 bg-transparent border-none text-[13px] text-slate-900 font-bold outline-none placeholder:text-slate-300 uppercase tracking-tight"
                                                         required
                                                     />
                                                     {matched && (
-                                                        <div className="flex items-center gap-2 mt-0.5 px-2">
-                                                            <span className="text-[9px] text-blue-700 font-black tracking-widest font-mono uppercase bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200">
-                                                                SKU: {matched.sku}
-                                                            </span>
-                                                            <span className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter italic">Stock: {matched.totalStock || 0}</span>
+                                                        <div className="mt-1">
+                                                            <span className="text-[10px] text-slate-400 font-mono tracking-tighter uppercase tabular-nums">Ref: {matched.sku}</span>
                                                         </div>
                                                     )}
                                                 </div>
 
-                                                {/* Volume */}
-                                                <div className="px-2 py-3 border-l border-slate-200 flex items-center justify-center bg-white">
+                                                {/* Quantity */}
+                                                <div className="px-4 py-4 border-l border-slate-100 flex items-center justify-center">
                                                     <input
                                                         type="number"
                                                         value={item.quantity}
@@ -526,13 +566,12 @@ export default function InvoiceClient({
                                                         placeholder="0"
                                                         min="1"
                                                         required
-                                                        className="w-full h-8 px-2 text-center bg-transparent border-none text-xs font-black text-slate-900 outline-none focus:ring-0"
+                                                        className="w-full h-full text-center bg-transparent border-none text-sm font-black text-slate-900 outline-none tabular-nums"
                                                     />
                                                 </div>
 
                                                 {/* Unit Cost */}
-                                                <div className="px-3 py-3 relative border-l border-slate-200 flex items-center bg-white">
-                                                    <span className="text-slate-400 text-[10px] font-black mr-1">{symbol}</span>
+                                                <div className="px-6 py-4 border-l border-slate-100 flex items-center bg-white focus-within:bg-slate-50/50 transition-all">
                                                     <input
                                                         type="number"
                                                         step="0.01"
@@ -541,70 +580,79 @@ export default function InvoiceClient({
                                                         placeholder="0.00"
                                                         min="0"
                                                         required
-                                                        className="w-full h-8 text-right bg-transparent border-none text-xs font-black text-slate-900 font-mono outline-none focus:ring-0"
+                                                        className="w-full h-full text-right bg-transparent border-none text-sm font-bold text-slate-900 font-mono outline-none tabular-nums italic"
                                                     />
                                                 </div>
 
-                                                {/* Subtotal */}
-                                                <div className="px-5 py-3 text-right bg-slate-50 border-l border-slate-200 flex items-center justify-end">
-                                                    <span className={`text-[11px] font-black font-mono tracking-tighter ${subtotal > 0 ? 'text-slate-900' : 'text-slate-400'}`}>
-                                                        {subtotal > 0 ? formatCurrency(subtotal, symbol) : '—'}
-                                                    </span>
+                                                {/* Total */}
+                                                <div className="px-6 py-4 text-right bg-slate-50/30 border-l border-slate-100 flex items-center justify-end">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={item.total}
+                                                        onChange={e => updateItemField(index, 'total', e.target.value)}
+                                                        placeholder="0.00"
+                                                        className="w-full h-full text-right bg-transparent border-none text-sm font-black text-slate-800 font-mono outline-none tabular-nums shadow-[inset_-2px_0_0_rgba(15,23,42,0.1)]"
+                                                    />
                                                 </div>
 
                                                 {/* Remove */}
-                                                <div className="flex items-center justify-center py-3 border-l border-slate-200 bg-white">
-                                                    {items.length > 1 && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeRow(index)}
-                                                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-rose-600 transition-all border border-slate-200 hover:border-rose-700 shadow-sm"
-                                                        >
-                                                            <X size={14} />
-                                                        </button>
-                                                    )}
+                                                <div className="flex items-center justify-center py-4 border-l border-slate-100 bg-white">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeRow(index)}
+                                                        className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-300 hover:text-white hover:bg-slate-900 transition-all border border-slate-100 hover:border-slate-900"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
                                                 </div>
                                             </div>
                                         );
                                     })}
                                 </div>
+                            </div>
 
-                                {/* Total footer */}
-                                <div className="grid grid-cols-[1fr_100px_130px_130px_48px] bg-slate-900 text-white border-t border-slate-700">
-                                    <div className="col-span-3 px-6 py-4 text-[10px] font-black uppercase tracking-[0.3em] flex items-center text-slate-400">
-                                        Total Accumulation
+                            {/* Aggregation Footer */}
+                            <div className="mt-1 grid grid-cols-[1fr_400px] gap-0">
+                                <div className="bg-slate-50 rounded-bl-2xl px-10 py-10 border-l border-b border-slate-100 flex flex-col justify-center">
+                                    <div className="flex items-center gap-3 text-slate-400">
+                                        <Activity size={16} />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] italic">Invoice Fiscal Aggregate</span>
                                     </div>
-                                    <div className="px-5 py-4 text-right border-l border-slate-800 flex items-center justify-end">
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-lg font-black font-mono tracking-tighter leading-none">
-                                                {formatCurrency(totalValue, symbol)}
-                                            </span>
-                                            <span className="text-[8px] text-blue-400 font-bold uppercase tracking-widest mt-1">Net Valuation</span>
-                                        </div>
+                                </div>
+                                <div className="bg-slate-900 text-white rounded-br-2xl px-10 py-10 flex items-center justify-between shadow-xl">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Grand Total</span>
+                                        <span className="text-4xl font-black font-serif tracking-tighter tabular-nums leading-none">
+                                            {formatCurrency(totalValue, symbol)}
+                                        </span>
                                     </div>
-                                    <div className="border-l border-slate-800" />
+                                    <div className="flex flex-col items-end text-right">
+                                        <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{currency.code || 'BASE'}</span>
+                                        <span className="text-slate-500 text-[9px] font-bold uppercase italic mt-1 underline decoration-slate-700 underline-offset-4 font-mono">Authenticated Record</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* ── Footer ── */}
-                        <div className="shrink-0 px-8 py-5 border-t border-slate-200 flex items-center justify-between bg-white shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
+                        {/* ── Action Footer ── */}
+                        <div className="shrink-0 px-10 py-8 border-t border-slate-200 flex items-center justify-between bg-white">
                             <button
                                 type="button"
                                 onClick={() => { setOpen(false); resetForm(); }}
-                                className="px-6 py-2.5 rounded-xl border border-slate-300 text-[10px] font-black text-slate-600 hover:bg-slate-100 hover:text-slate-900 uppercase tracking-widest transition-all active:scale-95"
+                                className="px-8 py-3 rounded-2xl border-2 border-slate-100 text-[11px] font-black text-slate-400 hover:text-slate-900 hover:border-slate-900 uppercase tracking-[0.15em] transition-all active:scale-95"
                             >
-                                Discard
+                                Discard Entries
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="px-10 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center gap-3 shadow-lg shadow-blue-500/30"
+                                className="px-14 py-4 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] transition-all active:scale-95 flex items-center gap-4 shadow-xl shadow-slate-900/10"
                             >
                                 {loading ? (
-                                    <><Activity size={16} className="animate-spin" /> Synchronizing…</>
+                                    <><Activity size={18} className="animate-spin" /> Processing Invoice…</>
                                 ) : (
-                                    <><FileText size={16} /> Finalize Manifest</>
+                                    <><FileText size={18} /> Register Financial Document</>
                                 )}
                             </button>
                         </div>

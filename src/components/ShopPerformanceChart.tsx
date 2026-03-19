@@ -57,7 +57,7 @@ export default function ShopPerformanceChart({
 
                     <Tooltip
                         formatter={(value: number | undefined) =>
-                            value !== undefined ? `${value.toFixed(1)}%` : ''
+                            (value !== null && value !== undefined) ? `${Number(value).toFixed(1)}%` : ''
                         }
                     />
 

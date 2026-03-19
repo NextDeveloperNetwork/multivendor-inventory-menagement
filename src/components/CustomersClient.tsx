@@ -10,7 +10,8 @@ import {
     ChevronRight,
     Heart,
     Star,
-    Loader2
+    Loader2,
+    MapPin,
 } from 'lucide-react';
 import { createCustomer } from '@/app/actions/intelligence';
 import { toast } from 'sonner';
@@ -49,11 +50,11 @@ export default function CustomersClient({ initialCustomers, selectedBusinessId }
 
         const res = await createCustomer(formData);
         if (res.success) {
-            toast.success('Customer profile created successfully');
+            toast.success('Client account registered');
             setCustomers([res.customer, ...customers]);
             setIsAddOpen(false);
         } else {
-            toast.error(res.error || 'Failed to create customer');
+            toast.error(res.error || 'Registration failed');
         }
         setLoading(false);
     };
@@ -64,10 +65,10 @@ export default function CustomersClient({ initialCustomers, selectedBusinessId }
             <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
-                        Customer <span className="text-blue-600">Registry</span>
+                        Client Portfolio <span className="text-blue-600">Registry</span>
                     </h1>
                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1">
-                        Client Identity & Intelligence Archive
+                        Customer Profiles & Accounts
                     </p>
                 </div>
 
@@ -84,7 +85,7 @@ export default function CustomersClient({ initialCustomers, selectedBusinessId }
                         className="h-12 px-6 bg-slate-900 hover:bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 transition-all shadow-lg shadow-black/10"
                     >
                         <UserPlus size={16} className="text-blue-400" />
-                        Acquire Profile
+                        Add Client
                     </button>
                 </div>
             </div>
@@ -101,121 +102,175 @@ export default function CustomersClient({ initialCustomers, selectedBusinessId }
                 />
             </div>
 
-            {/* Customers Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredCustomers.length === 0 ? (
-                    <div className="col-span-full py-20 bg-white border border-slate-200 border-dashed rounded-[2rem] flex flex-col items-center justify-center text-center">
-                        <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mb-4 border border-slate-100">
-                            <UserPlus size={24} />
-                        </div>
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No profiles detected in current matrix</p>
-                    </div>
-                ) : (
-                    filteredCustomers.map((customer, i) => (
-                        <div key={i} className="bg-white group rounded-[2rem] border border-slate-200 p-6 hover:border-blue-600/30 transition-all shadow-sm hover:shadow-md relative overflow-hidden flex flex-col border-b-4 border-b-slate-100 hover:border-b-blue-600">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-lg group-hover:bg-blue-600 transition-colors shadow-lg shadow-black/5">
-                                    {customer.name.charAt(0)}
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Net Output</div>
-                                    <div className="text-sm font-black text-slate-900 font-mono italic">
-                                        ${customer.sales.reduce((sum: number, s: any) => sum + Number(s.total), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex-1">
-                                <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight italic mb-4 truncate group-hover:text-blue-600 transition-colors">{customer.name}</h3>
-
-                                <div className="space-y-2.5">
-                                    <div className="flex items-center gap-3 text-slate-500 font-black text-[10px] uppercase truncate">
-                                        <Mail size={14} className="text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
-                                        <span className="truncate">{customer.email || 'NO_IDENTIFIER'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-slate-500 font-black text-[10px] uppercase">
-                                        <Phone size={14} className="text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
-                                        <span>{customer.phone || 'NO_V_ENTRY'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-slate-400 font-black text-[9px] uppercase tracking-widest font-mono pt-3 border-t border-slate-50 group-hover:border-blue-50 transition-colors">
-                                        <Calendar size={12} className="text-slate-200 shrink-0" />
-                                        EST. {new Date(customer.createdAt).toLocaleDateString()}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button className="w-full mt-6 h-10 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-600 group/btn">
-                                Intelligence Report <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                            </button>
-                        </div>
-                    ))
-                )}
+            {/* Client Portfolio Table */}
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                        <thead>
+                            <tr className="border-b border-slate-100 bg-slate-50/50">
+                                <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Identity Entry</th>
+                                <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Official Email</th>
+                                <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Tax ID (TIN)</th>
+                                <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Aggregate Revenue</th>
+                                <th className="px-8 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Profile Access</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {filteredCustomers.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="py-20 text-center">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mb-4 border border-slate-100">
+                                                <UserPlus size={24} />
+                                            </div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No Client Records Detected</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredCustomers.map((customer, i) => (
+                                    <tr key={customer.id} className="group hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-8 py-5">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-serif italic text-lg shadow-lg shadow-black/5 shrink-0">
+                                                    {customer.name.charAt(0)}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="text-sm font-bold text-slate-900 uppercase tracking-tight truncate">{customer.name}</div>
+                                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">REF_{customer.id.slice(-8).toUpperCase()}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-5">
+                                            <div className="flex items-center gap-2 text-slate-500 text-xs font-bold font-mono lowercase">
+                                                <Mail size={12} className="text-slate-300" />
+                                                {customer.email || 'NO_IDENTIFIER'}
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-5">
+                                            <div className="text-xs font-black text-slate-900 font-mono tracking-tighter">
+                                                {customer.taxId || '---'}
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-5 text-right">
+                                            <div className="text-sm font-black text-slate-900 font-mono tabular-nums italic">
+                                                ${customer.sales.reduce((sum: number, s: any) => sum + Number(s.total), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-5">
+                                            <div className="flex justify-center">
+                                                <button className="h-10 px-4 bg-white border border-slate-200 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all active:scale-95 flex items-center gap-2">
+                                                    Open Profile <ChevronRight size={14} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                <DialogContent className="max-w-xl bg-white rounded-[2rem] p-0 overflow-hidden border border-slate-200 shadow-2xl">
-                    <div className="bg-slate-900 p-8 text-white">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="px-2 py-0.5 bg-blue-600 text-[8px] font-black uppercase tracking-[0.2em] rounded">SYSTEM_MASTER</div>
+                <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-2xl border border-slate-200 shadow-2xl flex flex-col bg-white">
+                    {/* Header Section */}
+                    <DialogHeader className="bg-white px-10 py-8 border-b border-slate-100 flex-row items-center justify-between space-y-0 shrink-0">
+                        <div className="flex items-center gap-6">
+                            <div className="w-14 h-14 bg-slate-50 border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm">
+                                <UserPlus size={28} strokeWidth={1.5} />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-slate-900 font-serif text-3xl tracking-tight leading-none uppercase italic">
+                                    Client Registration
+                                </DialogTitle>
+                                <div className="flex items-center gap-3 mt-2">
+                                    <span className="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-black italic">Initialize Client Account Registry</span>
+                                </div>
+                            </div>
                         </div>
-                        <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">Profile <span className="text-blue-400">Acquisition</span></DialogTitle>
-                        <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 italic">
-                            Initialize secure customer entry in registry matrix
-                        </DialogDescription>
-                    </div>
+                    </DialogHeader>
 
-                    <form onSubmit={handleAddCustomer} className="p-8 space-y-6 bg-white">
-                        <div className="space-y-5">
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
-                                    <div className="w-1 h-1 bg-blue-600" /> Legal Entity Identity
+                    <form onSubmit={handleAddCustomer} className="p-10 space-y-8 bg-white">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Identity */}
+                            <div className="space-y-2 col-span-full">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2 italic">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-900" /> Business / Legal Name
                                 </label>
                                 <input
                                     name="name"
                                     required
-                                    className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm focus:border-blue-600 outline-none transition-all placeholder:text-slate-300 placeholder:italic"
-                                    placeholder="Enter full name or business entity..."
+                                    className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl font-black text-sm text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-50 transition-all shadow-sm placeholder:text-slate-300 placeholder:italic uppercase"
+                                    placeholder="PRO_ENTITY_NAME"
                                 />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
-                                        <div className="w-1 h-1 bg-blue-600" /> Digital Email
-                                    </label>
-                                    <input
-                                        name="email"
-                                        type="email"
-                                        className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm focus:border-blue-600 outline-none transition-all placeholder:text-slate-300 placeholder:italic"
-                                        placeholder="nexus@matrix.com"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
-                                        <div className="w-1 h-1 bg-blue-600" /> Voice Identifier
-                                    </label>
-                                    <input
-                                        name="phone"
-                                        className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm focus:border-blue-600 outline-none transition-all placeholder:text-slate-300 placeholder:italic"
-                                        placeholder="+1 --- --- ----"
-                                    />
-                                </div>
+
+                            {/* Contact Logic */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2 italic">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-200" /> Official Email
+                                </label>
+                                <input
+                                    name="email"
+                                    type="email"
+                                    className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl font-black text-sm text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-50 transition-all shadow-sm font-mono placeholder:text-slate-300 placeholder:italic uppercase"
+                                    placeholder="NEXUS@PROTOCOL.COM"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2 italic">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-200" /> Contact Number
+                                </label>
+                                <input
+                                    name="phone"
+                                    className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl font-black text-sm text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-50 transition-all shadow-sm font-mono placeholder:text-slate-300 placeholder:italic"
+                                    placeholder="+000-LOGOUT-OPS"
+                                />
+                            </div>
+
+                            {/* Meta Data */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2 italic">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-200" /> Tax ID (TIN)
+                                </label>
+                                <input
+                                    name="taxId"
+                                    className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl font-black text-sm text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-50 transition-all shadow-sm font-mono placeholder:text-slate-300 placeholder:italic uppercase"
+                                    placeholder="TAX_ID_REF"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2 italic">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-200" /> Business Address
+                                </label>
+                                <input
+                                    name="address"
+                                    className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl font-black text-sm text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-50 transition-all shadow-sm placeholder:text-slate-300 placeholder:italic uppercase font-bold"
+                                    placeholder="GLOBAL_ADDR_COORD"
+                                />
                             </div>
                         </div>
 
-                        <div className="flex gap-3 pt-4">
+                        {/* Footer Section */}
+                        <div className="flex items-center justify-between pt-8 border-t border-slate-50">
                             <button
                                 type="button"
                                 onClick={() => setIsAddOpen(false)}
-                                className="flex-1 h-12 border border-slate-200 text-slate-400 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all italic"
+                                className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors italic"
                             >
-                                ABORT
+                                Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex-2 h-12 bg-slate-900 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 transition-all shadow-xl shadow-black/10 disabled:opacity-50 flex items-center justify-center gap-3 px-8"
+                                className="h-14 px-10 bg-slate-900 hover:bg-black disabled:opacity-40 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center gap-3 shadow-xl shadow-slate-900/10"
                             >
-                                {loading ? <Loader2 className="animate-spin" size={16} /> : 'COMMIT_PROFILE'}
+                                {loading ? (
+                                    <><Loader2 className="animate-spin" size={16} /> Finalizing...</>
+                                ) : (
+                                    <><UserPlus size={16} /> Save Client</>
+                                )}
                             </button>
                         </div>
                     </form>

@@ -29,7 +29,9 @@ import {
     Image as ImageIcon,
     CheckSquare,
     Square,
-    Printer
+    Printer,
+    ArrowUp,
+    ArrowDown
 } from 'lucide-react';
 import BarcodePrintDialog from './barcode/BarcodePrintDialog';
 import { toast } from 'sonner';
@@ -52,14 +54,17 @@ interface InventoryClientProps {
     shopId?: string;
     warehouseId?: string;
     currency: { symbol: string; rate: number; code?: string };
+    categories?: any[];
+    activeCategoryId?: string;
 }
 
-export default function InventoryClient({ products: initialProducts, filter, shopId, warehouseId, currency }: InventoryClientProps) {
+export default function InventoryClient({ products: initialProducts, filter, shopId, warehouseId, currency, categories = [], activeCategoryId }: InventoryClientProps) {
     const symbol = currency?.symbol || '$';
     const currencyCode = currency?.code || 'USD';
 
     const [search, setSearch] = useState('');
     const [editingProduct, setEditingProduct] = useState<any>(null);
+    const [localEditProduct, setLocalEditProduct] = useState<any>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState<any>(null);
     const [historyProduct, setHistoryProduct] = useState<any>(null);
@@ -68,13 +73,76 @@ export default function InventoryClient({ products: initialProducts, filter, sho
     const [viewMode, setViewMode] = useState<'table' | 'catalog'>('table');
     const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
     const [printProduct, setPrintProduct] = useState<any>(null);
+    const [sortField, setSortField] = useState<'name' | 'stock'>('name');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const router = useRouter();
+
+    const openEditDialog = (product: any) => {
+        setLocalEditProduct({ ...product });
+        setEditingProduct(product);
+    };
+
+    const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!editingProduct) return;
+        setLoading(true);
+        const formData = new FormData(e.currentTarget);
+        const res = await updateProduct(editingProduct.id, formData);
+        if (res.success) {
+            toast.success('Product updated successfully');
+            setEditingProduct(null);
+            setLocalEditProduct(null);
+            router.refresh();
+        } else {
+            toast.error(res.error);
+        }
+        setLoading(false);
+    };
 
     const filteredProducts = initialProducts.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.sku.toLowerCase().includes(search.toLowerCase()) ||
         (p.barcode && p.barcode.includes(search))
     );
+
+    const getStock = (product: any) => {
+        if (filter === 'all') {
+            return product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+        } else if (filter === 'warehouse') {
+            return product.inventory.filter((inv: any) => inv.warehouseId !== null).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+        } else if (filter === 'shops') {
+            return product.inventory.filter((inv: any) => inv.shopId !== null).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+        } else if (filter === 'specific_shop' && shopId) {
+            return product.inventory.filter((inv: any) => inv.shopId === shopId).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+        } else if (filter === 'specific_warehouse' && warehouseId) {
+            return product.inventory.filter((inv: any) => inv.warehouseId === warehouseId).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+        }
+        return 0;
+    };
+
+    const sortedProducts = [...filteredProducts].sort((a, b) => {
+        let valA: any, valB: any;
+        if (sortField === 'name') {
+            valA = a.name.toLowerCase();
+            valB = b.name.toLowerCase();
+        } else {
+            valA = getStock(a);
+            valB = getStock(b);
+        }
+
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const toggleSort = (field: 'name' | 'stock') => {
+        if (sortField === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortOrder('asc');
+        }
+    };
 
     const handleReportDamage = async (product: any) => {
         const amount = window.prompt(`How many units of ${product.name} are damaged?`);
@@ -91,7 +159,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                 action: 'DAMAGED_REPORTED',
                 entityType: 'PRODUCT',
                 entityId: product.id,
-                details: `QC NOTICE: ${qty} units of ${product.sku} marked as damaged/unsellable.`
+                details: `DAMAGE NOTICE: ${qty} units of ${product.sku} marked as damaged/unsellable.`
             });
             toast.success(`Damage reported for ${qty} units. Audit log created.`, {
                 icon: <AlertTriangle className="text-amber-500" />
@@ -109,21 +177,6 @@ export default function InventoryClient({ products: initialProducts, filter, sho
             toast.success('Product deleted successfully');
             setIsDeleteDialogOpen(false);
             setProductToDelete(null);
-            router.refresh();
-        } else {
-            toast.error(res.error);
-        }
-        setLoading(false);
-    };
-
-    const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setLoading(true);
-        const formData = new FormData(e.currentTarget);
-        const res = await updateProduct(editingProduct.id, formData);
-        if (res.success) {
-            toast.success('Product updated successfully');
-            setEditingProduct(null);
             router.refresh();
         } else {
             toast.error(res.error);
@@ -207,13 +260,35 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                             Delete ({selectedProducts.size})
                         </button>
                     )}
+
+                    {/* Category Filter Dropdown */}
+                    <div className="relative group min-w-[160px]">
+                        <label className="absolute -top-2 left-3 bg-white px-1.5 text-[8px] font-black text-slate-400 uppercase tracking-widest z-10 font-mono italic">FILTER_BY_CATEGORY</label>
+                        <select
+                            value={activeCategoryId || ''}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                const url = new URL(window.location.href);
+                                if (val) url.searchParams.set('categoryId', val);
+                                else url.searchParams.delete('categoryId');
+                                router.push(url.toString());
+                            }}
+                            className="w-full h-10 pl-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-900 appearance-none focus:border-blue-600 hover:border-slate-300 transition-all outline-none cursor-pointer italic"
+                        >
+                            <option value="">ALL_DEPARTMENTS</option>
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.name.toUpperCase()}</option>
+                            ))}
+                        </select>
+                        <Settings2 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={12} />
+                    </div>
                 </div>
 
                 <div className="relative group w-full lg:w-96">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={16} />
                     <input
                         type="text"
-                        placeholder="Search inventory catalog..."
+                        placeholder="Search inventory records..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full pl-10 pr-4 h-10 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold placeholder:text-slate-500 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none text-slate-900"
@@ -239,26 +314,33 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                             )}
                                         </button>
                                     </th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Asset Name</th>
+                                    <th className="px-6 py-4">
+                                        <button 
+                                            onClick={() => toggleSort('name')}
+                                            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic hover:text-blue-600 transition-colors"
+                                        >
+                                            Asset Designation
+                                            {sortField === 'name' && (sortOrder === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+                                        </button>
+                                    </th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Category / Unit</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Cost</th>
                                     <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Price</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Stock Balance</th>
+                                    <th className="px-6 py-4 text-right">
+                                        <button 
+                                            onClick={() => toggleSort('stock')}
+                                            className="flex items-center gap-2 ml-auto text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic hover:text-blue-600 transition-colors"
+                                        >
+                                            Inventory Level
+                                            {sortField === 'stock' && (sortOrder === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+                                        </button>
+                                    </th>
                                     <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filteredProducts.map((product) => {
-                                    let stock = 0;
-                                    if (filter === 'all') {
-                                        stock = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                                    } else if (filter === 'warehouse') {
-                                        stock = product.inventory.filter((inv: any) => inv.warehouseId !== null).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                                    } else if (filter === 'shops') {
-                                        stock = product.inventory.filter((inv: any) => inv.shopId !== null).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                                    } else if (filter === 'specific_shop' && shopId) {
-                                        stock = product.inventory.filter((inv: any) => inv.shopId === shopId).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                                    } else if (filter === 'specific_warehouse' && warehouseId) {
-                                        stock = product.inventory.filter((inv: any) => inv.warehouseId === warehouseId).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                                    }
+                                {sortedProducts.map((product) => {
+                                    const stock = getStock(product);
 
                                     const isSelected = selectedProducts.has(product.id);
 
@@ -297,7 +379,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             navigator.clipboard.writeText(product.barcode);
-                                                                            toast.success('Asset Id Captured');
+                                                                            toast.success('ID Copied');
                                                                         }}
                                                                         className="ml-1 hover:text-blue-600 transition-colors"
                                                                         title="Copy Identifier"
@@ -310,9 +392,19 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                                     </div>
                                                 </div>
                                             </td>
+                                            <td className="px-6">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-tighter italic">{(product as any).category?.name || 'Uncategorized'}</span>
+                                                    <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{(product as any).unit?.name || 'Standard Unit'}</span>
+                                                </div>
+                                            </td>
+                                             <td className="px-6 text-right">
+                                                <div className="text-slate-500 font-black text-xs font-mono tracking-tighter italic">{formatCurrency(product.cost, symbol)}</div>
+                                                <div className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 italic leading-none">Unit Cost</div>
+                                            </td>
                                             <td className="px-6 text-right">
                                                 <div className="text-slate-900 font-black text-xs font-mono tracking-tighter italic">{formatCurrency(product.price, symbol)}</div>
-                                                <div className="text-[8px] text-blue-600 font-bold uppercase tracking-widest mt-0.5 italic leading-none">Sale Value</div>
+                                                <div className="text-[8px] text-blue-600 font-bold uppercase tracking-widest mt-0.5 italic leading-none">Listed Price</div>
                                             </td>
                                             <td className="px-6 text-right">
                                                 <div className={`inline-flex px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter border shadow-sm font-mono italic ${stock > 10 ? 'bg-white text-emerald-600 border-emerald-100' :
@@ -327,12 +419,12 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                                     <button
                                                         onClick={() => setPrintProduct(product)}
                                                         className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all font-mono shadow-sm"
-                                                        title="Print Asset"
+                                                        title="Print Product"
                                                     >
                                                         <Printer size={16} />
                                                     </button>
                                                     <button
-                                                        onClick={() => setEditingProduct(product)}
+                                                        onClick={() => openEditDialog(product)}
                                                         className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all font-mono shadow-sm"
                                                         title="Config"
                                                     >
@@ -352,7 +444,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                                             setIsDeleteDialogOpen(true);
                                                         }}
                                                         className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all font-mono shadow-sm"
-                                                        title="Purge"
+                                                        title="Remove"
                                                     >
                                                         <Trash2 size={16} />
                                                     </button>
@@ -366,20 +458,9 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                     </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filteredProducts.map((product) => {
-                        let stock = 0;
-                        if (filter === 'all') {
-                            stock = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                        } else if (filter === 'warehouse') {
-                            stock = product.inventory.filter((inv: any) => inv.warehouseId !== null).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                        } else if (filter === 'shops') {
-                            stock = product.inventory.filter((inv: any) => inv.shopId !== null).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                        } else if (filter === 'specific_shop' && shopId) {
-                            stock = product.inventory.filter((inv: any) => inv.shopId === shopId).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                        } else if (filter === 'specific_warehouse' && warehouseId) {
-                            stock = product.inventory.filter((inv: any) => inv.warehouseId === warehouseId).reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                        }
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {sortedProducts.map((product) => {
+                        const stock = getStock(product);
 
                         return (
                             <div key={product.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:border-blue-600/50 transition-all group/card flex flex-col">
@@ -393,7 +474,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                         </div>
                                     )}
                                     <div className="absolute top-3 right-3 flex gap-1.5 translate-y-2 opacity-0 group-hover/card:translate-y-0 group-hover/card:opacity-100 transition-all">
-                                        <button onClick={() => setEditingProduct(product)} className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-700 hover:text-blue-600 shadow-lg transition-transform active:scale-90">
+                                        <button onClick={() => openEditDialog(product)} className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-700 hover:text-blue-600 shadow-lg transition-transform active:scale-90">
                                             <Edit2 size={14} />
                                         </button>
                                         <button onClick={() => setPrintProduct(product)} className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-700 hover:text-blue-600 shadow-lg transition-transform active:scale-90" title="Print Barcode">
@@ -405,7 +486,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                                 setIsDeleteDialogOpen(true);
                                             }}
                                             className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-700 hover:text-rose-600 shadow-lg transition-transform active:scale-90"
-                                            title="Purge"
+                                            title="Remove Product"
                                         >
                                             <Trash2 size={14} />
                                         </button>
@@ -429,19 +510,24 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                         </div>
                                         <div className="text-right shrink-0">
                                             <div className="font-mono font-black text-slate-900 text-xs tracking-tighter italic">{formatCurrency(product.price, symbol)}</div>
-                                            <div className="text-[8px] text-blue-600 font-bold uppercase tracking-widest mt-0.5">SRP</div>
+                                            <div className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 italic">{formatCurrency(product.cost, symbol)} <span className="opacity-50">COST</span></div>
+                                            <div className="text-[8px] text-blue-600 font-bold uppercase tracking-widest mt-0.5">{(product as any).unit?.name || 'U'}</div>
                                         </div>
                                     </div>
 
+                                    <div className="flex items-center gap-2">
+                                        <span className="px-2 py-0.5 bg-slate-50 border border-slate-200 rounded text-[8px] font-black text-slate-500 uppercase tracking-widest italic">{(product as any).category?.name || 'GENERAL'}</span>
+                                    </div>
+
                                     <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
-                                        <button onClick={() => setHistoryProduct(product)} className="text-[8px] font-black text-slate-400 hover:text-blue-600 flex items-center gap-1.5 uppercase tracking-widest transition-colors italic">
-                                            <Activity size={12} />
-                                            <span>HISTORY</span>
-                                        </button>
-                                        <button onClick={() => handleReportDamage(product)} className="text-[8px] font-black text-slate-400 hover:text-rose-500 flex items-center gap-1.5 uppercase tracking-widest transition-colors italic">
-                                            <AlertTriangle size={12} />
-                                            <span>QC_LOG</span>
-                                        </button>
+                                         <button onClick={() => setHistoryProduct(product)} className="text-[8px] font-black text-slate-400 hover:text-blue-600 flex items-center gap-1.5 uppercase tracking-widest transition-colors italic">
+                                             <Activity size={12} />
+                                             <span>STOCK_HISTORY</span>
+                                         </button>
+                                         <button onClick={() => handleReportDamage(product)} className="text-[8px] font-black text-slate-400 hover:text-rose-500 flex items-center gap-1.5 uppercase tracking-widest transition-colors italic">
+                                             <AlertTriangle size={12} />
+                                             <span>LOSS_REPORT</span>
+                                         </button>
                                     </div>
                                 </div>
                             </div>
@@ -452,27 +538,8 @@ export default function InventoryClient({ products: initialProducts, filter, sho
 
             {/* Mobile View */}
             <div className="grid grid-cols-1 gap-4 md:hidden">
-                {filteredProducts.map((product) => {
-                    let stock = 0;
-                    if (filter === 'all') {
-                        stock = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                    } else if (filter === 'warehouse') {
-                        stock = product.inventory
-                            .filter((inv: any) => inv.warehouseId !== null)
-                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                    } else if (filter === 'shops') {
-                        stock = product.inventory
-                            .filter((inv: any) => inv.shopId !== null)
-                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                    } else if (filter === 'specific_shop' && shopId) {
-                        stock = product.inventory
-                            .filter((inv: any) => inv.shopId === shopId)
-                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                    } else if (filter === 'specific_warehouse' && warehouseId) {
-                        stock = product.inventory
-                            .filter((inv: any) => inv.warehouseId === warehouseId)
-                            .reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-                    }
+                {sortedProducts.map((product) => {
+                    const stock = getStock(product);
 
                     return (
                         <div key={product.id} className="bg-white p-5 rounded-3xl border border-slate-300 shadow-sm space-y-5">
@@ -485,6 +552,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                         <div className="font-black text-slate-900 text-sm leading-tight truncate uppercase italic">{product.name}</div>
                                         <div className="flex flex-wrap items-center gap-2 mt-1">
                                             <div className="text-[9px] text-slate-500 font-bold font-mono uppercase tracking-widest">SKU: {product.sku}</div>
+                                            <div className="text-[9px] text-blue-600 font-bold uppercase tracking-widest italic border-l pl-2 border-slate-200">{product.category?.name || 'GEN'}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -514,7 +582,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                 >
                                     <Printer size={14} />
                                 </button>
-                                <button onClick={() => setEditingProduct(product)} className="col-span-2 h-9 flex items-center justify-center bg-slate-900 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all italic border border-slate-800">
+                                <button onClick={() => openEditDialog(product)} className="col-span-2 h-9 flex items-center justify-center bg-slate-900 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all italic border border-slate-800">
                                     Edit Product Details
                                 </button>
                                 <button onClick={() => { setProductToDelete(product); setIsDeleteDialogOpen(true); }} className="h-9 flex items-center justify-center bg-white text-slate-400 rounded-lg border border-slate-200 hover:text-rose-600 transition-all">
@@ -526,38 +594,41 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                 })}
             </div>
 
-            {/* Edit Dialog */}
-            <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
-                <DialogContent className="max-w-2xl max-h-[90vh] bg-white rounded-2xl p-0 overflow-hidden border border-slate-300 shadow-2xl">
-                    <div className="bg-slate-900 px-8 py-6 text-white flex justify-between items-center border-b border-slate-800">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                <Settings2 size={20} />
+            <Dialog open={!!editingProduct} onOpenChange={(open) => { if(!open) { setEditingProduct(null); setLocalEditProduct(null); } }}>
+                <DialogContent className="max-w-3xl max-h-[95vh] bg-white rounded-2xl p-0 overflow-hidden border border-slate-200 shadow-2xl flex flex-col">
+                    <DialogHeader className="bg-white px-10 py-8 text-slate-900 flex flex-row justify-between items-center border-b border-slate-100 shrink-0 space-y-0">
+                        <div className="flex items-center gap-6">
+                            <div className="w-14 h-14 bg-slate-50 border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm">
+                                <Settings2 size={28} strokeWidth={1.5} />
                             </div>
                             <div>
-                                <DialogTitle className="text-sm font-black uppercase italic tracking-tighter">Product Configuration</DialogTitle>
-                                <DialogDescription className="text-[8px] font-black text-blue-400 uppercase tracking-widest mt-0.5">Edit Inventory Records</DialogDescription>
+                                <DialogTitle className="text-slate-900 font-serif text-2xl tracking-tight leading-none">
+                                    Asset Management
+                                </DialogTitle>
+                                <DialogDescription className="text-slate-500 text-[10px] mt-2 uppercase tracking-[0.2em] font-semibold">
+                                    Inventory Registry Maintenance
+                                </DialogDescription>
                             </div>
                         </div>
-                        <button onClick={() => setEditingProduct(null)} className="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-colors">
-                            <X size={16} />
+                        <button onClick={() => { setEditingProduct(null); setLocalEditProduct(null); }} className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all border border-slate-200 shadow-sm">
+                            <X size={20} />
                         </button>
-                    </div>
+                    </DialogHeader>
 
-                    <form onSubmit={handleUpdate} className="p-8 space-y-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">ASSET_NAME</label>
-                                <input name="name" defaultValue={editingProduct?.name} required className="w-full h-11 px-4 bg-slate-50 border-2 border-slate-200 rounded-lg font-black text-slate-900 focus:border-blue-600 focus:bg-white outline-none transition-all text-xs uppercase italic" />
+                    <form onSubmit={handleUpdate} className="flex-1 overflow-y-auto p-10 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">01. Asset Designation</label>
+                                <input name="name" defaultValue={localEditProduct?.name} required className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 outline-none transition-all placeholder:text-slate-300" />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">GLOBAL_SKU</label>
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">02. Stock Keeping Unit (SKU)</label>
                                 <div className="relative group">
                                     <input
                                         name="sku"
-                                        defaultValue={editingProduct?.sku}
+                                        defaultValue={localEditProduct?.sku}
                                         required
-                                        className="w-full h-11 px-4 bg-slate-50 border-2 border-slate-200 rounded-lg font-black text-slate-900 focus:border-blue-600 focus:bg-white outline-none transition-all text-xs pr-12 font-mono"
+                                        className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 outline-none transition-all pr-14 font-mono"
                                     />
                                     <button
                                         type="button"
@@ -566,21 +637,32 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                             const nameInput = input.closest('form')?.querySelector('input[name="name"]') as HTMLInputElement;
                                             if (input) input.value = generateSKU(nameInput?.value || '');
                                         }}
-                                        className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all"
                                     >
-                                        <RefreshCw size={14} />
+                                        <RefreshCw size={16} />
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">MASTER_IDENTIFIER (BARCODE)</label>
+                        <div className="grid grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">03. Department/Category</label>
+                                <input name="categoryName" defaultValue={(localEditProduct as any)?.category?.name} className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 outline-none transition-all placeholder:text-slate-400" placeholder="GENERAL STORE" />
+                            </div>
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">04. Measurement Unit</label>
+                                <input name="unitName" defaultValue={(localEditProduct as any)?.unit?.name} className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 outline-none transition-all placeholder:text-slate-400" placeholder="STANDARD UNIT" />
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">05. Reference ID (Barcode)</label>
                             <div className="relative group">
                                 <input
                                     name="barcode"
-                                    defaultValue={editingProduct?.barcode}
-                                    className="w-full h-11 px-4 bg-slate-50 border-2 border-slate-200 rounded-lg font-black text-slate-900 focus:border-blue-600 focus:bg-white outline-none transition-all text-xs pr-12 font-mono"
+                                    defaultValue={localEditProduct?.barcode}
+                                    className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 outline-none transition-all pr-14 font-mono"
                                     placeholder="REFERENCE..."
                                 />
                                 <button
@@ -589,32 +671,67 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                         const input = e.currentTarget.previousElementSibling as HTMLInputElement;
                                         if (input) input.value = generateBarcode();
                                     }}
-                                    className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all"
                                 >
-                                    <RefreshCw size={14} />
+                                    <RefreshCw size={16} />
                                 </button>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">PRICE ({currencyCode})</label>
-                                <input name="price" type="number" step="0.01" defaultValue={editingProduct?.price} required className="w-full h-11 px-4 bg-white border-2 border-slate-200 rounded-lg font-black text-slate-900 focus:border-blue-600 outline-none transition-all text-[11px] font-mono italic text-right" />
+                        <div className="grid grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">06. Purchase Cost (Unit)</label>
+                                <div className="relative">
+                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{symbol}</div>
+                                    <input
+                                        type="number" step="0.01" name="cost"
+                                        value={localEditProduct?.cost?.toString() || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setLocalEditProduct((prev: any) => {
+                                                if (!prev) return null;
+                                                const next = { ...prev, cost: val as any };
+                                                if (!next.isPriceManual) {
+                                                    next.price = (parseFloat(val || '0') * 1.4).toFixed(2) as any;
+                                                }
+                                                return next;
+                                            });
+                                        }}
+                                        className="w-full h-12 pl-12 pr-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none tabular-nums font-mono italic"
+                                    />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">DISC ({currencyCode})</label>
-                                <input name="discountPrice" type="number" step="0.01" defaultValue={editingProduct?.discountPrice} className="w-full h-11 px-4 bg-white border-2 border-slate-200 rounded-lg font-black text-slate-900 focus:border-blue-600 outline-none transition-all text-[11px] font-mono italic text-right" />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 font-mono italic">COST ({currencyCode})</label>
-                                <input name="cost" type="number" step="0.01" defaultValue={editingProduct?.cost} required className="w-full h-11 px-4 bg-white border-2 border-slate-200 rounded-lg font-black text-slate-700 focus:border-blue-600 outline-none transition-all text-[11px] font-mono italic text-right" />
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] flex items-center justify-between">
+                                    <span>07. Unit Sale Price</span>
+                                    {localEditProduct?.isPriceManual ? (
+                                        <span className="bg-slate-900 text-white text-[7px] px-1.5 py-0.5 rounded-full font-black tracking-widest leading-none">FIXED_PRICE</span>
+                                    ) : (
+                                        <span className="bg-emerald-100 text-emerald-700 text-[7px] px-1.5 py-0.5 rounded-full font-black tracking-widest leading-none">AUTO_CALC</span>
+                                    )}
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{symbol}</div>
+                                    <input
+                                        type="number" step="0.01" name="price"
+                                        value={localEditProduct?.price?.toString() || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setLocalEditProduct((prev: any) => {
+                                                if (!prev) return null;
+                                                return { ...prev, price: val as any, isPriceManual: true };
+                                            });
+                                        }}
+                                        className="w-full h-12 pl-12 pr-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none tabular-nums font-mono"
+                                    />
+                                </div>
                             </div>
                         </div>
 
                         {/* Inventory Quantities Section */}
                         {editingProduct?.inventory && editingProduct.inventory.length > 0 && (
                             <div className="space-y-3 pt-6 border-t border-slate-100">
-                                <div className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] font-mono italic">LIVE_REGISTRY_LEVELS</div>
+                                <div className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] font-mono italic">LOCATION_STOCK_DISTRIBUTION</div>
                                 <div className="grid grid-cols-1 gap-2">
                                     {editingProduct.inventory.map((inv: any) => {
                                         const locationName = inv.shop?.name || inv.warehouse?.name || 'Unknown';
@@ -634,11 +751,12 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                                         onChange={async (e) => {
                                                             const val = parseInt(e.target.value);
                                                             if (isNaN(val) || val < 0) return;
-                                                            const updated = { ...editingProduct };
+                                                            const updated = { ...localEditProduct };
                                                             const invIndex = updated.inventory.findIndex((i: any) => i.id === inv.id);
                                                             if (invIndex !== -1) {
                                                                 updated.inventory[invIndex].quantity = val;
                                                                 setEditingProduct(updated);
+                                                                setLocalEditProduct(updated);
                                                             }
                                                             await setStockLevel(editingProduct.id, val, locationId);
                                                             router.refresh();
@@ -675,13 +793,24 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                             </div>
                         )}
 
-                        <div className="flex items-center gap-3 pt-6 border-t border-slate-100 italic">
-                            <button type="submit" disabled={loading} className="flex-1 h-12 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
-                                {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                Save Changes
+                        <div className="space-y-3 pt-10 border-t border-slate-100 flex items-center justify-between">
+                            <button
+                                type="button"
+                                onClick={() => { setEditingProduct(null); setLocalEditProduct(null); }}
+                                className="px-8 py-3 rounded-2xl border-2 border-slate-100 text-[11px] font-black text-slate-400 hover:text-slate-900 hover:border-slate-900 uppercase tracking-[0.15em] transition-all active:scale-95"
+                            >
+                                Discard Changes
                             </button>
-                            <button type="button" onClick={() => setEditingProduct(null)} className="px-6 h-12 bg-white text-slate-500 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] border-2 border-slate-200 hover:bg-slate-50">
-                                Cancel
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="px-14 py-4 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] transition-all active:scale-95 flex items-center gap-4 shadow-xl shadow-slate-900/10"
+                            >
+                                {loading ? (
+                                    <><Loader2 size={18} className="animate-spin" /> Committing…</>
+                                ) : (
+                                    <><Save size={18} /> Update Asset Record</>
+                                )}
                             </button>
                         </div>
                     </form>
@@ -690,34 +819,34 @@ export default function InventoryClient({ products: initialProducts, filter, sho
 
             {/* Delete Confirmation */}
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <DialogContent className="max-w-md bg-white rounded-[2rem] p-10 border border-slate-300 shadow-2xl">
-                    <div className="text-center space-y-6">
-                        <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
-                            <AlertCircle size={40} />
+                <DialogContent className="max-w-md bg-white rounded-2xl p-0 overflow-hidden border border-slate-200 shadow-2xl">
+                    <div className="p-10 text-center space-y-8">
+                        <div className="w-20 h-20 bg-slate-50 border-2 border-slate-100 text-slate-900 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+                            <AlertCircle size={32} strokeWidth={1.5} />
                         </div>
                         <div>
-                            <DialogTitle className="text-xl font-black uppercase italic tracking-tighter text-slate-900 leading-tight">
-                                {productToDelete?.isBulk ? 'Authorize Bulk Deletion?' : 'Authorize Item Deletion?'}
+                            <DialogTitle className="text-2xl font-serif text-slate-900 tracking-tight leading-none">
+                                {productToDelete?.isBulk ? 'Authorize Bulk Deletion' : 'Authorize Asset Removal'}
                             </DialogTitle>
-                            <DialogDescription className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-2 px-4">
+                            <DialogDescription className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] mt-3 px-4">
                                 {productToDelete?.isBulk ? (
-                                    <>Warning: This action will purge <span className="text-rose-600">{productToDelete.count} product(s)</span> from the master registry.</>
+                                    <>Action will permanently remove <span className="text-slate-900 font-extrabold">{productToDelete.count} assets</span> from the central registry.</>
                                 ) : (
-                                    <>Warning: This action will purge all telemetry for <span className="text-rose-600">{productToDelete?.name}</span> from the master registry.</>
+                                    <>Action will permanently remove <span className="text-slate-900 font-extrabold">{productToDelete?.name}</span> and all associated historical data.</>
                                 )}
                             </DialogDescription>
                         </div>
-                        <div className="flex gap-4 pt-4">
-                            <button onClick={() => setIsDeleteDialogOpen(false)} className="flex-1 h-14 bg-slate-50 text-slate-400 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-100 transition-all">
-                                Negative
-                            </button>
+                        <div className="flex flex-col gap-3 pt-4">
                             <button
                                 onClick={productToDelete?.isBulk ? handleBulkDelete : handleDelete}
                                 disabled={loading}
-                                className="flex-1 h-14 bg-rose-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-rose-700 transition-all shadow-lg shadow-rose-500/20 disabled:opacity-50 flex items-center justify-center gap-3"
+                                className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95 shadow-xl shadow-slate-900/10 disabled:opacity-40 flex items-center justify-center gap-3"
                             >
                                 {loading && <Loader2 className="animate-spin" size={14} />}
-                                Confirm Purge
+                                Confirm Removal
+                            </button>
+                            <button onClick={() => setIsDeleteDialogOpen(false)} className="w-full h-14 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all border border-transparent">
+                                Discard Action
                             </button>
                         </div>
                     </div>
@@ -739,20 +868,23 @@ export default function InventoryClient({ products: initialProducts, filter, sho
 
             {
                 showScanner && (
-                    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-                        <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-white/20">
-                            <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                                        <Camera size={20} />
+                    <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+                        <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+                            <div className="p-8 bg-white text-slate-900 flex justify-between items-center border-b border-slate-100">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-slate-50 border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-900 shadow-sm">
+                                        <Camera size={24} strokeWidth={1.5} />
                                     </div>
-                                    <div className="font-black text-sm uppercase italic tracking-tighter">Scan System Asset</div>
+                                    <div>
+                                        <div className="font-serif text-xl tracking-tight leading-none text-slate-900">Asset Recognition</div>
+                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5">Optical Identifier Capture</div>
+                                    </div>
                                 </div>
-                                <button onClick={() => setShowScanner(false)} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center">
-                                    <X size={16} />
+                                <button onClick={() => setShowScanner(false)} className="w-10 h-10 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all border border-slate-200">
+                                    <X size={20} />
                                 </button>
                             </div>
-                            <div className="p-6">
+                            <div className="p-10">
                                 <BarcodeScanner
                                     onScan={(code) => {
                                         setSearch(code);

@@ -6,12 +6,15 @@ import { ArrowLeft, Plus, Trash2, Save, Package, RefreshCw } from 'lucide-react'
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { generateSKU } from '@/lib/utils';
-import { manualBulkCreateProducts } from '@/app/actions/inventory';
+import { manualBulkCreateProducts, createCategory, createUnit } from '@/app/actions/inventory';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface BulkAddClientProps {
     selectedBusinessId: string | null;
     shops: any[];
     warehouses: any[];
+    categories: any[];
+    units: any[];
 }
 
 interface ProductRow {
@@ -20,28 +23,49 @@ interface ProductRow {
     price: string;
     cost: string;
     initialStock: string;
+    categoryId: string;
+    unitId: string;
+    isPriceManual?: boolean;
 }
 
-export default function BulkAddClient({ selectedBusinessId, shops, warehouses }: BulkAddClientProps) {
+export default function BulkAddClient({ selectedBusinessId, shops, warehouses, categories: initialCategories = [], units: initialUnits = [] }: BulkAddClientProps) {
     const router = useRouter();
     const [rows, setRows] = useState<ProductRow[]>([
-        { name: '', sku: '', price: '', cost: '', initialStock: '' }
+        { name: '', sku: '', price: '', cost: '', initialStock: '', categoryId: '', unitId: '', isPriceManual: false }
     ]);
     const [targetType, setTargetType] = useState<'warehouse' | 'shop'>('warehouse');
     const [targetId, setTargetId] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // Dialog states
+    const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+    const [isUnitDialogOpen, setIsUnitDialogOpen] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [newUnitName, setNewUnitName] = useState('');
+    const [localCategories, setLocalCategories] = useState(initialCategories);
+    const [localUnits, setLocalUnits] = useState(initialUnits);
+
     const addRow = () => {
-        setRows([...rows, { name: '', sku: '', price: '', cost: '', initialStock: '' }]);
+        setRows([...rows, { name: '', sku: '', price: '', cost: '', initialStock: '', categoryId: '', unitId: '', isPriceManual: false }]);
     };
 
     const removeRow = (index: number) => {
         setRows(rows.filter((_, i) => i !== index));
     };
 
-    const updateRow = (index: number, field: keyof ProductRow, value: string) => {
+    const updateRow = (index: number, field: keyof ProductRow, value: any) => {
         const newRows = [...rows];
-        newRows[index] = { ...newRows[index], [field]: value };
+        const row = { ...newRows[index], [field]: value };
+        
+        if (field === 'price') {
+            row.isPriceManual = true;
+        }
+        
+        if (field === 'cost' && !row.isPriceManual && value) {
+            row.price = (Number(value) * 1.4).toFixed(2);
+        }
+
+        newRows[index] = row;
         setRows(newRows);
     };
 
@@ -57,10 +81,10 @@ export default function BulkAddClient({ selectedBusinessId, shops, warehouses }:
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Basic validation
-        const validRows = rows.filter(r => r.name && r.sku && r.price && r.cost);
+        // Basic validation - price/cost optional now
+        const validRows = rows.filter(r => r.name && r.sku);
         if (validRows.length === 0) {
-            toast.error("Please fill in at least one product row with all details.");
+            toast.error("Please fill in at least one product name and SKU.");
             return;
         }
 
@@ -132,6 +156,23 @@ export default function BulkAddClient({ selectedBusinessId, shops, warehouses }:
                 </div>
             </div>
 
+            <div className="flex gap-4">
+                <button
+                    type="button"
+                    onClick={() => setIsCategoryDialogOpen(true)}
+                    className="px-6 py-3 bg-white border border-slate-200 rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary hover:border-primary transition-all shadow-sm active:scale-95 italic"
+                >
+                    <Plus size={16} /> New Category
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setIsUnitDialogOpen(true)}
+                    className="px-6 py-3 bg-white border border-slate-200 rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary hover:border-primary transition-all shadow-sm active:scale-95 italic"
+                >
+                    <Plus size={16} /> New Unit
+                </button>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
                     <table className="w-full text-left border-collapse">
@@ -139,10 +180,9 @@ export default function BulkAddClient({ selectedBusinessId, shops, warehouses }:
                             <tr className="bg-slate-50 border-b border-slate-100">
                                 <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">#</th>
                                 <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Article Name</th>
-                                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">SKU identifier</th>
-                                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Price</th>
-                                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Cost</th>
-                                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Initial Stock</th>
+                                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Identifiers</th>
+                                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Category / Unit</th>
+                                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Price / Cost</th>
                                 <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 italic text-right">Actions</th>
                             </tr>
                         </thead>
@@ -160,53 +200,71 @@ export default function BulkAddClient({ selectedBusinessId, shops, warehouses }:
                                         />
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="relative group/sku">
+                                        <div className="flex flex-col gap-2">
+                                            <div className="relative">
+                                                <input
+                                                    value={row.sku}
+                                                    onChange={(e) => updateRow(index, 'sku', e.target.value)}
+                                                    required
+                                                    className="w-full h-10 px-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-900 focus:border-primary focus:bg-white outline-none transition-all uppercase italic pr-10"
+                                                    placeholder="SKU-CODE"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleGenerateSKU(index)}
+                                                    className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 bg-white border border-slate-100 rounded-lg text-primary hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center"
+                                                >
+                                                    <RefreshCw size={12} />
+                                                </button>
+                                            </div>
                                             <input
-                                                value={row.sku}
-                                                onChange={(e) => updateRow(index, 'sku', e.target.value)}
-                                                required
-                                                className="w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-900 focus:border-primary focus:bg-white outline-none transition-all uppercase italic pr-10"
-                                                placeholder="SKU-CODE"
+                                                value={row.initialStock}
+                                                type="number"
+                                                onChange={(e) => updateRow(index, 'initialStock', e.target.value)}
+                                                className="w-full h-10 px-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black text-slate-900 focus:border-primary focus:bg-white outline-none transition-all font-mono"
+                                                placeholder="START_STOCK"
                                             />
-                                            <button
-                                                type="button"
-                                                onClick={() => handleGenerateSKU(index)}
-                                                className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-white border border-slate-100 rounded-lg text-primary hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center opacity-0 group-hover/sku:opacity-100"
-                                            >
-                                                <RefreshCw size={14} />
-                                            </button>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={row.price}
-                                            onChange={(e) => updateRow(index, 'price', e.target.value)}
-                                            required
-                                            className="w-24 h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black text-slate-900 focus:border-primary focus:bg-white outline-none transition-all font-mono"
-                                            placeholder="0.00"
-                                        />
+                                        <div className="flex flex-col gap-2">
+                                            <select
+                                                value={row.categoryId}
+                                                onChange={(e) => updateRow(index, 'categoryId', e.target.value)}
+                                                className="w-full h-10 px-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-900 focus:border-primary outline-none transition-all uppercase italic"
+                                            >
+                                                <option value="">CATEGORY</option>
+                                                {localCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                            </select>
+                                            <select
+                                                value={row.unitId}
+                                                onChange={(e) => updateRow(index, 'unitId', e.target.value)}
+                                                className="w-full h-10 px-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-900 focus:border-primary outline-none transition-all uppercase italic"
+                                            >
+                                                <option value="">UNIT</option>
+                                                {localUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                            </select>
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={row.cost}
-                                            onChange={(e) => updateRow(index, 'cost', e.target.value)}
-                                            required
-                                            className="w-24 h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black text-slate-900 focus:border-primary focus:bg-white outline-none transition-all font-mono"
-                                            placeholder="0.00"
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <input
-                                            type="number"
-                                            value={row.initialStock}
-                                            onChange={(e) => updateRow(index, 'initialStock', e.target.value)}
-                                            className="w-24 h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black text-slate-900 focus:border-primary focus:bg-white outline-none transition-all font-mono"
-                                            placeholder="0"
-                                        />
+                                        <div className="flex flex-col gap-2">
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={row.price}
+                                                onChange={(e) => updateRow(index, 'price', e.target.value)}
+                                                className="w-24 h-10 px-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black text-slate-900 focus:border-primary focus:bg-white outline-none transition-all font-mono"
+                                                placeholder="SELL_PRC"
+                                            />
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={row.cost}
+                                                onChange={(e) => updateRow(index, 'cost', e.target.value)}
+                                                className="w-24 h-10 px-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black text-slate-900 focus:border-primary focus:bg-white outline-none transition-all font-mono"
+                                                placeholder="BUY_COST"
+                                            />
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <button
@@ -249,6 +307,80 @@ export default function BulkAddClient({ selectedBusinessId, shops, warehouses }:
                     </button>
                 </div>
             </form>
+
+            <CategoryUnitDialog
+                isOpen={isCategoryDialogOpen}
+                onClose={() => setIsCategoryDialogOpen(false)}
+                title="Define New Category"
+                value={newCategoryName}
+                onChange={setNewCategoryName}
+                onAdd={async () => {
+                    const res = await createCategory(newCategoryName, selectedBusinessId);
+                    if (res.success) {
+                        setLocalCategories([...localCategories, res.category]);
+                        setNewCategoryName('');
+                        setIsCategoryDialogOpen(false);
+                        toast.success('Category created');
+                    }
+                }}
+            />
+
+            <CategoryUnitDialog
+                isOpen={isUnitDialogOpen}
+                onClose={() => setIsUnitDialogOpen(false)}
+                title="Define New Unit"
+                value={newUnitName}
+                onChange={setNewUnitName}
+                onAdd={async () => {
+                    const res = await createUnit(newUnitName, selectedBusinessId);
+                    if (res.success) {
+                        setLocalUnits([...localUnits, res.unit]);
+                        setNewUnitName('');
+                        setIsUnitDialogOpen(false);
+                        toast.success('Unit created');
+                    }
+                }}
+            />
         </div>
+    );
+}
+
+function CategoryUnitDialog({ isOpen, onClose, title, value, onChange, onAdd }: any) {
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-md bg-white p-8 rounded-[2.5rem] border-none shadow-2xl">
+                <DialogHeader className="mb-6">
+                    <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight uppercase italic">{title}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 italic">Name / Descriptor</label>
+                        <input
+                            autoFocus
+                            value={value}
+                            onChange={(e) => onChange(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && onAdd()}
+                            className="w-full h-14 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-base font-bold text-slate-900 focus:border-primary focus:bg-white outline-none transition-all uppercase italic"
+                            placeholder="Type identifier..."
+                        />
+                    </div>
+                    <div className="flex gap-4 justify-end pt-2">
+                        <button
+                            onClick={onClose}
+                            className="h-12 px-6 rounded-xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-all italic"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={onAdd}
+                            disabled={!value.trim()}
+                            className="h-12 px-10 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary disabled:opacity-30 disabled:hover:bg-slate-900 transition-all shadow-lg active:scale-95 italic"
+                        >
+                            Create Entity
+                        </button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 }

@@ -215,7 +215,7 @@ export default function MapPageClient({
                                 <div className="flex items-center gap-2">
                                     <Navigation size={12} className="text-white" />
                                     <span className="text-xs font-bold text-white">
-                                        {nearestLocation.name} ({nearestLocation.distance.toFixed(1)} km)
+                                        {nearestLocation.name} ({Number(nearestLocation.distance || 0).toFixed(1)} km)
                                     </span>
                                 </div>
                             </div>

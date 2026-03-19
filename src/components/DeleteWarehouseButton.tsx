@@ -27,8 +27,8 @@ export default function DeleteWarehouseButton({ id }: { id: string }) {
             <button
                 onClick={() => setShowConfirm(true)}
                 disabled={loading}
-                className="p-3.5 text-blue-200 hover:text-red-500 bg-white rounded-xl shadow-sm border border-blue-50 transition-all disabled:opacity-50"
-                title="Purge Node"
+                className="p-3.5 text-slate-400 hover:text-red-500 bg-white rounded-xl shadow-sm border border-slate-100 transition-all disabled:opacity-50"
+                title="Delete Warehouse Registry"
             >
                 <Trash2 size={20} className={loading ? 'animate-pulse' : ''} />
             </button>
@@ -37,9 +37,9 @@ export default function DeleteWarehouseButton({ id }: { id: string }) {
                 isOpen={showConfirm}
                 onClose={() => setShowConfirm(false)}
                 onConfirm={handleDelete}
-                title="Delete Warehouse"
-                description="Are you sure you want to delete this warehouse? This can only be done if it is empty and has no inventory."
-                confirmText="Delete Warehouse"
+                title="Delete Warehouse Registry"
+                description="Are you sure you want to delete this warehouse registry? This action is permanent and can only be performed if the location is currently void of any inventory assets."
+                confirmText="Authorize Deletion"
                 variant="danger"
             />
         </>

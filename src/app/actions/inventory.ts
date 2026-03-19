@@ -11,14 +11,19 @@ const productSchema = z.object({
     sku: z.string().min(1, "SKU is required"),
     barcode: z.string().optional().nullable(),
     description: z.string().optional(),
-    price: z.coerce.number().min(0, "Price must be positive"),
-    cost: z.coerce.number().min(0, "Cost must be positive"),
+    price: z.coerce.number().min(0, "Price must be positive").optional().nullable(),
+    cost: z.coerce.number().min(0, "Cost must be positive").optional().nullable(),
+    isPriceManual: z.coerce.boolean().optional().default(false),
     discountPrice: z.coerce.number().optional().nullable(),
     initialStock: z.coerce.number().optional(), // Added for convenience
     targetType: z.enum(['warehouse', 'shop']).optional(),
     targetId: z.string().optional(),
     businessId: z.string().optional().nullable(),
     imageUrl: z.string().optional().nullable(),
+    unitId: z.string().optional().nullable(),
+    unitName: z.string().optional().nullable(), // For auto-creation
+    categoryId: z.string().optional().nullable(),
+    categoryName: z.string().optional().nullable(), // For auto-creation
 });
 
 export async function createProduct(formData: FormData) {
@@ -51,25 +56,71 @@ export async function createProduct(formData: FormData) {
         if (existing) {
             if (existing.sku === sku) return { error: 'Product with this SKU already exists' };
             if (existing.barcode === finalBarcode) {
-                // If the auto-generated barcode exists, try one more time or just error
                 return { error: 'Generated barcode conflict. Please try again.' };
             }
         }
 
         const product = await prisma.$transaction(async (tx: any) => {
+            let actualCategoryId = result.data.categoryId;
+            let actualUnitId = result.data.unitId;
+
+            // Auto-create category
+            if (!actualCategoryId && result.data.categoryName) {
+                const existingCat = await (tx as any).productCategory.findFirst({
+                    where: { name: result.data.categoryName, businessId: result.data.businessId }
+                });
+                if (existingCat) actualCategoryId = existingCat.id;
+                else {
+                    const newCat = await (tx as any).productCategory.create({
+                        data: { name: result.data.categoryName, businessId: result.data.businessId }
+                    });
+                    actualCategoryId = newCat.id;
+                }
+            }
+
+            // Auto-create unit
+            if (!actualUnitId && result.data.unitName) {
+                const existingUnit = await (tx as any).productUnit.findFirst({
+                    where: { name: result.data.unitName, businessId: result.data.businessId }
+                });
+                if (existingUnit) actualUnitId = existingUnit.id;
+                else {
+                    const newUnit = await (tx as any).productUnit.create({
+                        data: { name: result.data.unitName, businessId: result.data.businessId }
+                    });
+                    actualUnitId = newUnit.id;
+                }
+            }
+
+            const priceVal = (price !== null && price !== undefined) ? price : (cost ? cost * 1.4 : 0);
+            const costVal = cost || 0;
+            const manualVal = (price !== null && price !== undefined);
+
             const p = await tx.product.create({
                 data: {
                     name,
                     sku,
                     barcode: finalBarcode,
                     description,
-                    price,
-                    cost,
+                    price: priceVal,
+                    cost: costVal,
                     discountPrice,
                     imageUrl,
+                    unitId: actualUnitId,
+                    categoryId: actualCategoryId,
                     businessId: result.data.businessId,
                 }
             });
+
+            // Raw SQL fallback for the new field
+            try {
+                await (tx as any).$executeRawUnsafe(
+                    `UPDATE "Product" SET "isPriceManual" = $1 WHERE "id" = $2`,
+                    manualVal, p.id
+                );
+            } catch (rawErr) {
+                console.error('Raw Fallback in Create Failed:', rawErr);
+            }
 
             // Use specified location if provided, otherwise fallback to Main Warehouse
             if (initialStock && initialStock > 0) {
@@ -126,20 +177,129 @@ export async function updateProduct(id: string, formData: FormData) {
     const result = productSchema.partial().safeParse(data);
 
     if (!result.success) {
-        return { error: 'Invalid input data', details: result.error.flatten() };
+        console.log('Validation Error:', result.error.flatten());
+        return { success: false, error: 'Invalid input data', details: result.error.flatten() };
     }
 
     try {
-        await prisma.product.update({
-            where: { id },
-            data: result.data,
-        });
+        const { categoryName, unitName, initialStock, targetType, targetId, ...otherData } = result.data as any;
+        let actualData = { ...otherData } as any;
+
+        if (categoryName) {
+            try {
+                const existingCat = await (prisma as any).productCategory.findFirst({ where: { name: categoryName } });
+                if (existingCat) actualData.categoryId = existingCat.id;
+                else {
+                    const newCat = await (prisma as any).productCategory.create({ data: { name: categoryName } });
+                    actualData.categoryId = newCat.id;
+                }
+            } catch (e: any) {
+                return { success: false, error: `CAT_ERR: ${e.message}` };
+            }
+        }
+
+        if (unitName) {
+            try {
+                const existingUnit = await (prisma as any).productUnit.findFirst({ where: { name: unitName } });
+                if (existingUnit) actualData.unitId = existingUnit.id;
+                else {
+                    const newUnit = await (prisma as any).productUnit.create({ data: { name: unitName } });
+                    actualData.unitId = newUnit.id;
+                }
+            } catch (e: any) {
+                return { success: false, error: `UNIT_ERR: ${e.message}` };
+            }
+        }
+
+        if (otherData.price !== undefined && otherData.price !== null) {
+            actualData.isPriceManual = true;
+        }
+
+        try {
+            const manualVal = actualData.isPriceManual;
+            if (actualData.hasOwnProperty('isPriceManual')) {
+                delete actualData.isPriceManual;
+            }
+
+            await (prisma.product as any).update({
+                where: { id },
+                data: actualData,
+            });
+
+            // If we have a manual override value, we'll try a raw SQL update as a fallback 
+            // since the Prisma client might be out of date and won't recognize the new field.
+            if (manualVal !== undefined) {
+                try {
+                    await (prisma as any).$executeRawUnsafe(
+                        `UPDATE "Product" SET "isPriceManual" = $1 WHERE "id" = $2`,
+                        manualVal, id
+                    );
+                } catch (rawErr: any) {
+                    console.error('Raw SQL Fallback Failed:', rawErr.message);
+                    // We don't return here because the main update already succeeded
+                }
+            }
+        } catch (e: any) {
+            console.error('DB_ERR:', e.message);
+            return { success: false, error: `DB_ERR: ${e.message}` };
+        }
 
         revalidatePath('/admin/inventory');
         return { success: true };
+    } catch (e: any) {
+        return { success: false, error: `GEN_ERR: ${e.message}` };
+    }
+}
+
+export async function getCategories(businessId?: string | null) {
+    try {
+        const categories = await (prisma as any).productCategory.findMany({
+            where: businessId ? { businessId } : undefined,
+            orderBy: { name: 'asc' }
+        });
+        return categories;
     } catch (error) {
-        console.error('Update product error:', error);
-        return { error: 'Failed to update product' };
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+}
+
+export async function getUnits(businessId?: string | null) {
+    try {
+        const units = await (prisma as any).productUnit.findMany({
+            where: businessId ? { businessId } : undefined,
+            orderBy: { name: 'asc' }
+        });
+        return units;
+    } catch (error) {
+        console.error('Get units error:', error);
+        return [];
+    }
+}
+
+export async function createCategory(name: string, businessId?: string | null) {
+    try {
+        const cat = await (prisma as any).productCategory.create({
+            data: { name, businessId }
+        });
+        revalidatePath('/admin/inventory');
+        return { success: true, category: cat };
+    } catch (error) {
+        console.error('Create category error:', error);
+        return { error: 'Failed to create category' };
+    }
+}
+
+export async function createUnit(name: string, businessId?: string | null) {
+    try {
+        const unit = await (prisma as any).productUnit.create({
+            data: { name, businessId }
+        });
+        revalidatePath('/admin/inventory');
+        return { success: true, unit };
+    } catch (error) {
+        console.error('Create unit error:', error);
+        return { error: 'Failed to create unit' };
     }
 }
 
@@ -440,16 +600,34 @@ export async function manualBulkCreateProducts(rows: any[], options: { businessI
         await prisma.$transaction(async (tx: any) => {
             for (const row of rows) {
                 const finalBarcode = generateBarcode();
+                const cost = parseFloat(row.cost || '0') || 0;
+                const manualPrice = (row.price !== undefined && row.price !== '') ? parseFloat(row.price) : null;
+                const price = manualPrice !== null ? manualPrice : (cost ? cost * 1.4 : null);
+                
+                const isPriceManual = row.isPriceManual ?? (manualPrice !== null);
+                
                 const p = await tx.product.create({
                     data: {
                         name: row.name,
                         sku: row.sku,
                         barcode: finalBarcode,
-                        price: parseFloat(row.price),
-                        cost: parseFloat(row.cost),
+                        price: price,
+                        cost: cost,
+                        categoryId: row.categoryId || null,
+                        unitId: row.unitId || null,
                         businessId
                     }
                 });
+
+                // Raw SQL fallback for the new field
+                try {
+                    await (tx as any).$executeRawUnsafe(
+                        `UPDATE "Product" SET "isPriceManual" = $1 WHERE "id" = $2`,
+                        isPriceManual, p.id
+                    );
+                } catch (rawErr) {
+                    console.error('Raw Fallback in Bulk Create Failed:', rawErr);
+                }
 
                 const qty = parseInt(row.initialStock || '0');
                 if (qty > 0 && targetId) {

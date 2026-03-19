@@ -17,19 +17,20 @@ interface InventoryPageProps {
         shopId?: string;
         warehouseId?: string;
         q?: string;
+        categoryId?: string;
     }>
 }
 
 export default async function InventoryPage({ searchParams }: InventoryPageProps) {
     const params = await searchParams;
-    const { filter = 'all', shopId, warehouseId, q = '' } = params;
+    const { filter = 'all', shopId, warehouseId, q = '', categoryId } = params;
 
     const businessFilter = await getBusinessFilter();
     const selectedBusinessId = await getSelectedBusinessId();
 
     // Fetch all needed data
-    const [rawProducts, rawShops, rawWarehouses, baseCurrency] = await Promise.all([
-        prisma.product.findMany({
+    const [rawProducts, rawShops, rawWarehouses, rawCategories, baseCurrency] = await Promise.all([
+        (prisma.product as any).findMany({
             where: {
                 ...businessFilter,
                 ...(q ? {
@@ -37,7 +38,8 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                         { name: { contains: q, mode: 'insensitive' } },
                         { sku: { contains: q, mode: 'insensitive' } }
                     ]
-                } : {})
+                } : {}),
+                ...(categoryId ? { categoryId } : {})
             } as any,
             orderBy: { name: 'asc' },
             include: {
@@ -46,17 +48,21 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                         shop: true,
                         warehouse: true
                     }
-                }
+                },
+                category: true,
+                unit: true
             }
         }),
         prisma.shop.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
         prisma.warehouse.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
+        (prisma as any).productCategory.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
         prisma.currency.findFirst({ where: { isBase: true } })
     ]);
 
     const productsData = sanitizeData(rawProducts);
     const shops = sanitizeData(rawShops);
     const warehouses = sanitizeData(rawWarehouses);
+    const categories = sanitizeData(rawCategories);
     const currency = sanitizeData(baseCurrency) || { symbol: '$', rate: 1 };
 
     type ProductWithInventory = Prisma.ProductGetPayload<{
@@ -128,6 +134,8 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                         shopId={shopId}
                         warehouseId={warehouseId}
                         currency={currency}
+                        categories={categories}
+                        activeCategoryId={categoryId}
                     />
                 </div>
             </div>

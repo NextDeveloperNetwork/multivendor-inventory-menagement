@@ -140,6 +140,8 @@ export async function createCustomer(formData: FormData) {
     const name = formData.get('name') as string;
     const phone = formData.get('phone') as string;
     const email = formData.get('email') as string;
+    const address = formData.get('address') as string;
+    const taxId = formData.get('taxId') as string;
     const businessId = formData.get('businessId') as string;
 
     if (!businessId) return { error: 'Business context required' };
@@ -150,8 +152,10 @@ export async function createCustomer(formData: FormData) {
                 businessId,
                 name,
                 phone,
-                email
-            }
+                email,
+                address,
+                taxId
+            } as any
         });
 
         await logActivity({
@@ -164,6 +168,7 @@ export async function createCustomer(formData: FormData) {
         revalidatePath('/admin/customers');
         return { success: true, customer };
     } catch (e) {
+        console.error('Customer creation error:', e);
         return { error: 'Failed to create customer' };
     }
 }

@@ -75,11 +75,11 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50 p-6 rounded-[2rem] border border-slate-200 shadow-sm">
                 <div>
-                    <h1 className="text-2xl font-black uppercase tracking-tighter italic text-slate-900 line-through decoration-blue-500/30">
-                        Personnel <span className="text-blue-600">Matrix</span>
+                    <h1 className="text-2xl font-black uppercase tracking-tighter italic text-slate-900">
+                        Staff <span className="text-blue-600">Directory</span>
                     </h1>
                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 italic">
-                        Managing {users.length} Active Node Operators & Network Identities
+                        Managing {users.length} Active System Users & Account Profiles
                     </p>
                 </div>
 
@@ -87,7 +87,7 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                     <input
                         type="text"
-                        placeholder="SEARCH_OPERATORS..."
+                        placeholder="SEARCH_STAFF_MEMBERS..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full pl-10 pr-4 h-10 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] outline-none focus:border-blue-600 transition-all font-mono italic text-slate-900"
@@ -128,7 +128,7 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
 
                         <div className="mt-6 space-y-4 relative z-10">
                             <div>
-                                <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 italic leading-none">{user.name || 'Anonymous Operator'}</h3>
+                                <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 italic leading-none">{user.name || 'Anonymous User'}</h3>
                                 <div className="flex items-center gap-2 mt-1 text-slate-400 italic">
                                     <Mail size={12} className="text-blue-500" />
                                     <span className="text-[10px] font-black uppercase tracking-widest font-mono text-slate-500">{user.email}</span>
@@ -144,7 +144,7 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
 
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-900 text-white border border-slate-900 text-[8px] font-black uppercase tracking-widest font-mono italic">
                                     <Store size={10} className="text-slate-400" />
-                                    {user.shop?.name || 'UNASSIGNED_NODE'}
+                                    {user.shop?.name || 'UNASSIGNED_BRANCH'}
                                 </div>
                             </div>
                         </div>
@@ -160,9 +160,9 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                             <ShieldAlert size={80} />
                         </div>
                         <DialogHeader>
-                            <DialogTitle className="text-2xl font-black uppercase tracking-tighter italic line-through decoration-blue-500/30">Identity Management</DialogTitle>
+                            <DialogTitle className="text-2xl font-black uppercase tracking-tighter italic">System Profile Settings</DialogTitle>
                             <DialogDescription className="text-blue-400 font-black uppercase text-[9px] tracking-[0.2em] mt-2 italic flex items-center gap-2">
-                                <div className="w-1 h-1 bg-blue-500" /> Updating Node Permissions & Credentials
+                                <div className="w-1 h-1 bg-blue-500" /> Updating User Permissions & Security Credentials
                             </DialogDescription>
                         </DialogHeader>
                     </div>
@@ -170,7 +170,7 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                     <form action={handleUpdate} className="p-8 space-y-6 bg-white">
                         <div className="space-y-4">
                             <div>
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Operator Alias</label>
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Full Legal Name</label>
                                 <input
                                     name="name"
                                     defaultValue={editingUser?.name}
@@ -178,7 +178,7 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                                 />
                             </div>
                             <div>
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Network Uplink (Email)</label>
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Official Email Address</label>
                                 <input
                                     name="email"
                                     defaultValue={editingUser?.email}
@@ -193,18 +193,18 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                                         defaultValue={editingUser?.role}
                                         className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black focus:border-blue-600 focus:bg-white transition-all outline-none text-[10px] uppercase italic"
                                     >
-                                        <option value="USER">OPERATOR</option>
-                                        <option value="ADMIN">ADMIN_NODE</option>
+                                        <option value="USER">Standard Staff</option>
+                                        <option value="ADMIN">System Administrator</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Node Affinity</label>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Branch Assignment</label>
                                     <select
                                         name="shopId"
                                         defaultValue={editingUser?.shopId || ''}
                                         className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black focus:border-blue-600 focus:bg-white transition-all outline-none text-[10px] uppercase italic"
                                     >
-                                        <option value="">DE-ASSIGNED</option>
+                                        <option value="">DE-ASSIGNED / FLOATING</option>
                                         {shops.map(shop => (
                                             <option key={shop.id} value={shop.id}>{shop.name}</option>
                                         ))}
@@ -219,7 +219,7 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                                 disabled={loading}
                                 className="flex-1 bg-slate-900 hover:bg-blue-600 text-white font-black h-14 rounded-xl transition-all shadow-lg active:scale-95 uppercase tracking-[0.2em] text-[10px] italic disabled:opacity-50"
                             >
-                                {loading ? 'SYNCHRONIZING...' : 'COMMIT_IDENTITY_CHANGES'}
+                                {loading ? 'SAVING...' : 'SAVE_PROFILE_CHANGES'}
                             </button>
                         </div>
                     </form>
@@ -233,7 +233,7 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                             <Trash2 size={32} />
                         </div>
                         <h2 className="text-2xl font-black uppercase tracking-tighter italic">Purge Profile?</h2>
-                        <p className="text-rose-100 font-black uppercase text-[9px] tracking-widest mt-2 italic">Revoking Network Access Tier</p>
+                        <p className="text-rose-100 font-black uppercase text-[9px] tracking-widest mt-2 italic">Deactivating User Access Level</p>
                     </div>
 
                     <div className="p-8 space-y-8 text-center bg-white">
@@ -247,13 +247,13 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                                 disabled={loading}
                                 className="w-full h-14 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black uppercase italic tracking-[0.2em] text-[10px] transition-all shadow-lg shadow-rose-200"
                             >
-                                {loading ? 'PURGING...' : 'EXECUTE_PURGE_COMMAND'}
+                                {loading ? 'DELETING...' : 'CONFIRM_USER_DELETION'}
                             </button>
                             <button
                                 onClick={() => setIsDeleteDialogOpen(false)}
                                 className="w-full h-14 bg-slate-50 text-slate-400 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-100 transition-all italic border border-slate-200"
                             >
-                                ABORT_MISSION
+                                Cancel Action
                             </button>
                         </div>
                     </div>

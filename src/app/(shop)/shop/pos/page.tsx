@@ -14,6 +14,7 @@ export default async function SalesPage() {
     // Fetch all products and their inventory for this shop
     const rawProducts = await prisma.product.findMany({
         include: {
+            category: true,
             inventory: {
                 where: { shopId: session.user.shopId }
             }
