@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { sanitizeData } from '@/lib/utils';
 
 export async function createInvoice(formData: FormData) {
     const supplierId = formData.get('supplierId') as string;
@@ -9,6 +10,12 @@ export async function createInvoice(formData: FormData) {
 
     const manualNumber = formData.get('number') as string;
     const warehouseId = formData.get('warehouseId') as string;
+    const shopId = formData.get('shopId') as string;
+
+    // Validation: Require either warehouseId OR shopId, but not both or neither
+    if ((!warehouseId && !shopId) || (warehouseId && shopId)) {
+        return { success: false, error: 'Please select either a Warehouse or a Shop as destination.' };
+    }
 
     try {
         let invoiceNumber = manualNumber;
@@ -24,7 +31,8 @@ export async function createInvoice(formData: FormData) {
         const invoice = await prisma.invoice.create({
             data: {
                 number: invoiceNumber,
-                warehouseId: warehouseId, // Store the warehouse ID
+                warehouse: warehouseId ? { connect: { id: warehouseId } } : undefined,
+                shop: shopId ? { connect: { id: shopId } } : undefined,
                 supplier: (supplierId ? { connect: { id: supplierId } } : undefined) as any,
                 items: {
                     create: items.map((item: any) => ({
@@ -44,40 +52,67 @@ export async function createInvoice(formData: FormData) {
             } as any, // Cast to any to resolve generic inference issue with generated client
         });
 
-        // Update warehouse inventory
+        // Update inventory
         for (const item of items) {
             const qtyToAdd = parseInt(item.quantity);
             const unitCost = parseFloat(item.cost);
 
-            const existingInventory = await prisma.inventory.findUnique({
-                where: {
-                    productId_warehouseId: {
-                        productId: item.productId,
-                        warehouseId,
-                    }
-                },
-            });
+            // Determine where to update stock
+            if (shopId) {
+                // Shop Inventory
+                const existingInventory = await prisma.inventory.findUnique({
+                    where: {
+                        productId_shopId: {
+                            productId: item.productId,
+                            shopId: shopId,
+                        }
+                    },
+                });
 
-            if (existingInventory) {
-                await prisma.inventory.update({
-                    where: { id: existingInventory.id },
-                    data: {
-                        quantity: {
-                            increment: qtyToAdd,
+                if (existingInventory) {
+                    await prisma.inventory.update({
+                        where: { id: existingInventory.id },
+                        data: { quantity: { increment: qtyToAdd } },
+                    });
+                } else {
+                    await prisma.inventory.create({
+                        data: {
+                            productId: item.productId,
+                            shopId: shopId,
+                            quantity: qtyToAdd,
                         },
-                    },
-                });
+                    });
+                }
             } else {
-                await prisma.inventory.create({
-                    data: {
-                        productId: item.productId,
-                        warehouseId,
-                        quantity: qtyToAdd,
+                // Warehouse Inventory
+                const existingInventory = await prisma.inventory.findUnique({
+                    where: {
+                        productId_warehouseId: {
+                            productId: item.productId,
+                            warehouseId: warehouseId,
+                        }
                     },
                 });
+
+                if (existingInventory) {
+                    await prisma.inventory.update({
+                        where: { id: existingInventory.id },
+                        data: { quantity: { increment: qtyToAdd } },
+                    });
+                } else {
+                    await prisma.inventory.create({
+                        data: {
+                            productId: item.productId,
+                            warehouseId: warehouseId,
+                            quantity: qtyToAdd,
+                        },
+                    });
+                }
             }
 
             // Calculate Weighted Average Cost (WAC)
+            // Note: WAC usually applies globally or per company.
+            // Assuming cost tracking is per product global definition for now.
             const product = await prisma.product.findUnique({
                 where: { id: item.productId },
                 include: { inventory: true }
@@ -108,7 +143,8 @@ export async function createInvoice(formData: FormData) {
 
         revalidatePath('/admin/invoices');
         revalidatePath('/admin/inventory');
-        return { success: true, invoice };
+        revalidatePath('/shop/inventory');
+        return { success: true, invoice: sanitizeData(invoice) };
     } catch (error) {
         console.error('Error creating invoice:', error);
         return { success: false, error: 'Failed to create invoice' };
@@ -125,6 +161,8 @@ export async function getInvoices() {
                     },
                 },
                 supplier: true,
+                warehouse: true,
+                shop: true,
             } as any,
             orderBy: {
                 date: 'desc',
@@ -146,17 +184,11 @@ export async function deleteInvoice(id: string) {
 
         if (!invoice) return { success: false, error: 'Invoice not found' };
 
-        // We assume all items from an invoice went to the same warehouse initially
-        // In this system, we need to know WHICH warehouse it went to.
-        // Looking at createInvoice, it uses a single warehouseId for the entire batch.
-        // However, the Invoice model doesn't store warehouseId directly.
-        // It's stored in the Inventory records.
-        // Let's find where these items are currently located.
-
+        // We need to revert inventory from where it was added (Warehouse or Shop)
         const inv = invoice as any;
 
         await prisma.$transaction(async (tx) => {
-            // Rollback inventory if warehouseId exists
+            // Revert inventory
             if (inv.warehouseId) {
                 for (const item of inv.items) {
                     const inventory = await tx.inventory.findUnique({
@@ -171,11 +203,25 @@ export async function deleteInvoice(id: string) {
                     if (inventory) {
                         await tx.inventory.update({
                             where: { id: inventory.id },
-                            data: {
-                                quantity: {
-                                    decrement: item.quantity
-                                }
+                            data: { quantity: { decrement: item.quantity } }
+                        });
+                    }
+                }
+            } else if (inv.shopId) {
+                for (const item of inv.items) {
+                    const inventory = await tx.inventory.findUnique({
+                        where: {
+                            productId_shopId: {
+                                productId: item.productId,
+                                shopId: inv.shopId
                             }
+                        }
+                    });
+
+                    if (inventory) {
+                        await tx.inventory.update({
+                            where: { id: inventory.id },
+                            data: { quantity: { decrement: item.quantity } }
                         });
                     }
                 }
@@ -188,6 +234,7 @@ export async function deleteInvoice(id: string) {
 
         revalidatePath('/admin/invoices');
         revalidatePath('/admin/inventory');
+        revalidatePath('/shop/inventory');
         return { success: true };
     } catch (error) {
         console.error('Error deleting invoice:', error);

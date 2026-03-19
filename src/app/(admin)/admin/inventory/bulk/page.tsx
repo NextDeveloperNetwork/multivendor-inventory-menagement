@@ -1,24 +1,20 @@
 import { prisma } from '@/lib/prisma';
 import { sanitizeData } from '@/lib/utils';
 import { getSelectedBusinessId } from '@/app/actions/business';
-import NewProductClient from '@/components/NewProductClient';
+import BulkAddClient from '@/components/BulkAddClient';
 
-export default async function NewProductPage() {
+export default async function BulkAddPage() {
     const selectedBusinessId = await getSelectedBusinessId();
     const businessFilter = selectedBusinessId ? { businessId: selectedBusinessId } : {};
 
-    const [baseCurrency, shops, warehouses] = await Promise.all([
-        prisma.currency.findFirst({ where: { isBase: true } }),
+    const [shops, warehouses] = await Promise.all([
         prisma.shop.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
         prisma.warehouse.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } })
     ]);
 
-    const currency = sanitizeData(baseCurrency) || { symbol: '$', code: 'USD' };
-
     return (
-        <NewProductClient
+        <BulkAddClient
             selectedBusinessId={selectedBusinessId}
-            currency={currency}
             shops={sanitizeData(shops)}
             warehouses={sanitizeData(warehouses)}
         />

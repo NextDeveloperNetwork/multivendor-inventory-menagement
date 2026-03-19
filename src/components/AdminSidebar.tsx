@@ -74,7 +74,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
                                 <Store size={20} strokeWidth={2.5} />
                             </div>
                             <div>
-                                <h1 className="text-lg font-bold text-slate-900 leading-tight">Velto</h1>
+                                <h1 className="text-lg font-bold text-slate-900 leading-tight">Busines Menagement</h1>
                                 <p className="text-[10px] text-slate-400 font-medium">Professional Plan</p>
                             </div>
                         </div>
@@ -86,11 +86,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
                         </button>
                     </div>
 
-                    <button className="w-full bg-primary text-white h-12 rounded-xl flex items-center justify-center gap-2 font-bold text-sm shadow-lg shadow-primary/20 hover:opacity-90 transition-all active:scale-95 mb-6">
-                        <Plus size={18} />
-                        <span>Create</span>
-                        <span className="ml-auto bg-white/20 px-2 py-0.5 rounded-md text-[10px]">N</span>
-                    </button>
+                    <BusinessSelector />
                 </div>
 
                 {/* Navigation */}
@@ -122,17 +118,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
                 {/* Footer Section */}
                 <div className="p-4 mt-auto space-y-6">
                     {/* Upgrade Card */}
-                    <div className="bg-slate-50 rounded-[1.5rem] p-5 border border-slate-100 relative overflow-hidden group">
-                        <div className="relative z-10">
-                            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-1">3 Days left!</h3>
-                            <p className="text-[10px] text-slate-500 leading-relaxed mb-4">
-                                Select best plan now and unlock all special feature
-                            </p>
-                            <button className="w-full bg-white border border-slate-200 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-900 hover:bg-slate-50 transition-all shadow-sm">
-                                Upgrade plan
-                            </button>
-                        </div>
-                    </div>
+
 
                     {/* User Profile */}
                     <div className="flex items-center gap-3 px-2 py-2 border-t border-slate-100 pt-6">

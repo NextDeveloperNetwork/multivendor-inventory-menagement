@@ -39,7 +39,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
         where.number = { contains: q, mode: 'insensitive' };
     }
 
-    const [rawInvoices, rawProducts, rawSuppliers, rawWarehouses, baseCurrency] = await Promise.all([
+    const [rawInvoices, rawProducts, rawSuppliers, rawWarehouses, rawShops, baseCurrency] = await Promise.all([
         prisma.invoice.findMany({
             where: where as any,
             include: {
@@ -47,12 +47,15 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                     include: { product: true }
                 },
                 supplier: true,
+                warehouse: true,
+                shop: true,
             } as any,
             orderBy: { date: 'desc' },
         }),
         prisma.product.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
         getSuppliers(businessFilter as any),
         prisma.warehouse.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
+        prisma.shop.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
         prisma.currency.findFirst({ where: { isBase: true } })
     ]);
 
@@ -60,6 +63,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     const products = sanitizeData(rawProducts);
     const suppliers = sanitizeData(rawSuppliers);
     const warehouses = sanitizeData(rawWarehouses);
+    const shops = sanitizeData(rawShops);
     const currency = sanitizeData(baseCurrency) || { symbol: '$', rate: 1, code: 'USD' };
 
     return (
@@ -107,6 +111,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
                     products={products}
                     suppliers={suppliers}
                     warehouses={warehouses}
+                    shops={shops}
                     currency={currency}
                     selectedBusinessId={selectedBusinessId}
                 />

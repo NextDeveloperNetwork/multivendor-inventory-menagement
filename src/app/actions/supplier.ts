@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { sanitizeData } from '@/lib/utils';
 
 import { getBusinessFilter } from './business';
 
@@ -28,7 +29,7 @@ export async function createSupplier(formData: FormData) {
         });
 
         revalidatePath('/admin/suppliers');
-        return { success: true, supplier };
+        return { success: true, supplier: sanitizeData(supplier) };
     } catch (error) {
         console.error('Error creating supplier:', error);
         return { success: false, error: 'Failed to create supplier' };
@@ -57,7 +58,7 @@ export async function updateSupplier(id: string, formData: FormData) {
         });
 
         revalidatePath('/admin/suppliers');
-        return { success: true, supplier };
+        return { success: true, supplier: sanitizeData(supplier) };
     } catch (error) {
         console.error('Error updating supplier:', error);
         return { success: false, error: 'Failed to update supplier' };

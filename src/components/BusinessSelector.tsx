@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { getBusinesses, getSelectedBusinessId, setSelectedBusinessId, createBusiness } from '@/app/actions/business';
 import { Briefcase, ChevronDown, Plus, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-export function BusinessSelector() {
+export function BusinessSelector({ className }: { className?: string }) {
     const [businesses, setBusinesses] = useState<any[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
@@ -57,7 +58,7 @@ export function BusinessSelector() {
     const selectedBusiness = businesses.find(b => b.id === selectedId);
 
     return (
-        <div className="relative mb-8 z-[60]">
+        <div className={cn("relative mb-8 z-[60]", className)}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-[1.5rem] hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/10 transition-all group relative overflow-hidden"

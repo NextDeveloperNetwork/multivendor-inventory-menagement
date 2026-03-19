@@ -44,6 +44,7 @@ export default function TransferClient({ transfers, products, shops, warehouses,
         { productId: '', quantity: '' },
     ]);
     const [loading, setLoading] = useState(false);
+    const [showAllProducts, setShowAllProducts] = useState(true);
 
     // Sync filters from URL
     const startDate = searchParams.get('startDate') || '';
@@ -295,7 +296,18 @@ export default function TransferClient({ transfers, products, shops, warehouses,
 
                         <div className="space-y-10">
                             <div className="flex justify-between items-center border-b border-blue-100 pb-4">
-                                <h3 className="text-[11px] font-black text-blue-400 uppercase tracking-widest px-2 italic">Manifest Segments</h3>
+                                <div className="flex items-center gap-6">
+                                    <h3 className="text-[11px] font-black text-blue-400 uppercase tracking-widest px-2 italic">Manifest Segments</h3>
+                                    {fromId && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAllProducts(!showAllProducts)}
+                                            className={`text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-lg border transition-all ${showAllProducts ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-400 border-blue-100'}`}
+                                        >
+                                            {showAllProducts ? 'Showing Full Catalog' : 'Filter by Availability'}
+                                        </button>
+                                    )}
+                                </div>
                                 <button type="button" onClick={addItem} className="text-[10px] font-black text-blue-500 bg-white border-2 border-blue-100 px-6 py-2.5 rounded-xl hover:bg-blue-500 hover:text-white hover:border-blue-500 transition-all uppercase shadow-sm">
                                     Append Asset +
                                 </button>
@@ -319,10 +331,15 @@ export default function TransferClient({ transfers, products, shops, warehouses,
                                                 >
                                                     <option value="">Select Resource...</option>
                                                     {products
-                                                        .filter(p => getAvailableQuantity(p.id) > 0 || p.id === item.productId)
-                                                        .map(p => (
-                                                            <option key={p.id} value={p.id}>{p.name} [{p.sku}]</option>
-                                                        ))}
+                                                        .filter(p => showAllProducts || !fromId || getAvailableQuantity(p.id) > 0)
+                                                        .map(p => {
+                                                            const available = getAvailableQuantity(p.id);
+                                                            return (
+                                                                <option key={p.id} value={p.id}>
+                                                                    {p.name} [{p.sku}] (Available: {available})
+                                                                </option>
+                                                            );
+                                                        })}
                                                 </select>
                                                 {item.productId && (
                                                     <div className={`text-[10px] mt-3 font-bold px-2 uppercase tracking-widest ${isInsufficient ? 'text-red-500' : 'text-blue-300'}`}>

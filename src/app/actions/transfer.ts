@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { sanitizeData } from '@/lib/utils';
 
 export async function createTransfer(formData: FormData) {
     const fromType = formData.get('fromType') as 'warehouse' | 'shop';
@@ -91,7 +92,7 @@ export async function createTransfer(formData: FormData) {
         revalidatePath('/shop');
         revalidatePath('/shop/inventory');
         revalidatePath('/shop/history');
-        return { success: true, transfer };
+        return { success: true, transfer: sanitizeData(transfer) };
     } catch (error) {
         console.error('Error creating transfer:', error);
         return { success: false, error: 'Failed to create transfer' };

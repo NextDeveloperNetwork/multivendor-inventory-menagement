@@ -28,8 +28,10 @@ import {
     HelpCircle,
     Image as ImageIcon,
     CheckSquare,
-    Square
+    Square,
+    Printer
 } from 'lucide-react';
+import BarcodePrintDialog from './barcode/BarcodePrintDialog';
 import { toast } from 'sonner';
 import { logActivity } from '@/app/actions/intelligence';
 import ImageUpload from './ImageUpload';
@@ -63,8 +65,9 @@ export default function InventoryClient({ products: initialProducts, filter, sho
     const [historyProduct, setHistoryProduct] = useState<any>(null);
     const [showScanner, setShowScanner] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [viewMode, setViewMode] = useState<'table' | 'catalog'>('catalog');
+    const [viewMode, setViewMode] = useState<'table' | 'catalog'>('table');
     const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+    const [printProduct, setPrintProduct] = useState<any>(null);
     const router = useRouter();
 
     const filteredProducts = initialProducts.filter(p =>
@@ -365,6 +368,13 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                                             <Copy size={18} />
                                                         </button>
                                                     )}
+                                                    <button
+                                                        onClick={() => setPrintProduct(product)}
+                                                        className="w-10 h-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-400 transition-all shadow-sm"
+                                                        title="Print Barcode"
+                                                    >
+                                                        <Printer size={18} />
+                                                    </button>
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={() => setEditingProduct(product)}
@@ -433,6 +443,9 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                         </button>
                                         <button onClick={() => { setProductToDelete(product); setIsDeleteDialogOpen(true); }} className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-600 hover:text-rose-500 shadow-sm border border-slate-200/50">
                                             <Trash2 size={16} />
+                                        </button>
+                                        <button onClick={() => setPrintProduct(product)} className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-slate-600 hover:text-indigo-600 shadow-sm border border-slate-200/50" title="Print Barcode">
+                                            <Printer size={16} />
                                         </button>
                                     </div>
                                     <div className="absolute bottom-4 left-4">
@@ -556,6 +569,13 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                         <span className="text-[10px] font-black uppercase tracking-widest">Copy</span>
                                     </button>
                                 )}
+                                <button
+                                    onClick={() => setPrintProduct(product)}
+                                    className="flex-1 h-12 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-xl border-2 border-transparent hover:border-indigo-200 transition-all gap-2"
+                                >
+                                    <Printer size={16} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Print</span>
+                                </button>
                                 <button onClick={() => setEditingProduct(product)} className="flex-1 h-12 flex items-center justify-center bg-white border-2 border-slate-100 rounded-xl text-xs font-black uppercase tracking-widest text-slate-500 hover:border-blue-500 hover:text-blue-500 transition-all">
                                     Config
                                 </button>
@@ -826,21 +846,30 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                 </DialogContent>
             </Dialog>
 
+            {/* Barcode Print Dialog */}
+            <BarcodePrintDialog
+                product={printProduct}
+                isOpen={!!printProduct}
+                onClose={() => setPrintProduct(null)}
+            />
+
             <ProductHistoryDialog
                 product={historyProduct}
                 isOpen={!!historyProduct}
                 onClose={() => setHistoryProduct(null)}
             />
 
-            {showScanner && (
-                <BarcodeScanner
-                    onScan={(code) => {
-                        setSearch(code);
-                        setShowScanner(false);
-                    }}
-                    onClose={() => setShowScanner(false)}
-                />
-            )}
+            {
+                showScanner && (
+                    <BarcodeScanner
+                        onScan={(code) => {
+                            setSearch(code);
+                            setShowScanner(false);
+                        }}
+                        onClose={() => setShowScanner(false)}
+                    />
+                )
+            }
         </div>
     );
 }

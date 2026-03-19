@@ -70,6 +70,7 @@ model Shop {
   transfersFrom Transfer[]  @relation("TransferFromShop")
   transfersTo   Transfer[]  @relation("TransferToShop")
   users         User[]
+  invoices      Invoice[]
 }
 
 model Product {
@@ -127,6 +128,7 @@ model Invoice {
   id         String        @id @default(cuid())
   businessId String?
   warehouseId String?
+  shopId     String?
   number     String        @unique
   date       DateTime      @default(now())
   supplierId String?
@@ -134,6 +136,7 @@ model Invoice {
   updatedAt  DateTime      @updatedAt
   supplier   Supplier?     @relation(fields: [supplierId], references: [id])
   warehouse  Warehouse?    @relation(fields: [warehouseId], references: [id])
+  shop       Shop?         @relation(fields: [shopId], references: [id])
   items      InvoiceItem[]
 
   @@index([businessId])

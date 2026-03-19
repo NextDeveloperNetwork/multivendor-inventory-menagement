@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, List } from 'lucide-react';
 import { Prisma } from '@prisma/client';
 import InventoryFilter from '@/components/InventoryFilter';
 import { sanitizeData } from '@/lib/utils';
@@ -91,6 +91,9 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
 
                     <div className="flex gap-4">
                         <BulkUploadDialog selectedBusinessId={selectedBusinessId} />
+                        <Link href="/admin/inventory/bulk" className="h-16 px-8 bg-white text-black border-2 border-slate-200 rounded-2xl font-bold hover:bg-slate-50 transition-all active:scale-[0.98] flex items-center gap-4 uppercase tracking-[0.2em] text-xs shadow-sm">
+                            <List size={20} className="text-primary" /> Multi-Add Matrix
+                        </Link>
                         <Link href="/admin/inventory/new" className="h-16 px-10 bg-black text-white rounded-2xl font-bold shadow-2xl shadow-blue-500/10 hover:bg-blue-600 transition-all active:scale-[0.98] flex items-center gap-4 uppercase tracking-[0.2em] text-xs border-2 border-black">
                             <Plus size={24} /> Add New Catalog Item
                         </Link>

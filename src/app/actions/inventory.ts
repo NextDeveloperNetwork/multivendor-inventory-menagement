@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { generateBarcode } from '@/lib/utils';
+import { generateBarcode, sanitizeData } from '@/lib/utils';
 import Papa from 'papaparse';
 
 const productSchema = z.object({
@@ -15,6 +15,8 @@ const productSchema = z.object({
     cost: z.coerce.number().min(0, "Cost must be positive"),
     discountPrice: z.coerce.number().optional().nullable(),
     initialStock: z.coerce.number().optional(), // Added for convenience
+    targetType: z.enum(['warehouse', 'shop']).optional(),
+    targetId: z.string().optional(),
     businessId: z.string().optional().nullable(),
     imageUrl: z.string().optional().nullable(),
 });
@@ -69,33 +71,44 @@ export async function createProduct(formData: FormData) {
                 }
             });
 
-            // Put initial stock into Main Warehouse instead of shops
+            // Use specified location if provided, otherwise fallback to Main Warehouse
             if (initialStock && initialStock > 0) {
-                let warehouse = await tx.warehouse.findFirst({
-                    where: { businessId: result.data.businessId } as any
-                });
-                if (!warehouse) {
-                    warehouse = await tx.warehouse.create({
-                        data: {
-                            name: 'Main Warehouse',
-                            businessId: result.data.businessId
-                        } as any,
+                let actualTargetId = result.data.targetId;
+                let actualTargetType = result.data.targetType || 'warehouse';
+
+                // Fallback to warehouse if no ID is provided, even if 'shop' was selected but left empty
+                if (!actualTargetId) {
+                    actualTargetType = 'warehouse';
+                    let warehouse = await tx.warehouse.findFirst({
+                        where: { businessId: result.data.businessId } as any
                     });
+                    if (!warehouse) {
+                        warehouse = await tx.warehouse.create({
+                            data: {
+                                name: 'Main Warehouse',
+                                businessId: result.data.businessId
+                            } as any,
+                        });
+                    }
+                    actualTargetId = warehouse.id;
                 }
 
-                await tx.inventory.create({
-                    data: {
-                        productId: p.id,
-                        warehouseId: warehouse.id,
-                        quantity: initialStock
-                    }
-                });
+                if (actualTargetId) {
+                    await tx.inventory.create({
+                        data: {
+                            productId: p.id,
+                            warehouseId: actualTargetType === 'warehouse' ? actualTargetId : null,
+                            shopId: actualTargetType === 'shop' ? actualTargetId : null,
+                            quantity: initialStock
+                        }
+                    });
+                }
             }
             return p;
         });
 
         revalidatePath('/admin/inventory');
-        return { success: true, product };
+        return { success: true, product: sanitizeData(product) };
     } catch (error) {
         console.error('Create product error:', error);
         return { error: 'Failed to create product' };
@@ -413,9 +426,50 @@ export async function bulkCreateProducts(formData: FormData) {
 
         revalidatePath('/admin/inventory');
         return { success: true, results };
-
     } catch (error) {
         console.error('Bulk create error:', error);
         return { success: false, error: 'Failed to process bulk upload' };
+    }
+}
+
+export async function manualBulkCreateProducts(rows: any[], options: { businessId: string | null, targetType: 'warehouse' | 'shop', targetId?: string }) {
+    try {
+        const { businessId, targetType, targetId } = options;
+        let count = 0;
+
+        await prisma.$transaction(async (tx: any) => {
+            for (const row of rows) {
+                const finalBarcode = generateBarcode();
+                const p = await tx.product.create({
+                    data: {
+                        name: row.name,
+                        sku: row.sku,
+                        barcode: finalBarcode,
+                        price: parseFloat(row.price),
+                        cost: parseFloat(row.cost),
+                        businessId
+                    }
+                });
+
+                const qty = parseInt(row.initialStock || '0');
+                if (qty > 0 && targetId) {
+                    await tx.inventory.create({
+                        data: {
+                            productId: p.id,
+                            warehouseId: targetType === 'warehouse' ? targetId : null,
+                            shopId: targetType === 'shop' ? targetId : null,
+                            quantity: qty
+                        }
+                    });
+                }
+                count++;
+            }
+        });
+
+        revalidatePath('/admin/inventory');
+        return { success: true, count };
+    } catch (error) {
+        console.error('Manual bulk create error:', error);
+        return { success: false, error: 'Failed to create products in bulk' };
     }
 }

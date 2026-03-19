@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { logActivity } from './intelligence';
+import { sanitizeData } from '@/lib/utils';
 
 export async function openShift(shopId: string, openingCash: number, userId: string) {
     try {
@@ -25,7 +26,7 @@ export async function openShift(shopId: string, openingCash: number, userId: str
         });
 
         revalidatePath('/shop/pos');
-        return { success: true, shift };
+        return { success: true, shift: sanitizeData(shift) };
     } catch (e) {
         return { error: 'Failed to open shift' };
     }
@@ -69,7 +70,7 @@ export async function closeShift(shiftId: string, actualCash: number) {
         });
 
         revalidatePath('/shop/pos');
-        return { success: true, shift: updatedShift };
+        return { success: true, shift: sanitizeData(updatedShift) };
     } catch (e) {
         return { error: 'Failed to close shift' };
     }

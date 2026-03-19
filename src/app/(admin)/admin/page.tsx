@@ -8,6 +8,7 @@ import SaleDetailsDialog from '@/components/SaleDetailsDialog';
 import { sanitizeData } from '@/lib/utils';
 import ShopPerformanceChart from '@/components/ShopPerformanceChart';
 import { getBusinessFilter } from '@/app/actions/business';
+import { BusinessSelector } from '@/components/BusinessSelector';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,8 +84,11 @@ export default async function AdminDashboard() {
                     </p>
                 </div>
 
-                <div className="flex gap-4">
-                    <button className="px-4 py-2 bg-slate-50 text-slate-500 font-bold rounded-xl border border-slate-100 text-xs uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center gap-2">
+                <div className="flex gap-4 items-start">
+                    <div className="w-72 hidden md:block">
+                        <BusinessSelector className="mb-0" />
+                    </div>
+                    <button className="px-4 py-2 bg-slate-50 text-slate-500 font-bold rounded-xl border border-slate-100 text-xs uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center gap-2 h-[52px]">
                         <Package size={14} /> Add Widget
                     </button>
                     <Link
