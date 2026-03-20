@@ -133,7 +133,7 @@ export default function POSInterface({
     }, [products, query, selectedCategory, shopId]);
 
     const categories = useMemo(() => {
-        const uniqueIds = Array.from(new Set(products.map(p => p.category?.id).filter(Boolean)));
+        const uniqueIds = Array.from(new Set(products.map(p => p.category?.id).filter((id): id is string => !!id)));
         return uniqueIds.map(id => {
             const prod = products.find(p => p.category?.id === id);
             return { id, name: prod?.category?.name || 'Unknown' };
@@ -141,6 +141,17 @@ export default function POSInterface({
     }, [products]);
 
     // --- Actions ---
+    const onScan = (barcode: string) => {
+        const product = products.find(p => p.barcode === barcode);
+        if (product) {
+            addToCart(product);
+            setShowScanner(false);
+            toast.success(`Optical Scan Successful: ${product.name}`);
+        } else {
+            toast.error(`Barcode not recognized: ${barcode}`);
+        }
+    };
+
     const addToCart = (product: ProductWithInventory) => {
         const stock = product.inventory.find((inv: Inventory) => inv.shopId === shopId)?.quantity || 0;
         
