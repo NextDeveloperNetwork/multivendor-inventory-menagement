@@ -33,7 +33,7 @@ export default async function TransfersPage({ searchParams }: TransfersPageProps
         }
     }
 
-    const [rawTransfers, rawProducts, rawShops, rawWarehouses] = await Promise.all([
+    const [rawTransfers, rawProducts, rawShops, rawWarehouses, rawInventory] = await Promise.all([
         prisma.transfer.findMany({
             where: { ...businessFilter, ...dateFilter } as any,
             include: {
@@ -48,17 +48,16 @@ export default async function TransfersPage({ searchParams }: TransfersPageProps
         prisma.product.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
         prisma.shop.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
         prisma.warehouse.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
+        prisma.inventory.findMany({
+            where: businessFilter ? {
+                OR: [
+                    { shop: { ...businessFilter as any } },
+                    { warehouse: { ...businessFilter as any } }
+                ]
+            } : {},
+            include: { product: true }
+        })
     ]);
-
-    const rawInventory = await prisma.inventory.findMany({
-        where: businessFilter ? {
-            OR: [
-                { shop: businessFilter as any },
-                { warehouse: businessFilter as any }
-            ]
-        } : {},
-        include: { product: true }
-    });
 
     const transfers = sanitizeData(rawTransfers);
     const products = sanitizeData(rawProducts);

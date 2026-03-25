@@ -9,18 +9,22 @@ export default async function BusinessesPage() {
         orderBy: { createdAt: 'desc' }
     });
 
-    const businessesWithCounts = await Promise.all(
+    const businessesWithDetails = await Promise.all(
         businesses.map(async (business) => {
-            const shopCount = await prisma.shop.count({
-                where: { businessId: business.id }
+            const shops = await prisma.shop.findMany({
+                where: { businessId: business.id },
+                select: { id: true, name: true, location: true }
             });
-            const customerCount = await prisma.customer.count({
-                where: { businessId: business.id }
+            const customers = await prisma.customer.findMany({
+                where: { businessId: business.id },
+                select: { id: true, name: true, email: true, phone: true }
             });
             return {
                 ...business,
-                shopCount,
-                customerCount
+                shops,
+                customers,
+                shopCount: shops.length,
+                customerCount: customers.length
             };
         })
     );
@@ -46,7 +50,7 @@ export default async function BusinessesPage() {
                 </div>
             </div>
 
-            <BusinessesClient initialBusinesses={sanitizeData(businessesWithCounts)} />
+            <BusinessesClient initialBusinesses={sanitizeData(businessesWithDetails)} />
         </div>
     );
 }

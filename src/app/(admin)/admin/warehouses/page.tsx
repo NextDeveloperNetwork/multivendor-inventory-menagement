@@ -18,7 +18,12 @@ export default async function WarehousesPage() {
         }
     });
 
+    const businesses = await prisma.business.findMany({
+        orderBy: { name: 'asc' }
+    });
+
     const serializedWarehouses = JSON.parse(JSON.stringify(warehouses));
+    const serializedBusinesses = JSON.parse(JSON.stringify(businesses));
 
     return (
         <div className="space-y-6 fade-in relative pb-20 p-2 md:p-6">
@@ -53,7 +58,10 @@ export default async function WarehousesPage() {
 
                 {/* Warehouse List */}
                 <div className="lg:col-span-8">
-                    <WarehousesClient initialWarehouses={serializedWarehouses} />
+                    <WarehousesClient 
+                        initialWarehouses={serializedWarehouses} 
+                        businesses={serializedBusinesses}
+                    />
                 </div>
             </div>
         </div>

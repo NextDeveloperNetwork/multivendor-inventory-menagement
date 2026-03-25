@@ -224,7 +224,7 @@ model ActivityLog {
 
 model Customer {
   id         String   @id @default(cuid())
-  businessId String
+  businessId String?
   name       String
   phone      String?
   email      String?

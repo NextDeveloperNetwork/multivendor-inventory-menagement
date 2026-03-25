@@ -1,9 +1,9 @@
 'use client';
 
-import { createShop, updateShop, assignUserToShop, removeUserFromShop } from '@/app/actions/shop';
+import { createShop, updateShop, assignUserToShop, removeUserFromShop, deleteShop } from '@/app/actions/shop';
 import { User, Shop } from '@prisma/client';
 import { useState, useEffect } from 'react';
-import { Store, User as UserIcon, MapPin, X, Plus, Edit2, Shield, Check } from 'lucide-react';
+import { Store, User as UserIcon, MapPin, X, Plus, Edit2, Shield, Check, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ConfirmDialog } from './ui/ConfirmDialog';
@@ -25,6 +25,7 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
     const [shops, setShops] = useState(initialShops);
     const [unassignedUsers, setUnassignedUsers] = useState(initialUnassignedUsers);
     const [removeUser, setRemoveUser] = useState<{ id: string; name: string } | null>(null);
+    const [deleteShopId, setDeleteShopId] = useState<string | null>(null);
     const [editingShop, setEditingShop] = useState<Shop | null>(null);
 
     // Form State
@@ -248,10 +249,17 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                             <div className="flex items-center gap-3 shrink-0">
                                 <button
                                     onClick={() => handleEditClick(shop)}
-                                    className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm"
+                                    className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all shadow-sm active:scale-95"
                                     title="Modify Branch"
                                 >
                                     <Edit2 size={12} />
+                                </button>
+                                <button
+                                    onClick={() => setDeleteShopId(shop.id)}
+                                    className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-rose-600 hover:border-rose-600 transition-all shadow-sm active:scale-95"
+                                    title="Purge Branch"
+                                >
+                                    <Trash2 size={12} />
                                 </button>
                                 {shop.currency && (
                                     <span className="px-2 py-0.5 bg-slate-900 text-white text-[8px] font-black rounded border border-slate-900 uppercase tracking-widest font-mono italic">
@@ -352,6 +360,26 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
                 description={`Initialize protocol to revoke access for ID [${removeUser?.name}]? Target will lose all branch visibility.`}
                 confirmText="DEACTIVATE_ACCESS_PROFILE"
                 variant="warning"
+            />
+
+            <ConfirmDialog
+                isOpen={deleteShopId !== null}
+                onClose={() => setDeleteShopId(null)}
+                onConfirm={async () => {
+                    if (!deleteShopId) return;
+                    const result = await deleteShop(deleteShopId);
+                    if (result.success) {
+                        toast.success('Branch Purged from Matrix');
+                        router.refresh();
+                    } else {
+                        toast.error(result.error);
+                    }
+                    setDeleteShopId(null);
+                }}
+                title="Authorize Branch Purge"
+                description={`Initialize terminal sequence to purge unit [${shops.find(s => s.id === deleteShopId)?.name}]. Root association will be fragmented and all local data will be archived.`}
+                confirmText="PURGE_UNIT_STAKE"
+                variant="danger"
             />
         </div>
     );

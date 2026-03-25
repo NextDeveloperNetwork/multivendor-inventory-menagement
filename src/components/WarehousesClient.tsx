@@ -21,11 +21,12 @@ interface WarehouseData {
     name: string;
     latitude: number | null;
     longitude: number | null;
+    businessId: string | null;
     createdAt: Date;
     inventory: any[];
 }
 
-export default function WarehousesClient({ initialWarehouses }: { initialWarehouses: WarehouseData[] }) {
+export default function WarehousesClient({ initialWarehouses, businesses }: { initialWarehouses: WarehouseData[], businesses: any[] }) {
     const [editingWarehouse, setEditingWarehouse] = useState<WarehouseData | null>(null);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
@@ -155,8 +156,30 @@ export default function WarehousesClient({ initialWarehouses }: { initialWarehou
 
                         <div className="space-y-4">
                             <div className="flex items-center justify-between border-b border-slate-100 pb-2 ml-1">
-                                <label className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase italic">Geospatial Registry</label>
+                                <label className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase italic">Organization Assignment</label>
                                 <Globe size={14} className="text-slate-300" />
+                            </div>
+                            <div className="relative group">
+                                <select 
+                                    name="businessId"
+                                    defaultValue={editingWarehouse?.businessId || ''}
+                                    className="w-full pl-12 pr-4 h-12 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-slate-900 focus:border-blue-600 focus:bg-white transition-all outline-none uppercase italic appearance-none"
+                                >
+                                    <option value="">Global Core Entity</option>
+                                    {businesses.map(b => (
+                                        <option key={b.id} value={b.id}>{b.name.toUpperCase()}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <Globe size={16} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-2 ml-1">
+                                <label className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase italic">Geospatial Registry</label>
+                                <MapPin size={14} className="text-slate-300" />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">

@@ -87,3 +87,31 @@ export async function deleteBusiness(id: string) {
         return { error: 'Failed to delete business' };
     }
 }
+
+export async function unassignShop(id: string) {
+    try {
+        await prisma.shop.update({
+            where: { id },
+            data: { businessId: null as any }
+        });
+        revalidatePath('/admin/businesses');
+        return { success: true };
+    } catch (error) {
+        console.error('Error unassigning shop:', error);
+        return { error: 'Failed to unassign shop' };
+    }
+}
+
+export async function unassignCustomer(id: string) {
+    try {
+        await prisma.customer.update({
+            where: { id },
+            data: { businessId: null as any }
+        });
+        revalidatePath('/admin/businesses');
+        return { success: true };
+    } catch (error) {
+        console.error('Error unassigning customer:', error);
+        return { error: 'Failed to unassign customer' };
+    }
+}

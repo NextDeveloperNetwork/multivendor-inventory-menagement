@@ -188,9 +188,9 @@ export default function SaleDetailsDialog({ sale, children }: SaleDetailsDialogP
                     {/* Total Summary */}
                     <div className="mt-12 flex justify-between items-end border-t border-slate-100 pt-10">
                         <div className="max-w-xs">
-                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.25em] mb-4 flex items-center gap-2">
+                            <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.25em] mb-4 flex items-center gap-2 italic">
                                 <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" /> Transaction Status
-                            </p>
+                            </div>
                             <p className="text-[9px] text-slate-400 font-bold leading-relaxed uppercase italic">
                                 This transaction has been settled, verified, and synchronized across all localized retail nodes. Capital flow is finalized as of the confirmed timestamp.
                             </p>
