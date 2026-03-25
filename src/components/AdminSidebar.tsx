@@ -32,6 +32,7 @@ const menuItems = [
     { href: '/admin/inventory', label: 'Inventory Assets', icon: Package, hasBadge: 'N' },
     { href: '/admin/customers', label: 'Customer Directory', icon: Heart },
     { href: '/admin/invoices', label: 'Invoices & Receipts', icon: FileText },
+    { href: '/admin/reports/cost', label: 'Cost Analysis Matrix', icon: Activity },
     { href: '/admin/users', label: 'System Users', icon: Users },
     { href: '/admin/transfers', label: 'Inventory Transfers', icon: Send },
     { href: '/admin/warehouses', label: 'Warehouse Assets', icon: Warehouse },
