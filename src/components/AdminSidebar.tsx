@@ -26,20 +26,20 @@ import { useEffect } from 'react';
 import { BusinessSelector } from './BusinessSelector';
 
 const menuItems = [
-    { href: '/admin', label: 'Management Console', icon: LayoutDashboard },
-    { href: '/admin/intelligence', label: 'Financial Intelligence', icon: Activity },
+    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin/intelligence', label: 'Intelligence', icon: Activity },
     { href: '/admin/businesses', label: 'Business Entities', icon: Briefcase },
-    { href: '/admin/inventory', label: 'Inventory Assets', icon: Package, hasBadge: 'N' },
-    { href: '/admin/customers', label: 'Customer Directory', icon: Heart },
-    { href: '/admin/invoices', label: 'Invoices & Receipts', icon: FileText },
-    { href: '/admin/reports/cost', label: 'Cost Analysis Matrix', icon: Activity },
-    { href: '/admin/users', label: 'System Users', icon: Users },
-    { href: '/admin/transfers', label: 'Inventory Transfers', icon: Send },
-    { href: '/admin/warehouses', label: 'Warehouse Assets', icon: Warehouse },
-    { href: '/admin/suppliers', label: 'Supplier Directory', icon: Users },
-    { href: '/admin/shops', label: 'Retail Shop Registry', icon: Store },
-    { href: '/admin/currencies', label: 'Currencies Registry', icon: Coins },
-    { href: '/admin/map', label: 'Geospatial Map', icon: Map },
+    { href: '/admin/inventory', label: 'Inventory ', icon: Package, hasBadge: 'N' },
+    { href: '/admin/customers', label: 'Customer ', icon: Heart },
+    { href: '/admin/invoices', label: 'Invoices ', icon: FileText },
+    { href: '/admin/reports/cost', label: 'Cost Analysis ', icon: Activity },
+    { href: '/admin/users', label: 'Users', icon: Users },
+    { href: '/admin/transfers', label: 'Transfers', icon: Send },
+    { href: '/admin/warehouses', label: 'Warehouses', icon: Warehouse },
+    { href: '/admin/suppliers', label: 'Supplier', icon: Users },
+    { href: '/admin/shops', label: 'Retail Shop', icon: Store },
+    { href: '/admin/currencies', label: 'Currencies', icon: Coins },
+    { href: '/admin/map', label: ' Map', icon: Map },
 ];
 
 interface AdminSidebarProps {
