@@ -113,8 +113,6 @@ export async function createInvoice(formData: FormData) {
             }
 
             // Calculate Weighted Average Cost (WAC)
-            // Note: WAC usually applies globally or per company.
-            // Assuming cost tracking is per product global definition for now.
             const product = await prisma.product.findUnique({
                 where: { id: item.productId },
                 include: { inventory: true }
@@ -128,7 +126,6 @@ export async function createInvoice(formData: FormData) {
                 let newAvgCost = unitCost;
 
                 if (prevTotalQty > 0) {
-                    // WAC = ((Old Qty * Old Avg Cost) + (New Qty * New Unit Cost)) / (Current Total Qty)
                     const oldTotalValue = prevTotalQty * currentAvgCost;
                     const newTotalValue = qtyToAdd * unitCost;
                     newAvgCost = (oldTotalValue + newTotalValue) / currentTotalQty;
@@ -149,7 +146,6 @@ export async function createInvoice(formData: FormData) {
                     cost: newAvgCost,
                 };
 
-                // Only update price if it's not manually set
                 if (!isPriceManual) {
                     updateData.price = newAvgCost * 1.4;
                 }
@@ -168,6 +164,124 @@ export async function createInvoice(formData: FormData) {
     } catch (error) {
         console.error('Error creating invoice:', error);
         return { success: false, error: 'Failed to create invoice' };
+    }
+}
+
+export async function updateInvoice(id: string, formData: FormData) {
+    const supplierId = formData.get('supplierId') as string;
+    const items = JSON.parse(formData.get('items') as string);
+    const invoiceNumber = formData.get('number') as string;
+    const warehouseId = formData.get('warehouseId') as string;
+    const shopId = formData.get('shopId') as string;
+    const date = formData.get('date') as string;
+
+    if ((!warehouseId && !shopId) || (warehouseId && shopId)) {
+        return { success: false, error: 'Please select either a Warehouse or a Shop as destination.' };
+    }
+
+    try {
+        const oldInvoice = await prisma.invoice.findUnique({
+            where: { id },
+            include: { items: true }
+        });
+
+        if (!oldInvoice) return { success: false, error: 'Invoice not found' };
+
+        await prisma.$transaction(async (tx) => {
+            // 1. Revert old inventory increments
+            const oldInv = oldInvoice as any;
+            if (oldInv.warehouseId) {
+                for (const item of oldInv.items) {
+                    const inventory = await tx.inventory.findUnique({
+                        where: { productId_warehouseId: { productId: item.productId, warehouseId: oldInv.warehouseId } }
+                    });
+                    if (inventory) {
+                        await tx.inventory.update({
+                            where: { id: inventory.id },
+                            data: { quantity: { decrement: item.quantity } }
+                        });
+                    }
+                }
+            } else if (oldInv.shopId) {
+                for (const item of oldInv.items) {
+                    const inventory = await tx.inventory.findUnique({
+                        where: { productId_shopId: { productId: item.productId, shopId: oldInv.shopId } }
+                    });
+                    if (inventory) {
+                        await tx.inventory.update({
+                            where: { id: inventory.id },
+                            data: { quantity: { decrement: item.quantity } }
+                        });
+                    }
+                }
+            }
+
+            // 2. Clear old items
+            await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
+
+            // 3. Update Invoice Header
+            await tx.invoice.update({
+                where: { id },
+                data: {
+                    number: invoiceNumber,
+                    date: date ? new Date(date) : undefined,
+                    warehouseId: warehouseId || null,
+                    shopId: shopId || null,
+                    supplierId: supplierId || null,
+                    items: {
+                        create: items.map((item: any) => ({
+                            productId: item.productId,
+                            quantity: parseInt(item.quantity),
+                            cost: parseFloat(item.cost),
+                        })),
+                    },
+                } as any,
+                include: { items: true }
+            });
+
+            // 4. Apply new inventory increments
+            if (warehouseId) {
+                for (const item of items) {
+                    const inventory = await tx.inventory.findUnique({
+                        where: { productId_warehouseId: { productId: item.productId, warehouseId: warehouseId } }
+                    });
+                    if (inventory) {
+                        await tx.inventory.update({
+                            where: { id: inventory.id },
+                            data: { quantity: { increment: parseInt(item.quantity) } }
+                        });
+                    } else {
+                        await tx.inventory.create({
+                            data: { productId: item.productId, warehouseId, quantity: parseInt(item.quantity) }
+                        });
+                    }
+                }
+            } else if (shopId) {
+                for (const item of items) {
+                    const inventory = await tx.inventory.findUnique({
+                        where: { productId_shopId: { productId: item.productId, shopId: shopId } }
+                    });
+                    if (inventory) {
+                        await tx.inventory.update({
+                            where: { id: inventory.id },
+                            data: { quantity: { increment: parseInt(item.quantity) } }
+                        });
+                    } else {
+                        await tx.inventory.create({
+                            data: { productId: item.productId, shopId, quantity: parseInt(item.quantity) }
+                        });
+                    }
+                }
+            }
+        });
+
+        revalidatePath('/admin/invoices');
+        revalidatePath('/admin/inventory');
+        revalidatePath('/shop/inventory');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating invoice:', error);
+        return { success: false, error: 'Failed to update invoice' };
     }
 }
 
@@ -204,11 +318,9 @@ export async function deleteInvoice(id: string) {
 
         if (!invoice) return { success: false, error: 'Invoice not found' };
 
-        // We need to revert inventory from where it was added (Warehouse or Shop)
         const inv = invoice as any;
 
         await prisma.$transaction(async (tx) => {
-            // Revert inventory
             if (inv.warehouseId) {
                 for (const item of inv.items) {
                     const inventory = await tx.inventory.findUnique({
@@ -247,7 +359,6 @@ export async function deleteInvoice(id: string) {
                 }
             }
 
-            // Delete invoice items and invoice outside of the loop
             await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
             await tx.invoice.delete({ where: { id } });
         });

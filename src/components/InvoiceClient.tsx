@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createInvoice } from '@/app/actions/invoice';
+import { createInvoice, updateInvoice } from '@/app/actions/invoice';
 import {
     Plus, Trash2, FileText, Calendar, Search,
     Package, Store, Eye, ChevronDown, Activity,
@@ -21,7 +21,7 @@ import DeleteInvoiceButton from './DeleteInvoiceButton';
 import QuickAddSupplierDialog from './QuickAddSupplierDialog';
 import BatchAddProductDialog from './BatchAddProductDialog';
 import { getCategories, getUnits } from '@/app/actions/inventory';
-import { useEffect } from 'react';
+// Removed duplicate import
 
 interface InvoiceClientProps {
     invoices: any[];
@@ -58,15 +58,25 @@ export default function InvoiceClient({
     // Line items
     const [items, setItems] = useState<LineItem[]>([emptyItem()]);
     const [loading, setLoading] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [isRefreshing, startTransition] = useTransition();
     
     // Resource cache for batch add
     const [categories, setCategories] = useState<any[]>([]);
     const [units, setUnits] = useState<any[]>([]);
 
+    const refreshResources = async () => {
+        const [cats, uns] = await Promise.all([
+            getCategories(selectedBusinessId),
+            getUnits(selectedBusinessId)
+        ]);
+        setCategories(cats);
+        setUnits(uns);
+    };
+
     useEffect(() => {
         if (open) {
-            getCategories(selectedBusinessId).then(setCategories);
-            getUnits(selectedBusinessId).then(setUnits);
+            refreshResources();
         }
     }, [open, selectedBusinessId]);
 
@@ -88,6 +98,33 @@ export default function InvoiceClient({
         setDestinationType('warehouse');
         setItems([emptyItem()]);
         setInvoiceDate(new Date().toISOString().split('T')[0]);
+        setEditingId(null);
+    };
+
+    const handleEdit = (invoice: any) => {
+        setEditingId(invoice.id);
+        setInvoiceNumber(invoice.number);
+        setSupplierId(invoice.supplierId || '');
+        setInvoiceDate(new Date(invoice.date).toISOString().split('T')[0]);
+        
+        if (invoice.warehouseId) {
+            setDestinationType('warehouse');
+            setWarehouseId(invoice.warehouseId);
+            setShopId('');
+        } else if (invoice.shopId) {
+            setDestinationType('shop');
+            setShopId(invoice.shopId);
+            setWarehouseId('');
+        }
+
+        setItems(invoice.items.map((item: any) => ({
+            productId: item.productId,
+            productName: item.product?.name || '',
+            quantity: item.quantity.toString(),
+            cost: item.cost.toString(),
+            total: (item.quantity * item.cost).toFixed(2),
+        })));
+        setOpen(true);
     };
 
     const addRow = () => setItems(prev => [...prev, emptyItem()]);
@@ -166,9 +203,12 @@ export default function InvoiceClient({
         if (selectedBusinessId) formData.append('businessId', selectedBusinessId);
         formData.append('items', JSON.stringify(validItems));
 
-        const result = await createInvoice(formData);
+        const result = editingId 
+            ? await updateInvoice(editingId, formData)
+            : await createInvoice(formData);
+
         if (result.success) {
-            toast.success('Invoice created successfully');
+            toast.success(editingId ? 'Invoice updated successfully' : 'Invoice created successfully');
             resetForm();
             setOpen(false);
             router.refresh();
@@ -262,7 +302,7 @@ export default function InvoiceClient({
                                         <TableHead className="py-4 text-[10px] font-black uppercase tracking-widest text-slate-700">Supplier / Vendor</TableHead>
                                         <TableHead className="py-4 text-[10px] font-black uppercase tracking-widest text-slate-700">Quantity</TableHead>
                                         <TableHead className="py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-700">Total Cost</TableHead>
-                                        <TableHead className="w-[120px] py-4 px-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-700">Control</TableHead>
+                                        <TableHead className="w-[140px] py-4 px-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-700">Control</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -326,6 +366,13 @@ export default function InvoiceClient({
                                                              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all border border-transparent hover:border-blue-200">
                                                                  <Eye size={16} />
                                                              </div>
+                                                             <button
+                                                                 onClick={() => handleEdit(invoice)}
+                                                                 className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all border border-transparent hover:border-amber-200"
+                                                             >
+                                                                 <Eye size={16} className="hidden" /> {/* Placeholder/spacer */}
+                                                                 <FileText size={16} />
+                                                             </button>
                                                              <DeleteInvoiceButton id={invoice.id} />
                                                          </div>
                                                      </TableCell>
@@ -377,9 +424,15 @@ export default function InvoiceClient({
                                                 </div>
                                             </div>
 
-                                            <div className="flex justify-end gap-2" onClick={e => e.stopPropagation()}>
-                                                <DeleteInvoiceButton id={invoice.id} />
-                                            </div>
+                                             <div className="flex justify-end gap-2" onClick={e => e.stopPropagation()}>
+                                                 <button
+                                                     onClick={() => handleEdit(invoice)}
+                                                     className="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all border border-slate-100 hover:border-amber-100"
+                                                 >
+                                                     Edit Record
+                                                 </button>
+                                                 <DeleteInvoiceButton id={invoice.id} />
+                                             </div>
                                         </div>
                                     </InvoiceDetailsDialog>
                                 );
@@ -400,7 +453,7 @@ export default function InvoiceClient({
                             </div>
                             <div>
                                 <DialogTitle className="text-slate-900 font-serif text-2xl tracking-tight leading-none uppercase italic">
-                                    Purchase Invoice Registry
+                                    {editingId ? 'Edit Financial Record' : 'Purchase Invoice Registry'}
                                 </DialogTitle>
                                 <p className="text-slate-500 text-[9px] mt-1.5 uppercase tracking-[0.2em] font-black italic">Inventory Procurement & Asset Entry</p>
                             </div>
@@ -514,13 +567,17 @@ export default function InvoiceClient({
                                 </div>
                             </div>
 
-                            {/* Controls */}
                             <div className="flex items-center gap-2 pb-0.5">
                                 <BatchAddProductDialog
                                     selectedBusinessId={selectedBusinessId}
                                     categories={categories}
                                     units={units}
-                                    onSuccess={() => router.refresh()}
+                                    onSuccess={() => {
+                                        startTransition(() => {
+                                            router.refresh();
+                                        });
+                                        refreshResources();
+                                    }}
                                 />
                                 <button
                                     type="button"
@@ -669,7 +726,7 @@ export default function InvoiceClient({
                                 {loading ? (
                                     <><Activity size={14} className="animate-spin" /> Processing…</>
                                 ) : (
-                                    <><FileText size={14} /> Commit Document</>
+                                    <><FileText size={14} /> {editingId ? 'Update Record' : 'Commit Document'}</>
                                 )}
                             </button>
                         </div>

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, Package, RefreshCw, X, Save, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateSKU } from '@/lib/utils';
-import { manualBulkCreateProducts, createCategory, createUnit } from '@/app/actions/inventory';
+import { manualBulkCreateProducts, createCategory, createUnit, getCategories, getUnits } from '@/app/actions/inventory';
 import {
     Dialog,
     DialogContent,
@@ -28,7 +28,7 @@ interface BatchAddProductDialogProps {
     selectedBusinessId: string | null;
     categories: any[];
     units: any[];
-    onSuccess?: (products: any[]) => void;
+    onSuccess?: (count: number) => void;
 }
 
 export default function BatchAddProductDialog({
@@ -48,8 +48,17 @@ export default function BatchAddProductDialog({
     const [isUnitDialogOpen, setIsUnitDialogOpen] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newUnitName, setNewUnitName] = useState('');
-    const [localCategories, setLocalCategories] = useState(initialCategories);
-    const [localUnits, setLocalUnits] = useState(initialUnits);
+    const [localCategories, setLocalCategories] = useState<any[]>(initialCategories);
+    const [localUnits, setLocalUnits] = useState<any[]>(initialUnits);
+
+    // Refresh lists when props change
+    useEffect(() => {
+        setLocalCategories(initialCategories);
+    }, [initialCategories]);
+
+    useEffect(() => {
+        setLocalUnits(initialUnits);
+    }, [initialUnits]);
 
     const addRow = () => {
         setRows([...rows, { name: '', sku: '', price: '', cost: '', initialStock: '0', categoryId: '', unitId: '', isPriceManual: false }]);
@@ -95,21 +104,17 @@ export default function BatchAddProductDialog({
         }
 
         setLoading(true);
-        // Using manualBulkCreateProducts but we need to match the return signature or adapt
-        // Actually manualBulkCreateProducts returns { success, count }
-        // We want the actual products to add them to the invoice.
-        // I might need to update the action or just handle it by refreshing products list.
         const res = await manualBulkCreateProducts(validRows, {
             businessId: selectedBusinessId,
-            targetType: 'warehouse', // Default for invoice missing articles
-            targetId: undefined // Let it handle defaults
+            targetType: 'warehouse',
+            targetId: undefined
         });
 
         if (res.success) {
             toast.success(`Created ${res.count} products`);
             setOpen(false);
             setRows([{ name: '', sku: '', price: '', cost: '', initialStock: '0', categoryId: '', unitId: '', isPriceManual: false }]);
-            if (onSuccess) onSuccess([]); // We don't have the list back, caller should refresh
+            if (onSuccess) onSuccess(res.count || 0);
         } else {
             toast.error(res.error || "Failed to create products");
         }
@@ -299,6 +304,7 @@ export default function BatchAddProductDialog({
                         setNewCategoryName('');
                         setIsCategoryDialogOpen(false);
                         toast.success('Category created');
+                        // Manually trigger a check/refresh if parent exposed something
                     }
                 }}
             />
@@ -341,12 +347,14 @@ function InnerQuickDialog({ open, onOpenChange, title, value, onChange, onAdd }:
                     />
                     <div className="flex justify-end gap-3 pt-2">
                         <button
+                            type="button"
                             onClick={() => onOpenChange(false)}
                             className="h-10 px-4 text-[10px] font-bold uppercase tracking-widest text-slate-400"
                         >
                             Cancel
                         </button>
                         <button
+                            type="button"
                             onClick={onAdd}
                             disabled={!value.trim()}
                             className="h-10 px-6 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30"
