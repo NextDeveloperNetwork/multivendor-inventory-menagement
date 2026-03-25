@@ -19,6 +19,9 @@ import {
 } from '@/components/ui/table';
 import DeleteInvoiceButton from './DeleteInvoiceButton';
 import QuickAddSupplierDialog from './QuickAddSupplierDialog';
+import BatchAddProductDialog from './BatchAddProductDialog';
+import { getCategories, getUnits } from '@/app/actions/inventory';
+import { useEffect } from 'react';
 
 interface InvoiceClientProps {
     invoices: any[];
@@ -55,6 +58,17 @@ export default function InvoiceClient({
     // Line items
     const [items, setItems] = useState<LineItem[]>([emptyItem()]);
     const [loading, setLoading] = useState(false);
+    
+    // Resource cache for batch add
+    const [categories, setCategories] = useState<any[]>([]);
+    const [units, setUnits] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (open) {
+            getCategories(selectedBusinessId).then(setCategories);
+            getUnits(selectedBusinessId).then(setUnits);
+        }
+    }, [open, selectedBusinessId]);
 
     // URL filters
     const startDate = searchParams.get('startDate') || '';
@@ -377,40 +391,40 @@ export default function InvoiceClient({
 
             {/* ── Create Invoice Dialog ── */}
             <Dialog open={open} onOpenChange={open => { setOpen(open); if (!open) resetForm(); }}>
-                <DialogContent className="max-w-[1200px] w-[98vw] p-0 gap-0 rounded-2xl overflow-hidden border border-slate-200 shadow-2xl max-h-[95vh] flex flex-col bg-white">
+                <DialogContent className="max-w-[1550px] w-[98vw] p-0 gap-0 rounded-2xl overflow-hidden border border-slate-200 shadow-2xl max-h-[98vh] flex flex-col bg-white">
                     {/* Header */}
-                    <DialogHeader className="bg-white px-10 py-8 flex-row items-center justify-between space-y-0 shrink-0 border-b border-slate-100">
-                        <div className="flex items-center gap-6">
-                            <div className="w-14 h-14 bg-slate-50 border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm">
-                                <FileText size={28} strokeWidth={1.5} />
+                    <DialogHeader className="bg-white px-7 py-5 flex-row items-center justify-between space-y-0 shrink-0 border-b border-slate-100">
+                        <div className="flex items-center gap-4">
+                            <div className="w-11 h-11 bg-slate-50 border-2 border-slate-100 rounded-xl flex items-center justify-center text-slate-900 shadow-sm">
+                                <FileText size={22} strokeWidth={1.5} />
                             </div>
                             <div>
-                                <DialogTitle className="text-slate-900 font-serif text-3xl tracking-tight leading-none uppercase italic">
+                                <DialogTitle className="text-slate-900 font-serif text-2xl tracking-tight leading-none uppercase italic">
                                     Purchase Invoice Registry
                                 </DialogTitle>
-                                <p className="text-slate-500 text-[10px] mt-2 uppercase tracking-[0.2em] font-black italic">Inventory Procurement & Asset Entry</p>
+                                <p className="text-slate-500 text-[9px] mt-1.5 uppercase tracking-[0.2em] font-black italic">Inventory Procurement & Asset Entry</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <div className="h-10 px-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2 text-[9px] font-bold text-slate-600 uppercase tracking-widest">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                 Financial Entry
                             </div>
                             <button
                                 onClick={() => { setOpen(false); resetForm(); }}
-                                className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all border border-slate-200 shadow-sm"
+                                className="w-9 h-9 rounded-lg bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all border border-slate-200 shadow-sm"
                             >
-                                <X size={20} />
+                                <X size={18} />
                             </button>
                         </div>
                     </DialogHeader>
 
                     <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden flex-1">
                         {/* ── Info Row ── */}
-                        <div className="bg-slate-50/50 border-b border-slate-200 px-10 py-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 shrink-0">
+                        <div className="bg-slate-50/50 border-b border-slate-200 px-7 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 shrink-0 items-end">
                             {/* Invoice # */}
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center gap-2 italic">
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2 italic">
                                     01. Invoice Reference #
                                 </label>
                                 <input
@@ -418,13 +432,13 @@ export default function InvoiceClient({
                                     value={invoiceNumber}
                                     onChange={e => setInvoiceNumber(e.target.value)}
                                     placeholder="INV-XXXX-XX"
-                                    className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all placeholder:text-slate-300 font-mono"
+                                    className="w-full h-9 px-4 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all placeholder:text-slate-300 font-mono"
                                 />
                             </div>
 
                             {/* Supplier */}
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center justify-between leading-none italic">
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center justify-between leading-none italic">
                                     <span>02. Issuing Supplier</span>
                                     <QuickAddSupplierDialog onAdd={s => { setSupplierId(s.id); router.refresh(); }} />
                                 </label>
@@ -433,18 +447,18 @@ export default function InvoiceClient({
                                         value={supplierId}
                                         onChange={e => setSupplierId(e.target.value)}
                                         required
-                                        className="w-full h-12 pl-5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all appearance-none cursor-pointer"
+                                        className="w-full h-9 pl-4 pr-10 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all appearance-none cursor-pointer"
                                     >
                                         <option value="">Select vendor…</option>
                                         {suppliers.map(s => <option key={s.id} value={s.id}>{s.name.toUpperCase()}</option>)}
                                     </select>
-                                    <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                 </div>
                             </div>
 
                             {/* Date Selector */}
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center gap-2 italic">
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2 italic">
                                     03. Document Fiscal Date
                                 </label>
                                 <input
@@ -452,24 +466,24 @@ export default function InvoiceClient({
                                     value={invoiceDate}
                                     onChange={e => setInvoiceDate(e.target.value)}
                                     required
-                                    className="w-full h-12 px-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all uppercase font-mono"
+                                    className="w-full h-9 px-4 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all uppercase font-mono"
                                 />
                             </div>
 
                             {/* Destination */}
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] italic">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] italic">
                                         04. Target Inventory Unit
                                     </label>
-                                    <div className="flex bg-slate-200 p-0.5 rounded-lg scale-90 origin-right">
+                                    <div className="flex bg-slate-200 p-0.5 rounded-md scale-75 origin-right">
                                         {(['warehouse', 'shop'] as const).map(t => (
                                             <button
                                                 key={t} type="button"
                                                 onClick={() => setDestinationType(t)}
-                                                className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-tighter transition-all ${destinationType === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
+                                                className={`px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-tighter transition-all ${destinationType === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
                                             >
-                                                {t === 'warehouse' ? 'Warehouse' : 'Retail Shop'}
+                                                {t === 'warehouse' ? 'Warehouse' : 'Retail'}
                                             </button>
                                         ))}
                                     </div>
@@ -480,7 +494,7 @@ export default function InvoiceClient({
                                             value={warehouseId}
                                             onChange={e => setWarehouseId(e.target.value)}
                                             required
-                                            className="w-full h-12 pl-5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all appearance-none cursor-pointer"
+                                            className="w-full h-9 pl-4 pr-10 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all appearance-none cursor-pointer"
                                         >
                                             <option value="">Select location…</option>
                                             {warehouses.map(w => <option key={w.id} value={w.id}>{w.name.toUpperCase()}</option>)}
@@ -490,41 +504,44 @@ export default function InvoiceClient({
                                             value={shopId}
                                             onChange={e => setShopId(e.target.value)}
                                             required
-                                            className="w-full h-12 pl-5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all appearance-none cursor-pointer"
+                                            className="w-full h-9 pl-4 pr-10 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 transition-all appearance-none cursor-pointer"
                                         >
                                             <option value="">Select location…</option>
                                             {shops.map(s => <option key={s.id} value={s.id}>{s.name.toUpperCase()}</option>)}
                                         </select>
                                     )}
-                                    <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                 </div>
+                            </div>
+
+                            {/* Controls */}
+                            <div className="flex items-center gap-2 pb-0.5">
+                                <BatchAddProductDialog
+                                    selectedBusinessId={selectedBusinessId}
+                                    categories={categories}
+                                    units={units}
+                                    onSuccess={() => router.refresh()}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={addRow}
+                                    className="group flex items-center justify-center gap-2 h-9 px-4 bg-white border-2 border-slate-900 text-slate-900 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all hover:bg-slate-900 hover:text-white active:scale-95 shadow-sm"
+                                >
+                                    <Plus size={14} strokeWidth={3} className="group-hover:rotate-90 transition-transform" /> Add Row
+                                </button>
                             </div>
                         </div>
 
                         {/* ── Articles Table ── */}
-                        <div className="flex-1 overflow-y-auto px-10 py-10 bg-white">
-                            <div className="flex items-center justify-between mb-8">
-                                <div className="space-y-1">
-                                    <h3 className="text-xl font-serif text-slate-900 tracking-tight">Invoice Line Items</h3>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Itemized Purchase List</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={addRow}
-                                    className="group flex items-center gap-3 px-6 py-3 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-slate-900 hover:text-white active:scale-95 shadow-sm"
-                                >
-                                    <Plus size={16} strokeWidth={3} className="group-hover:rotate-90 transition-transform" /> Add Product
-                                </button>
-                            </div>
-
-                            <div className="border-t border-x border-slate-100 rounded-t-2xl overflow-hidden shadow-sm">
+                        <div className="flex-1 overflow-y-auto bg-white">
+                            <div className="border-t border-slate-100 overflow-hidden shadow-sm">
                                 {/* Column headers */}
-                                <div className="grid grid-cols-[1fr_120px_160px_160px_60px] bg-slate-50/80 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-                                    <div className="px-6 py-4">Description / Product Asset</div>
-                                    <div className="px-6 py-4 text-center border-l border-slate-100">Quantity</div>
-                                    <div className="px-6 py-4 text-right border-l border-slate-100 italic">Unit Cost ({symbol})</div>
-                                    <div className="px-6 py-4 text-right border-l border-slate-100">Aggregate Total ({symbol})</div>
-                                    <div className="border-l border-slate-100" />
+                                <div className="grid grid-cols-[1fr_100px_140px_140px_50px] bg-slate-50/90 border-b border-slate-200 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] sticky top-0 z-20 backdrop-blur-sm">
+                                    <div className="px-5 py-2">Description / Product Asset</div>
+                                    <div className="px-5 py-2 text-center border-l border-slate-100/50">Qty</div>
+                                    <div className="px-5 py-2 text-right border-l border-slate-100/50 italic">Unit Cost</div>
+                                    <div className="px-5 py-2 text-right border-l border-slate-100/50">Total</div>
+                                    <div className="border-l border-slate-100/50" />
                                 </div>
 
                                 {/* Rows */}
@@ -537,28 +554,28 @@ export default function InvoiceClient({
                                         return (
                                             <div
                                                 key={index}
-                                                className={`grid grid-cols-[1fr_120px_160px_160px_60px] items-stretch transition-all ${rowIsValid ? 'bg-white' : 'bg-white/50'}`}
+                                                className={`grid grid-cols-[1fr_100px_140px_140px_50px] items-stretch transition-all ${rowIsValid ? 'bg-white' : 'bg-white/50'}`}
                                             >
                                                 {/* Product name */}
-                                                <div className="px-6 py-4 flex flex-col justify-center focus-within:bg-slate-50/50 transition-all border-r border-transparent focus-within:border-slate-200">
+                                                <div className="px-5 py-2.5 flex flex-col justify-center focus-within:bg-slate-50/50 transition-all border-r border-transparent focus-within:border-slate-200">
                                                     <input
                                                         type="text"
                                                         list="inv-products"
                                                         value={item.productName}
                                                         onChange={e => handleProductNameChange(index, e.target.value)}
                                                         placeholder="Item description or SKU…"
-                                                        className="w-full h-8 px-0 bg-transparent border-none text-[13px] text-slate-900 font-bold outline-none placeholder:text-slate-300 uppercase tracking-tight"
+                                                        className="w-full h-7 px-0 bg-transparent border-none text-[12px] text-slate-900 font-bold outline-none placeholder:text-slate-300 uppercase tracking-tight"
                                                         required
                                                     />
                                                     {matched && (
-                                                        <div className="mt-1">
-                                                            <span className="text-[10px] text-slate-400 font-mono tracking-tighter uppercase tabular-nums">Ref: {matched.sku}</span>
+                                                        <div className="mt-0.5">
+                                                            <span className="text-[9px] text-slate-400 font-mono tracking-tighter uppercase tabular-nums">Ref: {matched.sku}</span>
                                                         </div>
                                                     )}
                                                 </div>
 
                                                 {/* Quantity */}
-                                                <div className="px-4 py-4 border-l border-slate-100 flex items-center justify-center">
+                                                <div className="px-3 py-2.5 border-l border-slate-100 flex items-center justify-center">
                                                     <input
                                                         type="number"
                                                         value={item.quantity}
@@ -566,12 +583,12 @@ export default function InvoiceClient({
                                                         placeholder="0"
                                                         min="1"
                                                         required
-                                                        className="w-full h-full text-center bg-transparent border-none text-sm font-black text-slate-900 outline-none tabular-nums"
+                                                        className="w-full h-full text-center bg-transparent border-none text-[12px] font-black text-slate-900 outline-none tabular-nums"
                                                     />
                                                 </div>
 
                                                 {/* Unit Cost */}
-                                                <div className="px-6 py-4 border-l border-slate-100 flex items-center bg-white focus-within:bg-slate-50/50 transition-all">
+                                                <div className="px-5 py-2.5 border-l border-slate-100 flex items-center bg-white focus-within:bg-slate-50/50 transition-all">
                                                     <input
                                                         type="number"
                                                         step="0.01"
@@ -580,30 +597,30 @@ export default function InvoiceClient({
                                                         placeholder="0.00"
                                                         min="0"
                                                         required
-                                                        className="w-full h-full text-right bg-transparent border-none text-sm font-bold text-slate-900 font-mono outline-none tabular-nums italic"
+                                                        className="w-full h-full text-right bg-transparent border-none text-[12px] font-bold text-slate-900 font-mono outline-none tabular-nums italic"
                                                     />
                                                 </div>
 
                                                 {/* Total */}
-                                                <div className="px-6 py-4 text-right bg-slate-50/30 border-l border-slate-100 flex items-center justify-end">
+                                                <div className="px-5 py-2.5 text-right bg-slate-50/30 border-l border-slate-100 flex items-center justify-end">
                                                     <input
                                                         type="number"
                                                         step="0.01"
                                                         value={item.total}
                                                         onChange={e => updateItemField(index, 'total', e.target.value)}
                                                         placeholder="0.00"
-                                                        className="w-full h-full text-right bg-transparent border-none text-sm font-black text-slate-800 font-mono outline-none tabular-nums shadow-[inset_-2px_0_0_rgba(15,23,42,0.1)]"
+                                                        className="w-full h-full text-right bg-transparent border-none text-[12px] font-black text-slate-800 font-mono outline-none tabular-nums shadow-[inset_-2px_0_0_rgba(15,23,42,0.1)]"
                                                     />
                                                 </div>
 
                                                 {/* Remove */}
-                                                <div className="flex items-center justify-center py-4 border-l border-slate-100 bg-white">
+                                                <div className="flex items-center justify-center py-2.5 border-l border-slate-100 bg-white">
                                                     <button
                                                         type="button"
                                                         onClick={() => removeRow(index)}
-                                                        className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-300 hover:text-white hover:bg-slate-900 transition-all border border-slate-100 hover:border-slate-900"
+                                                        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-white hover:bg-slate-900 transition-all border border-slate-100 hover:border-slate-900"
                                                     >
-                                                        <X size={14} />
+                                                        <X size={12} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -613,46 +630,46 @@ export default function InvoiceClient({
                             </div>
 
                             {/* Aggregation Footer */}
-                            <div className="mt-1 grid grid-cols-[1fr_400px] gap-0">
-                                <div className="bg-slate-50 rounded-bl-2xl px-10 py-10 border-l border-b border-slate-100 flex flex-col justify-center">
-                                    <div className="flex items-center gap-3 text-slate-400">
-                                        <Activity size={16} />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] italic">Invoice Fiscal Aggregate</span>
+                            <div className="mt-1 grid grid-cols-[1fr_300px] gap-0">
+                                <div className="bg-slate-50 rounded-bl-2xl px-6 py-3 border-l border-b border-slate-100 flex flex-col justify-center">
+                                    <div className="flex items-center gap-2 text-slate-400">
+                                        <Activity size={12} />
+                                        <span className="text-[8px] font-black uppercase tracking-[0.3em] italic">Invoice Fiscal Aggregate</span>
                                     </div>
                                 </div>
-                                <div className="bg-slate-900 text-white rounded-br-2xl px-10 py-10 flex items-center justify-between shadow-xl">
+                                <div className="bg-slate-900 text-white rounded-br-2xl px-6 py-3 flex items-center justify-between shadow-xl">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Grand Total</span>
-                                        <span className="text-4xl font-black font-serif tracking-tighter tabular-nums leading-none">
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Grand Total</span>
+                                        <span className="text-xl font-black font-serif tracking-tighter tabular-nums leading-none">
                                             {formatCurrency(totalValue, symbol)}
                                         </span>
                                     </div>
                                     <div className="flex flex-col items-end text-right">
-                                        <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{currency.code || 'BASE'}</span>
-                                        <span className="text-slate-500 text-[9px] font-bold uppercase italic mt-1 underline decoration-slate-700 underline-offset-4 font-mono">Authenticated Record</span>
+                                        <span className="text-emerald-400 text-[8px] font-black uppercase tracking-widest">{currency.code || 'BASE'}</span>
+                                        <span className="text-slate-500 text-[7px] font-bold uppercase italic mt-0.5 underline decoration-slate-700 underline-offset-4 font-mono">Authenticated Record</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* ── Action Footer ── */}
-                        <div className="shrink-0 px-10 py-8 border-t border-slate-200 flex items-center justify-between bg-white">
+                        <div className="shrink-0 px-7 py-3 border-t border-slate-200 flex items-center justify-between bg-white">
                             <button
                                 type="button"
                                 onClick={() => { setOpen(false); resetForm(); }}
-                                className="px-8 py-3 rounded-2xl border-2 border-slate-100 text-[11px] font-black text-slate-400 hover:text-slate-900 hover:border-slate-900 uppercase tracking-[0.15em] transition-all active:scale-95"
+                                className="px-5 py-2 rounded-lg border-2 border-slate-100 text-[9px] font-black text-slate-400 hover:text-slate-900 hover:border-slate-900 uppercase tracking-[0.15em] transition-all active:scale-95"
                             >
                                 Discard Entries
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="px-14 py-4 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] transition-all active:scale-95 flex items-center gap-4 shadow-xl shadow-slate-900/10"
+                                className="px-8 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-[9px] font-black uppercase tracking-[0.25em] transition-all active:scale-95 flex items-center gap-2 shadow-xl shadow-slate-900/10"
                             >
                                 {loading ? (
-                                    <><Activity size={18} className="animate-spin" /> Processing Invoice…</>
+                                    <><Activity size={14} className="animate-spin" /> Processing…</>
                                 ) : (
-                                    <><FileText size={18} /> Register Financial Document</>
+                                    <><FileText size={14} /> Commit Document</>
                                 )}
                             </button>
                         </div>
