@@ -3,7 +3,7 @@ import { getBusinessFilter } from '@/app/actions/business';
 import { getSuppliers } from '@/app/actions/supplier';
 import { sanitizeData } from '@/lib/utils';
 import CostReportClient from '@/components/CostReportClient';
-import { Activity, Receipt, TrendingDown } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,52 +21,38 @@ export default async function CostReportsPage() {
 
     const sanitizedProducts = sanitizeData(products);
     const sanitizedSuppliers = sanitizeData(suppliers);
-    const sanitizedCurrency = sanitizeData(currency) || { symbol: '$', rate: 1, code: 'USD' };
+    const sanitizedCurrency = sanitizeData(currency) || { symbol: 'ALL', rate: 1, code: 'ALL' };
 
     return (
-        <div className="space-y-4 fade-in relative pb-6 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-2">
-            {/* Compact Report Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-                <div className="space-y-0.5">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-xl shadow-slate-900/20">
-                            <Activity size={18} />
-                        </div>
-                        <h1 className="text-xl font-black text-slate-900 tracking-tighter flex items-center gap-1.5 pt-0.5">
-                            COST <span className="text-slate-400 font-medium italic">ANALYSIS</span> MATRIX
-                        </h1>
+        <div className="space-y-6 fade-in max-w-[1600px] mx-auto">
+            {/* Header Section */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200 shrink-0">
+                        <Activity size={24} />
                     </div>
-                    <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] pl-[3rem] italic">
-                        Strategic Procurement & Asset Reconciliation
-                    </p>
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900">Cost Analysis Matrix</h1>
+                        <p className="text-sm text-slate-400 font-medium">Strategic procurement & asset reconciliation</p>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <div className="hidden sm:flex flex-col items-end">
-                        <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-300">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Live Metrics Feed
-                        </div>
-                        <div className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">Scanning {sanitizedProducts.length} Articles</div>
+                <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        Live Metrics Feed
                     </div>
-                    <div className="h-8 w-[1px] bg-slate-200" />
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400">
-                            <TrendingDown size={14} />
-                        </div>
-                        <div>
-                            <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">WAC_CALC</div>
-                            <div className="text-[8px] font-bold text-slate-400 uppercase mt-0.5">SYSTEM ACTIVE</div>
-                        </div>
-                    </div>
+                    <div className="text-xs text-slate-400 font-medium mt-1">Scanning {sanitizedProducts.length} items</div>
                 </div>
             </div>
 
-            <CostReportClient 
-                products={sanitizedProducts}
-                suppliers={sanitizedSuppliers}
-                currency={sanitizedCurrency}
-            />
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 flex-1 flex flex-col">
+                <CostReportClient 
+                    products={sanitizedProducts}
+                    suppliers={sanitizedSuppliers}
+                    currency={sanitizedCurrency}
+                />
+            </div>
         </div>
     );
 }

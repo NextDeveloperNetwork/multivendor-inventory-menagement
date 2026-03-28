@@ -22,7 +22,8 @@ import {
     ChevronRight,
     Store,
     Clock,
-    User
+    User,
+    Wallet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { processSale } from '@/app/actions/sales';
@@ -72,6 +73,7 @@ interface SaleInterfaceProps {
     } | null;
     initialShift: any | null;
     customers: any[];
+    todaySalesTotal: number;
 }
 
 interface CartItem {
@@ -87,7 +89,8 @@ export default function POSInterface({
     userId,
     currency,
     initialShift,
-    customers
+    customers,
+    todaySalesTotal
 }: SaleInterfaceProps) {
     const rate = currency?.rate ? Number(currency.rate) : 1;
     const symbol = currency?.symbol || '$';
@@ -108,6 +111,8 @@ export default function POSInterface({
     const [closingCash, setClosingCash] = useState('');
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(!initialShift);
     const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+
+    const expectedTill = shift ? Number(shift.openingCash) + todaySalesTotal : 0;
 
     // --- Helpers ---
     const getPriceRaw = (product: ProductWithInventory) => {
@@ -297,11 +302,19 @@ export default function POSInterface({
                         </div>
                     </div>
 
-                    <div className="hidden lg:flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-2xl border border-slate-200">
-                        <div className={cn("w-2 h-2 rounded-full", shift ? "bg-emerald-500 animate-pulse" : "bg-rose-500")} />
-                        <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-                            {shift ? `Active Shift: ${new Date(shift.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}` : "Shift Required"}
-                        </span>
+                    <div className="hidden lg:flex items-center gap-3 bg-slate-100 px-4 py-2 rounded-2xl border border-slate-200">
+                        <div className="flex items-center gap-2">
+                            <div className={cn("w-2 h-2 rounded-full", shift ? "bg-emerald-500 animate-pulse" : "bg-rose-500")} />
+                            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+                                {shift ? `Active Shift: ${new Date(shift.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}` : "Shift Required"}
+                            </span>
+                        </div>
+                        {shift && (
+                            <div className="flex bg-white px-3 py-1 items-center gap-3 rounded-xl border border-slate-200 divide-x divide-slate-100 shadow-sm">
+                                <div className="text-[10px] font-bold text-slate-500 flex gap-1.5"><ActivityIcon size={12} className="text-emerald-500" /> Sales: <span className="text-emerald-600 tabular-nums">{symbol}{todaySalesTotal.toFixed(2)}</span></div>
+                                <div className="text-[10px] font-bold text-slate-500 pl-3 flex gap-1.5"><Wallet size={12} className="text-blue-500" /> System Till: <span className="text-blue-600 tabular-nums">{symbol}{expectedTill.toFixed(2)}</span></div>
+                            </div>
+                        )}
                         <button 
                             onClick={() => setIsShiftModalOpen(true)}
                             className="ml-2 p-1 hover:bg-white rounded-lg transition-colors text-slate-400 hover:text-indigo-600"

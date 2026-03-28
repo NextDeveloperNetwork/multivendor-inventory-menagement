@@ -3,7 +3,6 @@ import InvoiceClient from '../../../../components/InvoiceClient';
 import { prisma } from '@/lib/prisma';
 import { Package, FileText, Calendar, DollarSign } from 'lucide-react';
 import { sanitizeData } from '@/lib/utils';
-
 import { getBusinessFilter, getSelectedBusinessId } from '@/app/actions/business';
 
 export const dynamic = 'force-dynamic';
@@ -34,26 +33,35 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
         }
     }
 
-    const where: any = { ...businessFilter, ...dateFilter };
+    let where: any = { ...dateFilter };
+    if (selectedBusinessId) {
+        where = {
+            ...where,
+            OR: [
+                { businessId: selectedBusinessId },
+                { shop: { businessId: selectedBusinessId } },
+                { warehouse: { businessId: selectedBusinessId } }
+            ]
+        };
+    }
+
     if (q) {
         where.number = { contains: q, mode: 'insensitive' };
     }
 
     const [rawInvoices, rawProducts, rawSuppliers, rawWarehouses, rawShops, baseCurrency] = await Promise.all([
-        prisma.invoice.findMany({
+        (prisma as any).invoice.findMany({
             where: where as any,
             include: {
-                items: {
-                    include: { product: true }
-                },
+                items: { include: { product: true } },
                 supplier: true,
                 warehouse: true,
                 shop: true,
-            } as any,
+            },
             orderBy: { date: 'desc' },
         }),
         prisma.product.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
-        getSuppliers(businessFilter as any),
+        getSuppliers(businessFilter),
         prisma.warehouse.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
         prisma.shop.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
         prisma.currency.findFirst({ where: { isBase: true } })
@@ -64,47 +72,48 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     const suppliers = sanitizeData(rawSuppliers);
     const warehouses = sanitizeData(rawWarehouses);
     const shops = sanitizeData(rawShops);
-    const currency = sanitizeData(baseCurrency) || { symbol: '$', rate: 1, code: 'USD' };
+    const currency = sanitizeData(baseCurrency) || { symbol: 'ALL', rate: 1, code: 'ALL' };
+
+    const todayInvoices = invoices.filter((inv: any) => new Date(inv.date).toDateString() === new Date().toDateString()).length;
+    const valuation = invoices.reduce((sum: number, inv: any) => sum + inv.items.reduce((itemSum: number, item: any) => itemSum + (Number(item.cost) * item.quantity), 0), 0);
+
+    const stats = [
+        { label: 'Total Manifests', value: invoices.length, icon: FileText, color: 'text-blue-600 bg-blue-50 border-blue-100' },
+        { label: "Today's Activity", value: todayInvoices, icon: Calendar, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
+        { label: 'Total Valuation', value: `${currency.symbol} ${valuation.toLocaleString()}`, icon: DollarSign, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' }
+    ];
 
     return (
-        <div className="space-y-6 fade-in relative pb-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Compact Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mt-4">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                            <Package size={20} />
-                        </div>
-                        <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                            INBOUND <span className="text-blue-600">LOGISTICS</span>
-                        </h1>
+        <div className="space-y-6 fade-in max-w-[1600px] mx-auto">
+            {/* Header Section */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200 shrink-0">
+                        <Package size={24} />
                     </div>
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] pl-[3.25rem]">
-                        Resource Acquisition & Manifest Management
-                    </p>
-                </div>
-
-                {/* Compact Stats Row */}
-                <div className="flex flex-wrap items-center gap-6 md:gap-12">
-                    {[
-                        { label: 'MANIFESTS', value: invoices.length, icon: FileText },
-                        { label: 'TODAY', value: invoices.filter((inv: any) => new Date(inv.date).toDateString() === new Date().toDateString()).length, icon: Calendar },
-                        { label: 'VALUATION', value: `${currency.symbol}${(invoices.reduce((sum: number, inv: any) => sum + inv.items.reduce((itemSum: number, item: any) => itemSum + (Number(item.cost) * item.quantity), 0), 0)).toLocaleString()}`, icon: DollarSign }
-                    ].map((stat, idx) => (
-                        <div key={idx} className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                                <stat.icon size={16} />
-                            </div>
-                            <div>
-                                <div className="text-sm font-black text-slate-900 leading-none">{stat.value}</div>
-                                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-1">{stat.label}</div>
-                            </div>
-                        </div>
-                    ))}
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900">Inbound Logistics</h1>
+                        <p className="text-sm text-slate-400 font-medium">Resource acquisition & manifest management</p>
+                    </div>
                 </div>
             </div>
 
-            <div className="bg-white border border-slate-300 rounded-[2rem] p-1 shadow-xl shadow-blue-500/5 overflow-hidden">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {stats.map(s => (
+                    <div key={s.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center border shrink-0 ${s.color}`}>
+                            <s.icon size={20} />
+                        </div>
+                        <div>
+                            <p className="text-xl font-black text-slate-900">{s.value}</p>
+                            <p className="text-xs text-slate-400 font-medium">{s.label}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col flex-1 p-6">
                 <InvoiceClient
                     invoices={invoices}
                     products={products}

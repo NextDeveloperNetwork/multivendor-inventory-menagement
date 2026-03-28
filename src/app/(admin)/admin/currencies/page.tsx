@@ -1,11 +1,11 @@
 import { getCurrencies } from '@/app/actions/settings';
 import CurrenciesClient from '@/components/CurrenciesClient';
 import { prisma } from '@/lib/prisma';
+import { Coins } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CurrenciesPage() {
-    // We sanitize data to plain objects because Decimal from Prisma isn't directly serializable to client components in Next 15
     const currencies = await prisma.currency.findMany({
         orderBy: { code: 'asc' }
     });
@@ -13,20 +13,23 @@ export default async function CurrenciesPage() {
     const serializedCurrencies = JSON.parse(JSON.stringify(currencies));
 
     return (
-        <div className="space-y-6 fade-in relative pb-20 p-2 md:p-6 text-slate-900">
+        <div className="space-y-6 fade-in max-w-[1600px] mx-auto">
             {/* Header Section */}
-            <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
-                        Currencies <span className="text-blue-600">Registry</span>
-                    </h1>
-                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-1 italic">
-                        Fiscal Configuration & Monetary Systems Registry
-                    </p>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200 shrink-0">
+                        <Coins size={24} />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900">Currencies Registry</h1>
+                        <p className="text-sm text-slate-400 font-medium">Fiscal configuration & monetary systems</p>
+                    </div>
                 </div>
             </div>
 
-            <CurrenciesClient initialCurrencies={serializedCurrencies} />
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 flex-1 flex flex-col">
+                <CurrenciesClient initialCurrencies={serializedCurrencies} />
+            </div>
         </div>
     );
 }

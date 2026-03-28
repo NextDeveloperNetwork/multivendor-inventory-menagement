@@ -1,16 +1,26 @@
 import { prisma } from '@/lib/prisma';
 import UsersClient from '@/components/UsersClient';
 import { getUsers } from '@/app/actions/users';
+import { getTransporters } from '@/app/actions/transporters';
+import { getBusinessFilter, getSelectedBusinessId } from '@/app/actions/business';
 
 export default async function UsersPage() {
-    const users = await getUsers();
-    const shops = await prisma.shop.findMany({
-        orderBy: { name: 'asc' }
-    });
+    const businessFilter = await getBusinessFilter();
+    const businessId = await getSelectedBusinessId();
+
+    const [users, shops, transporters] = await Promise.all([
+        getUsers(),
+        prisma.shop.findMany({ where: businessFilter as any, orderBy: { name: 'asc' } }),
+        getTransporters(businessId || undefined)
+    ]);
 
     return (
-        <div className="p-8 lg:p-12">
-            <UsersClient initialUsers={users} shops={shops} />
+        <div className="space-y-6 fade-in max-w-[1600px] mx-auto">
+            <UsersClient 
+                initialUsers={users} 
+                shops={shops} 
+                transporters={transporters} 
+            />
         </div>
     );
 }

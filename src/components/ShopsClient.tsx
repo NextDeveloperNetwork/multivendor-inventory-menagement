@@ -3,7 +3,7 @@
 import { createShop, updateShop, assignUserToShop, removeUserFromShop, deleteShop } from '@/app/actions/shop';
 import { User, Shop } from '@prisma/client';
 import { useState, useEffect } from 'react';
-import { Store, User as UserIcon, MapPin, X, Plus, Edit2, Shield, Check, Trash2 } from 'lucide-react';
+import { Store, User as UserIcon, MapPin, X, Plus, Edit2, Shield, Check, Trash2, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ConfirmDialog } from './ui/ConfirmDialog';
@@ -43,12 +43,23 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
         if (initialLng && !editingShop) setLng(initialLng);
     }, [initialLat, initialLng, editingShop]);
 
+    const isSyncMode = searchParams.get('mode') === 'choose_existing';
+
     const handleEditClick = (shop: any) => {
         setEditingShop(shop);
         setName(shop.name);
         setLocation(shop.location || '');
-        setLat(shop.latitude?.toString() || '');
-        setLng(shop.longitude?.toString() || '');
+        
+        // If coming from map to update an existing shop, prioritize the NEW coordinates from the URL
+        if (isSyncMode && initialLat && initialLng) {
+            setLat(initialLat);
+            setLng(initialLng);
+            toast.info(`Synchronizing ${shop.name} to new tactical coordinates...`);
+        } else {
+            setLat(shop.latitude?.toString() || '');
+            setLng(shop.longitude?.toString() || '');
+        }
+        
         setCurrencyId(shop.currencyId || '');
         setBusinessId(shop.businessId || '');
 
@@ -60,8 +71,8 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
         setEditingShop(null);
         setName('');
         setLocation('');
-        setLat('');
-        setLng('');
+        setLat(initialLat || ''); // Keep URL lat if present
+        setLng(initialLng || ''); // Keep URL lng if present
         setCurrencyId('');
         setBusinessId('');
     };
@@ -92,6 +103,20 @@ export default function ShopsClient({ initialShops, initialUnassignedUsers, curr
         <div className="space-y-6 animate-in fade-in duration-1000">
             {/* Header / Form Section */}
             <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                {isSyncMode && initialLat && initialLng && (
+                    <div className="bg-blue-600 p-3 px-6 flex items-center justify-between text-white animate-pulse">
+                        <div className="flex items-center gap-3">
+                            <Target size={14} className="animate-spin duration-1000" />
+                            <span className="text-[10px] font-black uppercase tracking-widest italic">Geospatial Sync Active: Targeting [{Number(initialLat).toFixed(4)}, {Number(initialLng).toFixed(4)}]</span>
+                        </div>
+                        <button 
+                            onClick={() => router.replace('/admin/shops')}
+                            className="bg-white/20 hover:bg-white text-white hover:text-blue-600 px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+                        >
+                            Abort Sync
+                        </button>
+                    </div>
+                )}
                 <div className="bg-slate-900 p-6 text-white flex flex-col md:flex-row justify-between items-center gap-4 border-b border-slate-800">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-black/20">

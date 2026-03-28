@@ -1,148 +1,125 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import Link from 'next/link';
-import { ArrowLeft, TruckIcon, Package, Calendar, CheckCircle } from 'lucide-react';
+import { ArrowLeftRight, TruckIcon, Package, Calendar, Settings } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
+import { sanitizeData } from '@/lib/utils';
+
+export const dynamic = 'force-dynamic';
 
 export default async function ShopTransfersPage() {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.shopId) {
-        return <div className="p-12 text-center text-red-400">No shop assigned</div>;
+        return <div className="p-12 text-center text-red-500 font-medium">No shop assigned</div>;
     }
 
-    const transfers = await prisma.transfer.findMany({
-        where: {
-            toShopId: session.user.shopId,
-        },
-        include: {
-            items: {
-                include: {
-                    product: true,
-                },
-            },
-        },
-        orderBy: {
-            date: 'desc',
-        },
+    const rawTransfers = await prisma.transfer.findMany({
+        where: { toShopId: session.user.shopId },
+        include: { items: { include: { product: true } } },
+        orderBy: { date: 'desc' },
     });
 
+    const transfers = sanitizeData(rawTransfers);
+
     const totalTransfers = transfers.length;
-    const totalItems = transfers.reduce((sum, transfer) =>
-        sum + transfer.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0
+    const totalItems = transfers.reduce((sum: number, trans: any) =>
+        sum + trans.items.reduce((acc: number, item: any) => acc + item.quantity, 0), 0
     );
-    const completedTransfers = transfers.filter(t => t.status === 'COMPLETED').length;
+    const completedOpt = transfers.filter((t: any) => ['COMPLETED', 'DELIVERED', 'PAID'].includes(t.status)).length;
+
+    const stats = [
+        { label: 'Total Transfers', value: totalTransfers, icon: ArrowLeftRight, color: 'text-blue-600 bg-blue-50 border-blue-100' },
+        { label: 'Units Received', value: totalItems, icon: Package, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
+        { label: 'Completed', value: completedOpt, icon: TruckIcon, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
+    ];
 
     return (
-        <div className="space-y-12 animate-in fade-in duration-700">
+        <div className="space-y-6 fade-in">
             {/* Header */}
-            <div className="bg-white p-12 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/20 rounded-full -mr-32 -mt-32 blur-3xl opacity-50"></div>
-
-                <div className="relative z-10 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-10">
-                    <div className="flex items-center gap-6">
-                        <Link href="/shop" className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all shadow-lg shadow-black/10 group">
-                            <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
-                        </Link>
-                        <div>
-                            <h1 className="text-4xl font-bold text-slate-900 tracking-tight uppercase leading-tight">
-                                Stock <span className="text-indigo-600">Transfers</span>
-                            </h1>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Log of all stock movements to this location</p>
-                        </div>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                        <ArrowLeftRight size={24} />
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full xl:w-auto">
-                        <div className="bg-slate-50 px-8 py-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-end min-w-[160px]">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Transfers</span>
-                            <span className="text-3xl font-bold text-slate-900 tracking-tighter font-mono">{totalTransfers}</span>
-                        </div>
-                        <div className="bg-slate-50 px-8 py-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-end min-w-[160px]">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Units</span>
-                            <span className="text-3xl font-bold text-slate-900 tracking-tighter font-mono">{totalItems}</span>
-                        </div>
-                        <div className="bg-indigo-600 px-8 py-5 rounded-2xl shadow-lg shadow-indigo-500/20 flex flex-col items-end text-white min-w-[160px]">
-                            <span className="text-[9px] font-bold text-indigo-100 uppercase tracking-widest">Completed</span>
-                            <span className="text-3xl font-bold tracking-tighter font-mono">{completedTransfers}</span>
-                        </div>
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900">Stock Transfers</h1>
+                        <p className="text-sm text-slate-400 font-medium">Log of stock movements to this location</p>
                     </div>
                 </div>
             </div>
 
-            {/* Transfers List */}
-            <div className="space-y-6">
-                {transfers.length === 0 ? (
-                    <div className="bg-white p-24 rounded-[3rem] border border-slate-200 text-center shadow-sm">
-                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-200 shadow-inner">
-                            <TruckIcon size={36} />
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {stats.map(s => (
+                    <div key={s.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center border shrink-0 ${s.color}`}>
+                            <s.icon size={20} />
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">No transfers found</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Transfers from other locations will appear here</p>
+                        <div>
+                            <p className="text-2xl font-black text-slate-900">{s.value}</p>
+                            <p className="text-xs text-slate-400 font-medium">{s.label}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Transfers List */}
+            <div className="space-y-4">
+                {transfers.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-16 text-center">
+                        <TruckIcon size={40} strokeWidth={1.5} className="mx-auto text-slate-300 mb-4" />
+                        <h3 className="text-lg font-bold text-slate-900">No transfers found</h3>
+                        <p className="text-sm text-slate-500 font-medium mt-1">Stock inbound to this location will appear here</p>
                     </div>
                 ) : (
-                    transfers.map((transfer) => (
-                        <div key={transfer.id} className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/5 transition-all group">
-                            <div className="p-8">
-                                <div className="flex flex-col lg:flex-row justify-between gap-10 mb-10 border-b border-slate-100 pb-10">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg">
-                                            <TruckIcon className="text-indigo-400" size={24} />
-                                        </div>
-                                        <div>
-                                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Transfer Reference</div>
-                                            <div className="text-slate-900 font-bold tracking-tight text-lg uppercase font-mono">ID_{transfer.id.slice(-8).toUpperCase()}</div>
-                                            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold mt-2 uppercase tracking-widest">
-                                                <Calendar size={12} className="text-indigo-600" />
-                                                {formatDateTime(transfer.date).toUpperCase()}
-                                            </div>
-                                        </div>
+                    transfers.map((transfer: any) => (
+                        <div key={transfer.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:border-indigo-300 transition-colors">
+                            <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                                        <TruckIcon size={20} />
                                     </div>
-                                    <div className="flex items-center">
-                                        <div className={`px-6 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest border-2 ${transfer.status === 'COMPLETED'
-                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                            : transfer.status === 'PENDING'
-                                                ? 'bg-amber-50 text-amber-600 border-amber-100'
-                                                : 'bg-rose-50 text-rose-600 border-rose-100'
-                                            }`}>
-                                            {transfer.status}
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-900">#{transfer.id.slice(-8).toUpperCase()}</p>
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mt-0.5">
+                                            <Calendar size={12} className="text-indigo-500" />
+                                            {formatDateTime(transfer.date)}
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Transfer Items */}
-                                <div>
-                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                                        <Package size={14} className="text-indigo-600" /> Transferred Items
-                                    </h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                                        {transfer.items.map((item) => (
-                                            <div key={item.id} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 flex justify-between items-center group/item hover:bg-white hover:border-blue-200 hover:shadow-lg transition-all">
-                                                <div>
-                                                    <div className="text-[11px] font-bold text-slate-800 uppercase leading-none">
-                                                        {item.product.name}
-                                                    </div>
-                                                    <div className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-2 bg-white inline-block px-2 py-0.5 rounded border border-slate-200">
-                                                        {item.product.sku}
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-xl font-bold text-indigo-600 font-mono">
-                                                        {item.quantity}
-                                                    </div>
-                                                    <div className="text-[8px] text-slate-400 uppercase font-bold tracking-widest">Units</div>
-                                                </div>
+                                <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold border max-w-max ${
+                                    ['COMPLETED', 'DELIVERED', 'PAID'].includes(transfer.status)
+                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                    : transfer.status === 'PENDING'
+                                        ? 'bg-amber-50 text-amber-600 border-amber-100'
+                                    : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                }`}>
+                                    {transfer.status}
+                                </span>
+                            </div>
+                            
+                            <div className="p-6">
+                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <Package size={14} className="text-indigo-600" /> Transferred Items
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {transfer.items.map((item: any) => (
+                                        <div key={item.id} className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex items-center justify-between">
+                                            <div className="min-w-0 pr-4">
+                                                <p className="text-sm font-bold text-slate-900 truncate">{item.product.name}</p>
+                                                <p className="text-[10px] text-slate-400 font-mono mt-0.5">{item.product.sku}</p>
                                             </div>
-                                        ))}
-                                    </div>
-                                    <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
-                                        <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                            Total Items: 
-                                            <span className="bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-mono">
-                                                {transfer.items.reduce((sum, item) => sum + item.quantity, 0)} UNITS
-                                            </span>
+                                            <div className="text-right shrink-0">
+                                                <p className="text-lg font-bold text-indigo-600 font-mono leading-none">{item.quantity}</p>
+                                                <p className="text-[10px] text-slate-400 font-medium tracking-wide">units</p>
+                                            </div>
                                         </div>
+                                    ))}
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end">
+                                    <div className="text-xs font-bold text-slate-500">
+                                        Total Items: <span className="bg-slate-100 px-3 py-1 rounded text-slate-900 border border-slate-200 ml-2">{transfer.items.reduce((s: number, i: any) => s + i.quantity, 0)}</span>
                                     </div>
                                 </div>
                             </div>

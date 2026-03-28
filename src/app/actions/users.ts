@@ -17,12 +17,13 @@ export async function getUsers() {
 
 export async function updateUser(id: string, formData: FormData) {
     const session = await getServerSession(authOptions);
-    if (session?.user?.role !== 'ADMIN') return { error: 'Unauthorized' };
+    if ((session?.user as any)?.role !== 'ADMIN') return { error: 'Unauthorized' };
 
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const role = formData.get('role') as any;
     const shopId = formData.get('shopId') as string;
+    const transporterId = formData.get('transporterId') as string;
 
     try {
         const user = await prisma.user.update({
@@ -31,8 +32,9 @@ export async function updateUser(id: string, formData: FormData) {
                 name,
                 email,
                 role,
-                shopId: shopId || null
-            }
+                shopId: shopId || null,
+                transporterId: transporterId || null
+            } as any
         });
 
         await logActivity({
@@ -51,7 +53,7 @@ export async function updateUser(id: string, formData: FormData) {
 
 export async function deleteUser(id: string) {
     const session = await getServerSession(authOptions);
-    if (session?.user?.role !== 'ADMIN') return { error: 'Unauthorized' };
+    if ((session?.user as any)?.role !== 'ADMIN') return { error: 'Unauthorized' };
 
     try {
         const user = await prisma.user.delete({

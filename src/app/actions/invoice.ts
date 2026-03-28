@@ -12,6 +12,7 @@ export async function createInvoice(formData: FormData) {
     const warehouseId = formData.get('warehouseId') as string;
     const shopId = formData.get('shopId') as string;
     const date = formData.get('date') as string;
+    const businessId = formData.get('businessId') as string;
 
     // Validation: Require either warehouseId OR shopId, but not both or neither
     if ((!warehouseId && !shopId) || (warehouseId && shopId)) {
@@ -36,6 +37,7 @@ export async function createInvoice(formData: FormData) {
                 warehouse: warehouseId ? { connect: { id: warehouseId } } : undefined,
                 shop: shopId ? { connect: { id: shopId } } : undefined,
                 supplier: (supplierId ? { connect: { id: supplierId } } : undefined) as any,
+                businessId: (businessId && businessId !== 'null') ? businessId : null,
                 items: {
                     create: items.map((item: any) => ({
                         productId: item.productId,
@@ -174,6 +176,7 @@ export async function updateInvoice(id: string, formData: FormData) {
     const warehouseId = formData.get('warehouseId') as string;
     const shopId = formData.get('shopId') as string;
     const date = formData.get('date') as string;
+    const businessId = formData.get('businessId') as string;
 
     if ((!warehouseId && !shopId) || (warehouseId && shopId)) {
         return { success: false, error: 'Please select either a Warehouse or a Shop as destination.' };
@@ -228,6 +231,7 @@ export async function updateInvoice(id: string, formData: FormData) {
                     warehouseId: warehouseId || null,
                     shopId: shopId || null,
                     supplierId: supplierId || null,
+                    businessId: (businessId && businessId !== 'null') ? businessId : null,
                     items: {
                         create: items.map((item: any) => ({
                             productId: item.productId,

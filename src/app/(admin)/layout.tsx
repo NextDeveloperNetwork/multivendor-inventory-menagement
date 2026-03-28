@@ -17,25 +17,25 @@ export default function AdminLayout({
 
             <main className="flex-1 lg:ml-80 min-h-screen transition-all duration-300">
                 {/* Responsive Header for Mobile */}
-                <div className="lg:hidden sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                <div className="lg:hidden sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
-                            <Store size={20} />
+                        <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                            <Store size={18} />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-sm font-black text-slate-900 tracking-tight leading-none uppercase">Nexus Admin</span>
-                            <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1">Core Console</span>
+                            <span className="text-sm font-bold text-slate-900 leading-none">Administration</span>
+                            <span className="text-[10px] text-slate-500 font-medium mt-0.5">Core Console</span>
                         </div>
                     </div>
                     <button
                         onClick={() => setIsOpen(true)}
-                        className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors shadow-sm"
+                        className="w-9 h-9 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors shadow-sm"
                     >
-                        <Menu size={20} />
+                        <Menu size={18} />
                     </button>
                 </div>
 
-                <div className="p-4 lg:p-12 max-w-[1600px] mx-auto">
+                <div className="p-4 lg:p-10 max-w-[1600px] mx-auto">
                     {children}
                 </div>
             </main>

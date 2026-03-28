@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Circle, Polyline, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Store, Box, Truck, Target, Navigation, MapPin } from 'lucide-react';
+import { Store, Box, Truck, Target, Navigation, MapPin, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import Link from 'next/link';
 
@@ -43,6 +43,7 @@ const createCustomIcon = (icon: React.ReactNode, color: string, isUser: boolean 
 const shopIcon = createCustomIcon(<Store size={22} />, '#3b82f6'); // Blue
 const warehouseIcon = createCustomIcon(<Box size={22} />, '#8b5cf6'); // Violet
 const supplierIcon = createCustomIcon(<Truck size={22} />, '#f59e0b'); // Amber
+const deliveredIcon = createCustomIcon(<CheckCircle2 size={22} />, '#10b981'); // Emerald
 const selectedIcon = createCustomIcon(<Target size={22} />, '#ef4444'); // Red
 const userIcon = createCustomIcon(<div className="w-2 h-2 bg-white rounded-full animate-pulse" />, '#3b82f6', true);
 
@@ -52,10 +53,22 @@ interface Location {
     latitude: number | null;
     longitude: number | null;
     type: 'shop' | 'warehouse' | 'supplier';
+    description?: string;
+    label?: string;
+    status?: string;
+}
+
+interface Path {
+    id: string;
+    from: [number, number];
+    to: [number, number];
+    status: string;
+    transporter: string;
 }
 
 interface MapProps {
     locations: Location[];
+    paths?: Path[];
     onLocationSelect?: (lat: number, lng: number) => void;
     selectedLocation?: { latitude: number; longitude: number } | null;
 }
@@ -86,7 +99,7 @@ function MapEvents({ onLocationSelect }: { onLocationSelect?: (lat: number, lng:
     return null;
 }
 
-export default function MapComponent({ locations, onLocationSelect, selectedLocation }: MapProps) {
+export default function MapComponent({ locations, paths = [], onLocationSelect, selectedLocation }: MapProps) {
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
     const validLocations = locations.filter(l => l.latitude !== null && l.longitude !== null && !isNaN(l.latitude) && !isNaN(l.longitude));
 
@@ -151,8 +164,16 @@ export default function MapComponent({ locations, onLocationSelect, selectedLoca
                     <Marker
                         key={`${loc.type}-${loc.id}`}
                         position={[loc.latitude!, loc.longitude!]}
-                        icon={loc.type === 'shop' ? shopIcon : loc.type === 'warehouse' ? warehouseIcon : supplierIcon}
+                        icon={loc.status === 'DELIVERED' ? deliveredIcon : 
+                              loc.type === 'shop' ? shopIcon : 
+                              loc.type === 'warehouse' ? warehouseIcon : 
+                              supplierIcon}
                     >
+                        {loc.label && (
+                            <Tooltip direction="top" offset={[0, -20]} opacity={1} permanent className="tactical-label">
+                                {loc.label}
+                            </Tooltip>
+                        )}
                         <Popup className="custom-popup">
                             <div className="p-3 md:p-4 bg-white rounded-xl min-w-[200px] md:min-w-[240px]">
                                 <div className="flex items-center justify-between mb-3 md:mb-4">
@@ -164,9 +185,14 @@ export default function MapComponent({ locations, onLocationSelect, selectedLoca
                                     </div>
                                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                                 </div>
-                                <div className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight mb-3 md:mb-4">
+                                <div className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight mb-2">
                                     {loc.name}
                                 </div>
+                                {loc.description && (
+                                    <div className="mb-4 p-3 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed whitespace-pre-line italic">
+                                        {loc.description}
+                                    </div>
+                                )}
                                 <div className="space-y-2 pt-2 md:pt-3 border-t border-slate-100 flex flex-col">
                                     <button
                                         onClick={() => getDirections(loc.latitude!, loc.longitude!)}
@@ -190,6 +216,33 @@ export default function MapComponent({ locations, onLocationSelect, selectedLoca
                     </Marker>
                 ))}
 
+                {paths.map((path) => (
+                    <Polyline
+                        key={path.id}
+                        positions={[path.from, path.to]}
+                        pathOptions={{
+                            color: path.status === 'SHIPPED' ? '#3b82f6' : '#f59e0b',
+                            weight: 4,
+                            dashArray: path.status === 'SHIPPED' ? '0' : '10, 10',
+                            opacity: 0.6
+                        }}
+                    >
+                        <Popup>
+                            <div className="p-3 bg-white rounded-xl min-w-[180px]">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 italic">Active Route</div>
+                                <div className="text-xs font-black italic text-slate-900 mb-3 flex items-center gap-2">
+                                    {path.status} <ArrowRight size={10} /> UNIT_{path.id.slice(-6).toUpperCase()}
+                                </div>
+                                <div className="pt-2 border-t border-slate-100">
+                                    <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 italic">
+                                        <Truck size={12} /> {path.transporter}
+                                    </div>
+                                </div>
+                            </div>
+                        </Popup>
+                    </Polyline>
+                ))}
+
                 {selectedLocation && (
                     <Marker
                         position={[selectedLocation.latitude, selectedLocation.longitude]}
@@ -201,6 +254,7 @@ export default function MapComponent({ locations, onLocationSelect, selectedLoca
                                     <Target size={12} className="md:w-[14px] md:h-[14px]" /> New Registration
                                 </div>
                                 <div className="space-y-1.5 md:space-y-2">
+                                    <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1 italic">Register New</div>
                                     <Link
                                         href={`/admin/shops?lat=${selectedLocation.latitude}&lng=${selectedLocation.longitude}`}
                                         className="flex items-center gap-2 md:gap-3 w-full p-2.5 md:p-3 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg transition-all text-[9px] md:text-[11px] font-black uppercase tracking-wider"
@@ -213,11 +267,19 @@ export default function MapComponent({ locations, onLocationSelect, selectedLoca
                                     >
                                         <Box size={14} className="md:w-[16px] md:h-[16px]" /> Establish Hub
                                     </Link>
+
+                                    <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest mt-4 mb-1.5 px-1 italic">Update Existing</div>
                                     <Link
-                                        href={`/admin/suppliers?lat=${selectedLocation.latitude}&lng=${selectedLocation.longitude}`}
-                                        className="flex items-center gap-2 md:gap-3 w-full p-2.5 md:p-3 bg-amber-50 hover:bg-amber-600 text-amber-600 hover:text-white rounded-lg transition-all text-[9px] md:text-[11px] font-black uppercase tracking-wider"
+                                        href={`/admin/shops?lat=${selectedLocation.latitude}&lng=${selectedLocation.longitude}&mode=choose_existing`}
+                                        className="flex items-center gap-2 md:gap-3 w-full p-2.5 md:p-3 bg-slate-50 hover:bg-slate-900 text-slate-600 hover:text-white rounded-lg transition-all text-[8px] md:text-[10px] font-bold uppercase tracking-widest border border-slate-200"
                                     >
-                                        <Truck size={14} className="md:w-[16px] md:h-[16px]" /> Sync Supplier
+                                        <Store size={14} /> Update Existing Shop
+                                    </Link>
+                                    <Link
+                                        href={`/admin/warehouses?lat=${selectedLocation.latitude}&lng=${selectedLocation.longitude}&mode=choose_existing`}
+                                        className="flex items-center gap-2 md:gap-3 w-full p-2.5 md:p-3 bg-slate-50 hover:bg-slate-900 text-slate-600 hover:text-white rounded-lg transition-all text-[8px] md:text-[10px] font-bold uppercase tracking-widest border border-slate-200"
+                                    >
+                                        <Box size={14} /> Update Hub Coords
                                     </Link>
                                 </div>
                             </div>
@@ -282,6 +344,23 @@ export default function MapComponent({ locations, onLocationSelect, selectedLoca
                 }
                 .custom-popup .leaflet-popup-tip {
                     background: white !important;
+                }
+                .tactical-label {
+                    background: #1e1b4b !important;
+                    border: 2px solid #3b82f6 !important;
+                    color: white !important;
+                    font-family: 'Inter', sans-serif !important;
+                    font-weight: 900 !important;
+                    font-size: 8px !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.15em !important;
+                    padding: 6px 10px !important;
+                    border-radius: 8px !important;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.4) !important;
+                    white-space: pre-line !important;
+                }
+                .leaflet-tooltip-top:before {
+                    border-top-color: #3b82f6 !important;
                 }
             `}</style>
         </div>

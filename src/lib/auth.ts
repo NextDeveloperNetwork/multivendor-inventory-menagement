@@ -39,33 +39,52 @@ export const authOptions: NextAuthOptions = {
                 );
 
                 if (!isPasswordValid) {
+                    console.log(`[AUTH] Password mismatch for: ${credentials.email}`);
                     return null;
                 }
 
+                console.log(`[AUTH] Successful login: ${user.email} (Role: ${user.role})`);
                 return {
                     id: user.id,
                     email: user.email,
                     name: user.name,
                     role: user.role,
                     shopId: user.shopId,
+                    transporterId: (user as any).transporterId,
                 };
             },
         }),
     ],
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger, session }) {
+            // Fresh data sync
+            if (token.id) {
+                const freshUser = await prisma.user.findUnique({
+                    where: { id: token.id as string },
+                    select: { role: true, shopId: true, transporterId: true } as any
+                });
+                if (freshUser) {
+                    const fu = freshUser as any;
+                    token.role = fu.role;
+                    token.shopId = fu.shopId;
+                    token.transporterId = fu.transporterId;
+                }
+            }
+
             if (user) {
                 token.id = user.id;
                 token.role = user.role;
-                token.shopId = user.shopId;
+                token.shopId = (user as any).shopId;
+                token.transporterId = (user as any).transporterId;
             }
             return token;
         },
         async session({ session, token }) {
             if (token) {
-                session.user.id = token.id;
-                session.user.role = token.role;
-                session.user.shopId = token.shopId;
+                (session.user as any).id = token.id;
+                (session.user as any).role = token.role;
+                (session.user as any).shopId = token.shopId;
+                (session.user as any).transporterId = token.transporterId;
             }
             return session;
         },

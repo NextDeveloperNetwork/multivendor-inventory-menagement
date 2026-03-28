@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Warehouse, Plus, MapPin, Package, ArrowRight, Edit2, X, Globe, Info, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Warehouse, Plus, MapPin, Package, ArrowRight, Edit2, X, Globe, Info, Loader2, Target } from 'lucide-react';
 import Link from 'next/link';
 import DeleteWarehouseButton from './DeleteWarehouseButton';
 import { updateWarehouse } from '@/app/actions/warehouse';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import MapPicker from './MapPicker';
 import {
     Dialog,
@@ -30,6 +30,24 @@ export default function WarehousesClient({ initialWarehouses, businesses }: { in
     const [editingWarehouse, setEditingWarehouse] = useState<WarehouseData | null>(null);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const initialLat = searchParams.get('lat');
+    const initialLng = searchParams.get('lng');
+    const isSyncMode = searchParams.get('mode') === 'choose_existing';
+
+    const handleEditClick = (wh: WarehouseData) => {
+        if (isSyncMode && initialLat && initialLng) {
+            setEditingWarehouse({
+                ...wh,
+                latitude: Number(initialLat),
+                longitude: Number(initialLng)
+            });
+            toast.info(`Synchronizing ${wh.name} to new tactical coordinates...`);
+        } else {
+            setEditingWarehouse(wh);
+        }
+    };
 
     const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -95,7 +113,7 @@ export default function WarehousesClient({ initialWarehouses, businesses }: { in
                                             View Assets <ArrowRight size={14} />
                                         </Link>
                                         <button 
-                                            onClick={() => setEditingWarehouse(wh)}
+                                            onClick={() => handleEditClick(wh)}
                                             className="h-10 w-10 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 rounded-xl flex items-center justify-center transition-all shadow-sm"
                                             title="Modify Registry"
                                         >

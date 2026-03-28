@@ -26,10 +26,12 @@ const MapComponent = dynamic(() => import('./MapComponent'), {
 
 export default function MapWrapper({
     locations,
+    paths = [],
     onLocationSelect,
     selectedLocation
 }: {
     locations: any[],
+    paths?: any[],
     onLocationSelect?: (lat: number, lng: number) => void,
     selectedLocation?: { latitude: number; longitude: number } | null
 }) {
@@ -37,6 +39,7 @@ export default function MapWrapper({
         <div className="relative w-full h-full min-h-[400px] overflow-hidden bg-slate-50">
             <MapComponent
                 locations={locations}
+                paths={paths}
                 onLocationSelect={onLocationSelect}
                 selectedLocation={selectedLocation}
             />

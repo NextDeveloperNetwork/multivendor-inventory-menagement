@@ -27,16 +27,33 @@ model Currency {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
-  name      String?
-  shopId    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  sales     Sale[]
-  shop      Shop?    @relation(fields: [shopId], references: [id])
+  id              String       @id @default(cuid())
+  email           String       @unique
+  password        String
+  role            Role         @default(USER)
+  name            String?
+  shopId          String?
+  transporterId   String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  sales           Sale[]
+  shop            Shop?        @relation(fields: [shopId], references: [id])
+  transporter     Transporter? @relation(fields: [transporterId], references: [id])
+  driverTransports Transfer[]  @relation("AssignedDriver")
+}
+
+model Transporter {
+  id            String     @id @default(cuid())
+  businessId    String?
+  name          String
+  phone         String?
+  vehicleType   String?    // Truck, Van, Bike, etc.
+  licensePlate  String?
+  address       String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  users         User[]
+  transports    Transfer[] @relation("Transports")
 }
 
 model Warehouse {
@@ -71,6 +88,7 @@ model Shop {
   transfersTo   Transfer[]  @relation("TransferToShop")
   users         User[]
   invoices      Invoice[]
+  cashTransfers CashTransfer[]
 }
 
 model Product {
@@ -198,17 +216,34 @@ model Transfer {
   toShop          Shop?          @relation("TransferToShop", fields: [toShopId], references: [id])
   toWarehouse     Warehouse?     @relation("TransferToWarehouse", fields: [toWarehouseId], references: [id])
   items           TransferItem[]
+  transporterId   String?
+  driverId        String?
+  assignedAt      DateTime?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  totalAmount     Decimal?       @db.Decimal(10, 2)
+  paidAmount      Decimal?       @db.Decimal(10, 2)
+  isPaid          Boolean        @default(false)
+  paidAt          DateTime?
+  isReturn        Boolean        @default(false)
+  parentTransferId String?
+  transporter     Transporter?   @relation("Transports", fields: [transporterId], references: [id])
+  driver          User?          @relation("AssignedDriver", fields: [driverId], references: [id])
 
   @@index([businessId])
+  @@index([transporterId])
+  @@index([driverId])
 }
 
 model TransferItem {
-  id         String   @id @default(cuid())
-  transferId String
-  productId  String
-  quantity   Int
-  product    Product  @relation(fields: [productId], references: [id])
-  transfer   Transfer @relation(fields: [transferId], references: [id])
+  id               String   @id @default(cuid())
+  transferId       String
+  productId        String
+  quantity         Int
+  returnedQuantity Int      @default(0)
+  returnReason     String?
+  product          Product  @relation(fields: [productId], references: [id])
+  transfer         Transfer @relation(fields: [transferId], references: [id])
 }
 
 model ActivityLog {
@@ -250,6 +285,7 @@ model Shift {
   status      String    @default("OPEN")
   createdAt   DateTime  @default(now())
   shop        Shop      @relation(fields: [shopId], references: [id])
+  cashTransfers CashTransfer[]
 
   @@index([shopId])
 }
@@ -287,4 +323,22 @@ model SaleItem {
 enum Role {
   ADMIN
   USER
+  TRANSPORTER
+}
+
+model CashTransfer {
+  id        String   @id @default(cuid())
+  shopId    String
+  shiftId   String?
+  amount    Decimal  @db.Decimal(10, 2)
+  type      String   @default("TO_ADMIN") // TO_ADMIN, FROM_ADMIN
+  status    String   @default("PENDING") // PENDING, COMPLETED, REJECTED
+  reference String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  shift     Shift?   @relation(fields: [shiftId], references: [id])
+
+  @@index([shopId])
+  @@index([shiftId])
 }

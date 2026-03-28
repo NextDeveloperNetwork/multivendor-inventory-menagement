@@ -6,7 +6,9 @@ import { cookies } from 'next/headers';
 
 export async function getSelectedBusinessId() {
     const cookieStore = await cookies();
-    return cookieStore.get('selectedBusinessId')?.value || null;
+    const id = cookieStore.get('selectedBusinessId')?.value || null;
+    if (id === 'null' || id === 'undefined') return null;
+    return id;
 }
 
 export async function setSelectedBusinessId(id: string | null) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { TruckIcon, Calendar, ArrowRight, Package, Warehouse, Store, Download } from 'lucide-react';
+import { TruckIcon, Calendar, ArrowRight, Package, Warehouse, Store, Download, RotateCcw } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 import {
     Dialog,
@@ -49,26 +49,35 @@ export default function TransferDetailsDialog({ transfer, children }: TransferDe
         const tableData = transfer.items.map((item: any) => [
             { content: item.product.name, styles: { fontStyle: 'bold' } },
             item.quantity.toString(),
+            (transfer.isReturn ? null : (item.returnedQuantity || 0).toString()),
             item.product.sku
         ]);
 
         autoTable(doc, {
             startY: 65,
-            head: [['Component', 'Loadout Qty', 'Reference SKU']],
+            head: [[
+                'Component', 
+                transfer.isReturn ? 'Return Load' : 'Load Qty', 
+                transfer.isReturn ? '-' : 'Rejected', 
+                'Ref SKU'
+            ]],
             body: tableData,
             theme: 'striped',
-            headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
+            headStyles: { fillColor: transfer.isReturn ? [225, 29, 72] : [37, 99, 235], textColor: [255, 255, 255] },
             columnStyles: {
                 1: { halign: 'center' },
-                2: { fontStyle: 'italic', halign: 'right' }
+                2: { halign: 'center', textColor: [220, 38, 38] },
+                3: { fontStyle: 'italic', halign: 'right' }
             }
         });
 
         const finalY = (doc as any).lastAutoTable.finalY + 10;
         doc.setFontSize(12);
         doc.setTextColor(0);
-        doc.text(`Total Movement Loadout: ${totalUnits} Units`, 14, finalY);
-
+        doc.text(`Total Loadout: ${totalUnits} Units`, 14, finalY);
+        if(transfer.totalAmount) {
+            doc.text(`Total Settlement: ${Number(transfer.totalAmount).toLocaleString()}`, 14, finalY + 7);
+        }
         doc.save(`transfer_${transfer.id.slice(-6).toUpperCase()}.pdf`);
     };
 
@@ -155,7 +164,10 @@ export default function TransferDetailsDialog({ transfer, children }: TransferDe
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">LOGISTIC_VOLUME</p>
-                                <p className="text-sm font-black text-slate-900 uppercase italic tabular-nums">{totalUnits} UNITS TOTAL</p>
+                                <p className="text-sm font-black text-slate-900 uppercase italic tabular-nums">
+                                    {totalUnits} UNITS
+                                    {transfer.totalAmount && <span className="text-blue-600 ml-4">// VALUED AT {Number(transfer.totalAmount).toLocaleString()}</span>}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -173,8 +185,9 @@ export default function TransferDetailsDialog({ transfer, children }: TransferDe
                             <Table>
                                 <TableHeader className="bg-slate-50/50 border-b border-slate-200">
                                     <TableRow className="hover:bg-transparent border-none">
-                                        <TableHead className="px-8 py-5 text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">Product Identifier</TableHead>
-                                        <TableHead className="px-8 py-5 text-center text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">Load</TableHead>
+                                        <TableHead className="px-8 py-5 text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">{transfer.isReturn ? 'Article Detail' : 'Product Identifier'}</TableHead>
+                                        <TableHead className="px-8 py-5 text-center text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">{transfer.isReturn ? 'Return Amount' : 'Load'}</TableHead>
+                                        {!transfer.isReturn && <TableHead className="px-8 py-5 text-center text-[9px] font-black text-rose-500 uppercase tracking-[0.15em] italic">Rejected</TableHead>}
                                         <TableHead className="px-8 py-5 text-right text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] italic">Global SKU</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -183,8 +196,8 @@ export default function TransferDetailsDialog({ transfer, children }: TransferDe
                                         <TableRow key={item.id} className="group hover:bg-slate-50/50 transition-all border-b border-slate-100 last:border-0 h-16">
                                             <TableCell className="px-8">
                                                 <div className="flex items-center gap-5">
-                                                    <div className="w-10 h-10 rounded-xl bg-slate-50/50 flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all">
-                                                        <Package size={16} strokeWidth={1.5} />
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border border-slate-100 shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all ${transfer.isReturn ? 'bg-rose-50/50 text-rose-500' : 'bg-slate-50/50 text-slate-400'}`}>
+                                                        {transfer.isReturn ? <RotateCcw size={16} /> : <Package size={16} strokeWidth={1.5} />}
                                                     </div>
                                                     <span className="font-black text-slate-900 uppercase italic text-[11px] tracking-tight">{item.product.name}</span>
                                                 </div>
@@ -192,6 +205,11 @@ export default function TransferDetailsDialog({ transfer, children }: TransferDe
                                             <TableCell className="px-8 text-center font-black text-slate-900 italic text-[11px] tabular-nums">
                                                 {item.quantity}
                                             </TableCell>
+                                            {!transfer.isReturn && (
+                                                <TableCell className="px-8 text-center font-black text-rose-500 italic text-[11px] tabular-nums">
+                                                    {item.returnedQuantity || 0}
+                                                </TableCell>
+                                            )}
                                             <TableCell className="px-8 text-right font-black text-slate-400 text-[10px] tracking-widest">
                                                 {item.product.sku}
                                             </TableCell>

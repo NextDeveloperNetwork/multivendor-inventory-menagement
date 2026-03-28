@@ -4,47 +4,35 @@ import { useState } from 'react';
 import { ShopSidebar } from '@/components/ShopSidebar';
 import { Menu, Store } from 'lucide-react';
 
-export default function ShopLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+export default function ShopLayout({ children }: { children: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="flex min-h-screen bg-[#f8fafc] selection:bg-blue-600 selection:text-white">
+        <div className="flex min-h-screen bg-slate-50/50">
             <ShopSidebar isOpen={isOpen} setIsOpen={setIsOpen} />
 
-            <main className="flex-1 lg:ml-[340px] min-h-screen transition-all duration-500 ease-in-out">
-                {/* Tactical Header for Mobile Interface */}
-                <div className="lg:hidden sticky top-0 z-40 w-full bg-black px-8 py-6 flex items-center justify-between border-b border-white/5 shadow-2xl">
-                    <div className="flex items-center gap-5">
-                        <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-blue-500 shadow-xl">
-                            <Store size={24} />
+            <main className="flex-1 lg:ml-72 min-h-screen transition-all duration-300">
+                {/* Mobile Header */}
+                <div className="lg:hidden sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                            <Store size={20} />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-lg font-black text-white tracking-tighter leading-none uppercase italic">Nexus <span className="text-blue-600">OS</span></span>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                                <span className="text-[8px] text-white/30 font-black uppercase tracking-[0.4em]">CONNECTED</span>
-                            </div>
+                            <span className="text-sm font-bold text-slate-900 leading-tight">Shop Portal</span>
+                            <span className="text-[10px] text-slate-400 font-medium">Store Management</span>
                         </div>
                     </div>
                     <button
                         onClick={() => setIsOpen(true)}
-                        className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-90"
+                        className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors shadow-sm"
                     >
-                        <Menu size={28} />
+                        <Menu size={20} />
                     </button>
                 </div>
 
-                <div className="p-4 md:p-8 lg:p-14 max-w-[1700px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                <div className="p-4 lg:p-10 max-w-[1600px] mx-auto">
                     {children}
-                </div>
-
-                {/* Ambient Grid Overlay (Optional visual touch) */}
-                <div className="fixed inset-0 pointer-events-none opacity-[0.015] z-0 hidden lg:block"
-                    style={{ backgroundImage: 'radial-gradient(#2563eb 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
                 </div>
             </main>
         </div>

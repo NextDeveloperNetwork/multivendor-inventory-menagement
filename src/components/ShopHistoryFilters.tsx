@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Calendar, Search } from 'lucide-react';
+import { Calendar, Search, X } from 'lucide-react';
 
 export default function ShopHistoryFilters() {
     const router = useRouter();
@@ -9,6 +9,7 @@ export default function ShopHistoryFilters() {
 
     const startDate = searchParams.get('startDate') || '';
     const endDate = searchParams.get('endDate') || '';
+    const q = searchParams.get('q') || '';
 
     const updateFilters = (field: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -17,49 +18,57 @@ export default function ShopHistoryFilters() {
         router.push(`/shop/history?${params.toString()}`);
     };
 
-    return (
-        <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-center justify-between">
-            <div className="flex items-center gap-4 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-inner">
-                <div className="flex items-center gap-3 px-5 py-3 bg-slate-50 rounded-xl shadow-sm border border-slate-100">
-                    <Calendar size={16} className="text-indigo-600" />
-                    <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => updateFilters('startDate', e.target.value)}
-                        className="bg-transparent border-none text-[10px] font-bold focus:ring-0 text-slate-900 uppercase tracking-widest"
-                        placeholder="Start Date"
-                    />
-                </div>
-                <div className="text-slate-300 font-bold text-[9px] uppercase tracking-widest px-2">To</div>
-                <div className="flex items-center gap-3 px-5 py-3 bg-slate-50 rounded-xl shadow-sm border border-slate-100">
-                    <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => updateFilters('endDate', e.target.value)}
-                        className="bg-transparent border-none text-[10px] font-bold focus:ring-0 text-slate-900 uppercase tracking-widest"
-                        placeholder="End Date"
-                    />
-                </div>
-            </div>
+    const hasFilters = startDate || endDate || q;
 
-            <div className="relative flex-1 w-full md:max-w-md">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors" size={20} />
+    const clearFilters = () => {
+        router.push('/shop/history');
+    };
+
+    return (
+        <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
                     type="text"
-                    placeholder="Search Sale Reference..."
-                    className="w-full pl-14 pr-6 h-16 bg-white border border-slate-200 rounded-2xl text-sm font-bold placeholder:text-slate-300 focus:border-indigo-600/50 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none text-slate-900 uppercase tracking-tight"
+                    defaultValue={q}
+                    placeholder="Search by Receipt #..."
+                    className="w-full pl-11 pr-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all outline-none"
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') updateFilters('q', (e.target as HTMLInputElement).value);
                     }}
                 />
             </div>
 
-            {(startDate || endDate || searchParams.get('q')) && (
+            {/* Date Range */}
+            <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                <div className="flex items-center gap-2 px-3">
+                    <Calendar size={14} className="text-slate-400" />
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => updateFilters('startDate', e.target.value)}
+                        className="bg-transparent border-none text-xs font-semibold focus:ring-0 text-slate-700 w-32 outline-none"
+                    />
+                </div>
+                <div className="text-slate-300">to</div>
+                <div className="flex items-center gap-2 px-3">
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => updateFilters('endDate', e.target.value)}
+                        className="bg-transparent border-none text-xs font-semibold focus:ring-0 text-slate-700 w-32 outline-none"
+                    />
+                </div>
+            </div>
+
+            {/* Clear Filters */}
+            {hasFilters && (
                 <button
-                    onClick={() => router.push('/shop/history')}
-                    className="px-8 py-4 bg-rose-50 text-rose-500 font-bold text-[9px] rounded-xl hover:bg-rose-500 hover:text-white transition-all uppercase tracking-widest border border-rose-100 shadow-sm"
+                    onClick={clearFilters}
+                    className="h-11 px-4 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl flex items-center gap-2 text-xs font-bold hover:bg-rose-100 transition-colors shrink-0"
                 >
-                    Clear Filters
+                    <X size={14} /> Clear
                 </button>
             )}
         </div>

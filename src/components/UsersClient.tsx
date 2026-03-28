@@ -27,9 +27,10 @@ import {
 interface UsersClientProps {
     initialUsers: any[];
     shops: any[];
+    transporters: any[];
 }
 
-export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
+export default function UsersClient({ initialUsers, shops, transporters }: UsersClientProps) {
     const [users, setUsers] = useState(initialUsers);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(false);
@@ -136,8 +137,11 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                             </div>
 
                             <div className="pt-2 flex flex-wrap gap-2">
-                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border font-mono italic ${user.role === 'ADMIN' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-blue-50 text-blue-600 border-blue-200'
-                                    }`}>
+                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border font-mono italic ${
+                                    user.role === 'ADMIN' ? 'bg-amber-50 text-amber-600 border-amber-200' : 
+                                    user.role === 'TRANSPORTER' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 
+                                    'bg-blue-50 text-blue-600 border-blue-200'
+                                }`}>
                                     <Shield size={10} />
                                     {user.role}
                                 </div>
@@ -195,6 +199,7 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                                     >
                                         <option value="USER">Standard Staff</option>
                                         <option value="ADMIN">System Administrator</option>
+                                        <option value="TRANSPORTER">Logistics Personnel</option>
                                     </select>
                                 </div>
                                 <div>
@@ -207,6 +212,19 @@ export default function UsersClient({ initialUsers, shops }: UsersClientProps) {
                                         <option value="">DE-ASSIGNED / FLOATING</option>
                                         {shops.map(shop => (
                                             <option key={shop.id} value={shop.id}>{shop.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Logistic Unit</label>
+                                    <select
+                                        name="transporterId"
+                                        defaultValue={editingUser?.transporterId || ''}
+                                        className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black focus:border-blue-600 focus:bg-white transition-all outline-none text-[10px] uppercase italic"
+                                    >
+                                        <option value="">NO_UNIT / INDEPENDENT</option>
+                                        {transporters.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
                                         ))}
                                     </select>
                                 </div>

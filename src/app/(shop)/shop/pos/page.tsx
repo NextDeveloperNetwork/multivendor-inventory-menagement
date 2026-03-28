@@ -39,6 +39,17 @@ export default async function SalesPage() {
         where: { businessId: (shop as any)?.businessId || '' }
     });
 
+    let todaySalesTotal = 0;
+    if (activeShift) {
+        const sales = await prisma.sale.findMany({
+            where: {
+                shopId: session.user.shopId,
+                date: { gte: activeShift.openedAt }
+            }
+        });
+        todaySalesTotal = sales.reduce((sum, s) => sum + Number(s.total), 0);
+    }
+
     const products = sanitizeData(rawProducts);
 
     return (
@@ -47,9 +58,10 @@ export default async function SalesPage() {
                 products={products}
                 shopId={session.user.shopId}
                 userId={session.user.id}
-                currency={shop?.currency ? JSON.parse(JSON.stringify(shop.currency)) : null}
-                initialShift={activeShift ? JSON.parse(JSON.stringify(activeShift)) : null}
-                customers={JSON.parse(JSON.stringify(customers))}
+                currency={shop?.currency ? sanitizeData(shop.currency) : null}
+                initialShift={activeShift ? sanitizeData(activeShift) : null}
+                customers={sanitizeData(customers)}
+                todaySalesTotal={todaySalesTotal}
             />
         </div>
     );

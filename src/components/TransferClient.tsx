@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createTransfer, updateTransfer } from '@/app/actions/transfer';
-import { Plus, Trash2, TruckIcon, Package, ArrowRight, AlertTriangle, Warehouse, Store, MapPin, Calendar, Search, Eye, Edit2, X } from 'lucide-react';
+import { reconcileReturn, updatePaymentStatus } from '@/app/actions/returns-flow';
+import { Plus, Trash2, TruckIcon, Package, ArrowRight, AlertTriangle, Warehouse, Store, MapPin, Calendar, Search, Eye, Edit2, X, RotateCcw, CheckCircle2, DollarSign, Ban } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import TransferDetailsDialog from './TransferDetailsDialog';
@@ -30,9 +31,11 @@ interface TransferClientProps {
     warehouses: any[];
     inventory: any[];
     selectedBusinessId: string | null;
+    transporters: any[];
+    currencySymbol?: string;
 }
 
-export default function TransferClient({ transfers, products, shops, warehouses, inventory, selectedBusinessId }: TransferClientProps) {
+export default function TransferClient({ transfers, products, shops, warehouses, inventory, selectedBusinessId, transporters, currencySymbol = 'ALL' }: TransferClientProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [showForm, setShowForm] = useState(false);
@@ -45,6 +48,7 @@ export default function TransferClient({ transfers, products, shops, warehouses,
     // Destination
     const [toType, setToType] = useState<'warehouse' | 'shop'>('shop');
     const [toId, setToId] = useState('');
+    const [transporterId, setTransporterId] = useState('');
 
     const [items, setItems] = useState<Array<{ productId: string; productName: string; quantity: string }>>([
         { productId: '', productName: '', quantity: '' },
@@ -115,6 +119,7 @@ export default function TransferClient({ transfers, products, shops, warehouses,
         setFromId(transfer.fromWarehouseId || transfer.fromShopId);
         setToType(transfer.toWarehouseId ? 'warehouse' : 'shop');
         setToId(transfer.toWarehouseId || transfer.toShopId);
+        setTransporterId(transfer.transporterId || '');
         setItems(transfer.items.map((i: any) => ({ 
             productId: i.productId, 
             productName: i.product?.name || '',
@@ -129,6 +134,7 @@ export default function TransferClient({ transfers, products, shops, warehouses,
         setFromId('');
         setToType('shop');
         setToId('');
+        setTransporterId('');
         setItems([{ productId: '', productName: '', quantity: '' }]);
         setShowForm(false);
     };
@@ -159,6 +165,9 @@ export default function TransferClient({ transfers, products, shops, warehouses,
         formData.append('fromId', fromId);
         formData.append('toType', toType);
         formData.append('toId', toId);
+        if (transporterId) {
+            formData.append('transporterId', transporterId);
+        }
         if (selectedBusinessId) {
             formData.append('businessId', selectedBusinessId);
         }
@@ -271,17 +280,34 @@ export default function TransferClient({ transfers, products, shops, warehouses,
                                         const sourceName = (transfer.fromWarehouse?.name || transfer.fromShop?.name || 'GENERIC SOURCE').toUpperCase();
                                         const destName = (transfer.toWarehouse?.name || transfer.toShop?.name || 'GENERIC TARGET').toUpperCase();
                                         const totalUnits = transfer.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+                                        const rejectedUnits = transfer.items.reduce((sum: number, item: any) => sum + (item.returnedQuantity || 0), 0);
+
+                                        const getStatusColor = (status: string, isPaid?: boolean) => {
+                                            if (isPaid) return 'bg-blue-50 text-blue-600 border-blue-100';
+                                            switch (status) {
+                                                case 'DELIVERED': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                                                case 'SHIPPED': return 'bg-amber-50 text-amber-600 border-amber-100';
+                                                case 'PARTIAL_RETURN':
+                                                case 'RETURN_PENDING': return 'bg-rose-50 text-rose-600 border-rose-100';
+                                                case 'RETURN_ACCEPTED': return 'bg-emerald-50 text-emerald-600 border-emerald-500';
+                                                default: return 'bg-slate-50 text-slate-500 border-slate-100';
+                                            }
+                                        };
 
                                         return (
-                                            <TableRow key={transfer.id} className="group hover:bg-slate-50 transition-all border-b border-slate-100 last:border-0 h-20">
+                                            <TableRow key={transfer.id} className={`group transition-all border-b border-slate-100 last:border-0 h-24 ${transfer.isReturn ? 'bg-rose-100/80 hover:bg-rose-200/90 border-l-[12px] border-l-rose-600 shadow-sm' : 'hover:bg-slate-50'}`}>
                                                 <TableCell className="px-8">
                                                     <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center text-slate-900 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
-                                                            <TruckIcon size={16} strokeWidth={1.5} />
+                                                        <div className={`w-10 h-10 rounded-xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm ${transfer.isReturn ? 'border-rose-200 text-rose-500' : 'text-slate-900'}`}>
+                                                            {transfer.isReturn ? <RotateCcw size={16} /> : <TruckIcon size={16} strokeWidth={1.5} />}
                                                         </div>
                                                         <div>
-                                                            <div className="font-bold text-sm text-slate-900 tracking-tight">REF-{transfer.id.slice(-6).toUpperCase()}</div>
-                                                            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Order Ref</div>
+                                                            <div className="font-bold text-sm text-slate-900 tracking-tight">#{transfer.id.slice(-6).toUpperCase()}</div>
+                                                            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                                                {transfer.isReturn ? (
+                                                                    <span className="text-rose-600 font-black">RETURN OF #{transfer.parentTransferId?.slice(-6).toUpperCase()}</span>
+                                                                ) : 'Order Ref'}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </TableCell>
@@ -300,14 +326,91 @@ export default function TransferClient({ transfers, products, shops, warehouses,
                                                     <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Stock Route</div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                                                        <Package size={12} className="text-slate-400" />
-                                                        <span className="text-xs font-black text-slate-900 tracking-tighter tabular-nums">{totalUnits} UNITS</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="inline-flex flex-col px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100 shadow-sm min-w-[100px]">
+                                                            <div className="flex items-center gap-2">
+                                                                <Package size={12} className={rejectedUnits > 0 ? "text-rose-500" : "text-slate-400"} />
+                                                                <span className="text-xs font-black text-slate-900 tracking-tighter tabular-nums">
+                                                                    {totalUnits - rejectedUnits} UNITS
+                                                                </span>
+                                                            </div>
+                                                            {rejectedUnits > 0 && (
+                                                                <span className="text-[8px] font-bold text-rose-500 uppercase tracking-tighter mt-0.5">
+                                                                    {rejectedUnits} REJECTED FROM {totalUnits}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {transfer.totalAmount && (() => {
+                                                            const sym = transfer.toShop?.currency?.symbol || transfer.fromShop?.currency?.symbol || currencySymbol;
+                                                            return (
+                                                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 shadow-sm">
+                                                                    <span className="text-[9px] font-black">{sym}</span>
+                                                                    <span className="text-xs font-black tabular-nums">{Number(transfer.totalAmount).toLocaleString()}</span>
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[8px] font-black uppercase tracking-widest ${getStatusColor(transfer.status, transfer.isPaid)}`}>
+                                                            {transfer.isPaid && <DollarSign size={10} />}
+                                                            {transfer.status}
+                                                        </div>
                                                     </div>
-                                                    <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1 ml-1">{transfer.items.length} LINE ITEMS</div>
+                                                    <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-2 ml-1 flex items-center gap-2">
+                                                        {transfer.isPaid ? 'FISCAL SETTLED' : 'AWAITING RECONCILIATION'}
+                                                        {transfer.isReturn && <span className="text-rose-500">// REVERSE_LOGISTICS_ACTIVE</span>}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell className="px-8 text-right">
                                                     <div className="flex items-center justify-end gap-2">
+                                                        {transfer.isReturn && transfer.status === 'RETURN_PENDING' && (
+                                                            <>
+                                                                <button 
+                                                                    onClick={async () => {
+                                                                        const res = await reconcileReturn(transfer.id, 'ACCEPT');
+                                                                        if ('success' in res && res.success) { 
+                                                                            toast.success('Return accepted & stock restored'); 
+                                                                            router.refresh(); 
+                                                                        } else if ('error' in res) {
+                                                                            toast.error(res.error);
+                                                                        }
+                                                                    }}
+                                                                    className="h-10 px-4 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center gap-2"
+                                                                >
+                                                                    <CheckCircle2 size={12} /> Accept
+                                                                </button>
+                                                                <button 
+                                                                    onClick={async () => {
+                                                                        const res = await reconcileReturn(transfer.id, 'REJECT');
+                                                                        if ('success' in res && res.success) { 
+                                                                            toast.success('Return rejected'); 
+                                                                            router.refresh(); 
+                                                                        } else if ('error' in res) {
+                                                                            toast.error(res.error);
+                                                                        }
+                                                                    }}
+                                                                    className="h-10 px-4 bg-rose-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center gap-2"
+                                                                >
+                                                                    <Ban size={12} /> Reject
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                        {!transfer.isPaid && transfer.status === 'DELIVERED' && (
+                                                            <button 
+                                                                onClick={async () => {
+                                                                    const res = await updatePaymentStatus(transfer.id, true);
+                                                                    if ('success' in res && res.success) { 
+                                                                        toast.success('Manifest Settled'); 
+                                                                        router.refresh(); 
+                                                                    } else if ('error' in res) {
+                                                                        toast.error(res.error);
+                                                                    }
+                                                                }}
+                                                                className="h-10 px-4 bg-blue-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2"
+                                                            >
+                                                                <DollarSign size={12} /> Pay
+                                                            </button>
+                                                        )}
+
                                                         <TransferDetailsDialog transfer={transfer}>
                                                             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200 cursor-pointer">
                                                                 <Eye size={18} strokeWidth={1.5} />
@@ -406,6 +509,29 @@ export default function TransferClient({ transfers, products, shops, warehouses,
                                         ))}
                                     </select>
                                     <MapPin size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white px-10 py-6 border-b border-slate-200">
+                             <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center gap-2 italic">
+                                    03. Fleet Assignment (Optional)
+                                </label>
+                                <div className="relative">
+                                    <select 
+                                        value={transporterId} 
+                                        onChange={(e) => setTransporterId(e.target.value)} 
+                                        className="w-full h-12 pl-5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all appearance-none cursor-pointer uppercase"
+                                    >
+                                        <option value="">Identify fleet unit…</option>
+                                        {transporters.map(t => (
+                                            <option key={t.id} value={t.id}>
+                                                {t.name?.toUpperCase()}{t.licensePlate ? ` [${t.licensePlate.toUpperCase()}]` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <TruckIcon size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                 </div>
                             </div>
                         </div>

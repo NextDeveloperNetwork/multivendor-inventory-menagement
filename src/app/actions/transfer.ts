@@ -11,12 +11,25 @@ export async function createTransfer(formData: FormData) {
     const toId = formData.get('toId') as string;
     const items = JSON.parse(formData.get('items') as string);
     const businessId = formData.get('businessId') as string;
+    const transporterId = formData.get('transporterId') as string;
 
     try {
         const result = await prisma.$transaction(async (tx) => {
+            const productIds = items.map((i: any) => i.productId);
+            const products = await tx.product.findMany({
+                where: { id: { in: productIds } }
+            });
+            const totalAmount = items.reduce((sum: number, item: any) => {
+                const product = products.find(p => p.id === item.productId);
+                return sum + (Number(product?.price || 0) * parseInt(item.quantity));
+            }, 0);
+
             const transferData: any = {
-                status: 'COMPLETED',
+                status: transporterId ? 'ASSIGNED' : 'COMPLETED',
                 businessId,
+                transporterId: transporterId || null,
+                assignedAt: transporterId ? new Date() : null,
+                totalAmount,
                 items: {
                     create: items.map((item: any) => ({
                         productId: item.productId,
@@ -31,8 +44,11 @@ export async function createTransfer(formData: FormData) {
             if (toType === 'warehouse') transferData.toWarehouseId = toId;
             else transferData.toShopId = toId;
 
-            const transfer = await tx.transfer.create({
-                data: transferData,
+            const transfer = await (tx as any).transfer.create({
+                data: {
+                    ...transferData,
+                    transporterId: transporterId || null
+                },
                 include: {
                     items: { include: { product: true } },
                     fromWarehouse: true,
@@ -202,6 +218,7 @@ export async function updateTransfer(id: string, formData: FormData) {
     const toId = formData.get('toId') as string;
     const items = JSON.parse(formData.get('items') as string);
     const businessId = formData.get('businessId') as string;
+    const transporterId = formData.get('transporterId') as string;
 
     try {
         await prisma.$transaction(async (tx) => {
@@ -245,17 +262,33 @@ export async function updateTransfer(id: string, formData: FormData) {
             await tx.transferItem.deleteMany({ where: { transferId: id } });
 
             // 4. Update Transfer Record
+            const productIds = items.map((i: any) => i.productId);
+            const products = await tx.product.findMany({
+                where: { id: { in: productIds } }
+            });
+            const totalAmount = items.reduce((sum: number, item: any) => {
+                const product = products.find(p => p.id === item.productId);
+                return sum + (Number(product?.price || 0) * parseInt(item.quantity));
+            }, 0);
+
             const transferData: any = {
                 fromWarehouseId: fromType === 'warehouse' ? fromId : null,
                 fromShopId: fromType === 'shop' ? fromId : null,
                 toWarehouseId: toType === 'warehouse' ? toId : null,
                 toShopId: toType === 'shop' ? toId : null,
                 businessId,
+                transporterId: transporterId || null,
+                totalAmount,
+                assignedAt: transporterId ? ((originalTransfer as any).assignedAt || new Date()) : null,
+                status: transporterId ? ((originalTransfer as any).status === 'COMPLETED' ? 'COMPLETED' : (originalTransfer as any).status || 'ASSIGNED') : 'COMPLETED',
             };
 
-            await tx.transfer.update({
+            await (tx as any).transfer.update({
                 where: { id },
-                data: transferData
+                data: {
+                    ...transferData,
+                    transporterId: transporterId || null
+                }
             });
 
             // 5. Apply new manifest inventory & create items
