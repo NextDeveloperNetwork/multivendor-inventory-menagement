@@ -215,7 +215,7 @@ export default async function AdminDashboard() {
                                                 <Clock size={10} className="text-slate-300" />
                                                 {new Date(sale.date).toLocaleDateString()}
                                             </p>
-                                            <div onClick={(e) => e.stopPropagation()}>
+                                            <div className="shrink-0">
                                                 <DeleteSaleButton id={sale.id} />
                                             </div>
                                         </div>

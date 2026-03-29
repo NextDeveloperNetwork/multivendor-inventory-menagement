@@ -31,7 +31,7 @@ export default function DeleteSaleButton({ id }: { id: string }) {
     return (
         <>
             <button
-                onClick={() => setShowConfirm(true)}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowConfirm(true); }}
                 disabled={loading}
                 className="p-3.5 text-blue-200 hover:text-red-500 bg-white rounded-xl shadow-sm border border-blue-50 transition-all disabled:opacity-50"
                 title="Delete Sale"
