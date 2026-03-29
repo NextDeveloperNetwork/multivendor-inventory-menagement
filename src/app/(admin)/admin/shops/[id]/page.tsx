@@ -33,6 +33,7 @@ export default async function ShopDetailPage({ params, searchParams }: ShopDetai
     const rawShop = await prisma.shop.findUnique({
         where: { id },
         include: {
+            currency: true,
             sales: {
                 where: dateFilter,
                 include: { items: { include: { product: true } }, user: true },
@@ -59,6 +60,9 @@ export default async function ShopDetailPage({ params, searchParams }: ShopDetai
     const transfers = [...(shop.transfersFrom || []), ...(shop.transfersTo || [])].sort(
         (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
+
+    const baseCurrency = await prisma.currency.findFirst({ where: { isBase: true } });
+    const sym = shop?.currency?.symbol || baseCurrency?.symbol || '$';
 
     const totalRevenue = (shop.sales || []).reduce((sum: number, sale: any) => sum + Number(sale.total), 0);
     const lowStockItems = (shop.inventory || []).filter((inv: any) => inv.quantity < 10);
@@ -96,7 +100,7 @@ export default async function ShopDetailPage({ params, searchParams }: ShopDetai
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="bg-white/5 backdrop-blur-md hover:scale-105 transition-transform">
                     <CardContent className="pt-6">
-                        <CardValue value={`$${totalRevenue.toLocaleString()}`} icon={DollarSign} trend="Revenue" trendUp />
+                        <CardValue value={`${sym}${totalRevenue.toLocaleString()}`} icon={DollarSign} trend="Revenue" trendUp />
                     </CardContent>
                 </Card>
                 <Card className="bg-white/5 backdrop-blur-md hover:scale-105 transition-transform">
@@ -144,7 +148,7 @@ export default async function ShopDetailPage({ params, searchParams }: ShopDetai
                                                 <DollarSign size={20} className="text-black/70" />
                                             </div>
                                             <div>
-                                                <div className="text-xl font-bold">${Number(sale.total).toFixed(2)}</div>
+                                                <div className="text-xl font-bold">{sym}{Number(sale.total).toFixed(2)}</div>
                                                 <div className="text-xs text-black/60 mt-1">
                                                     #{sale.number || sale.id.slice(-6).toUpperCase()} • {formatDateTime(sale.date)}
                                                 </div>
@@ -189,7 +193,7 @@ export default async function ShopDetailPage({ params, searchParams }: ShopDetai
                                         </div>
                                         <div>
                                             <div className="text-sm font-bold text-black">{item.product.name}</div>
-                                            <div className="text-xs text-black/50 mt-1">ID: {item.product.sku} • ${Number(item.product.price).toFixed(2)}</div>
+                                            <div className="text-xs text-black/50 mt-1">ID: {item.product.sku} • {sym}{Number(item.product.price).toFixed(2)}</div>
                                         </div>
                                     </div>
                                     <div className="text-right">

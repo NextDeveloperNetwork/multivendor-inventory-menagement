@@ -29,13 +29,15 @@ interface IntelligenceClientProps {
     initialActivities: any[];
     shops: any[];
     initialPredictions: any[];
+    baseCurrencySymbol?: string;
 }
 
 export default function IntelligenceClient({
     initialAnalytics,
     initialActivities,
     shops,
-    initialPredictions
+    initialPredictions,
+    baseCurrencySymbol = '$'
 }: IntelligenceClientProps) {
     const [analytics] = useState(initialAnalytics);
     const [activities] = useState(initialActivities);
@@ -80,7 +82,7 @@ export default function IntelligenceClient({
                         </div>
                     </div>
                     <div className="text-3xl font-black text-slate-900">
-                        ${analytics.revenue.toLocaleString()}
+                        {baseCurrencySymbol}{analytics.revenue.toLocaleString()}
                     </div>
                     <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-emerald-600">
                         <ArrowUpRight size={14} /> +{((analytics.revenue / 1000) * 1.5).toFixed(1)}% vs last month
@@ -100,7 +102,7 @@ export default function IntelligenceClient({
                             </div>
                         </div>
                         <div className="text-3xl font-black text-white">
-                            ${analytics.profit.toLocaleString()}
+                            {baseCurrencySymbol}{analytics.profit.toLocaleString()}
                         </div>
                         <div className="mt-4 flex items-center justify-between text-xs font-semibold px-1">
                             <span className="text-blue-200">Profit Margin</span>

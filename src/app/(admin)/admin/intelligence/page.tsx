@@ -19,6 +19,8 @@ export default async function IntelligencePage() {
         take: 10
     });
 
+    const baseCurrency = await prisma.currency.findFirst({ where: { isBase: true } });
+
     // Get predictions for the first shop by default
     const firstShopPredictions = shops.length > 0 ? await getStockPredictions(shops[0].id) : [];
 
@@ -28,6 +30,7 @@ export default async function IntelligencePage() {
             initialActivities={activities}
             shops={shops}
             initialPredictions={firstShopPredictions}
+            baseCurrencySymbol={baseCurrency?.symbol || '$'}
         />
     );
 }
