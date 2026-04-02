@@ -87,14 +87,11 @@ export default function SimpleManagerDashboard({ user, todaysLogsData, businessI
     // Filter logic: Only show filtered articles if user is searching
     // This handles the "too many articles" issue by requiring a search query for large catalogs
     const filteredArticles = items.filter(i => {
-        const matchesStock = i.stockQuantity > 0;
         const q = searchQuery.toLowerCase().trim();
 
-        // Always filter by stock
-        if (!matchesStock) return false;
-
-        // If search is empty and we have a lot of items, don't show any to prevent UI lag
-        if (q === '' && items.length > 50) return false;
+        // If search is empty and we have A LOT of items (e.g. > 200), 
+        // don't show any to prevent UI lag. 50 is too low for 2026.
+        if (q === '' && items.length > 200) return false;
 
         const matchesSearch = q === '' ||
             i.name.toLowerCase().includes(q) ||
@@ -263,7 +260,7 @@ export default function SimpleManagerDashboard({ user, todaysLogsData, businessI
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold text-xs focus:bg-white focus:border-indigo-600 transition-all appearance-none cursor-pointer"
                                     >
                                         <option value="">
-                                            {searchQuery.trim() === '' && items.filter(i => i.stockQuantity > 0).length > 50
+                                            {searchQuery.trim() === '' && items.length > 200
                                                 ? "🔍 TYPE TO FILTER..."
                                                 : `SELECT (${filteredArticles.length} ITEMS)`}
                                         </option>
