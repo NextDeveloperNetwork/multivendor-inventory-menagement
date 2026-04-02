@@ -94,7 +94,7 @@ model Product {
   id            String         @id @default(cuid())
   businessId    String?
   name          String
-  sku           String         @unique
+  sku           String?
   description   String?
   price         Decimal?       @db.Decimal(10, 2)
   cost          Decimal?       @default(0) @db.Decimal(10, 2)
@@ -371,7 +371,7 @@ model ProductionArticle {
   id            String             @id @default(cuid())
   businessId    String?
   name          String
-  sku           String?            @unique
+  sku           String?
   description   String?
   type          ProductionItemType @default(ACCESSORY)
   stockQuantity Int               @default(0)

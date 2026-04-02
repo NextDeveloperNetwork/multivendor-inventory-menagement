@@ -82,9 +82,9 @@ export default function BulkAddClient({ selectedBusinessId, shops, warehouses, c
         e.preventDefault();
 
         // Basic validation - price/cost optional now
-        const validRows = rows.filter(r => r.name && r.sku);
+        const validRows = rows.filter(r => r.name.trim() !== '');
         if (validRows.length === 0) {
-            toast.error("Please fill in at least one product name and SKU.");
+            toast.error("Please fill in at least one product name.");
             return;
         }
 
@@ -205,7 +205,6 @@ export default function BulkAddClient({ selectedBusinessId, shops, warehouses, c
                                                 <input
                                                     value={row.sku}
                                                     onChange={(e) => updateRow(index, 'sku', e.target.value)}
-                                                    required
                                                     className="w-full h-10 px-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-900 focus:border-primary focus:bg-white outline-none transition-all uppercase italic pr-10"
                                                     placeholder="SKU-CODE"
                                                 />

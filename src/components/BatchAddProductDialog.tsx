@@ -97,9 +97,9 @@ export default function BatchAddProductDialog({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const validRows = rows.filter(r => r.name && r.sku);
+        const validRows = rows.filter(r => r.name.trim() !== '');
         if (validRows.length === 0) {
-            toast.error("Add at least one product with name and SKU");
+            toast.error("Add at least one product with a name");
             return;
         }
 
@@ -194,7 +194,6 @@ export default function BatchAddProductDialog({
                                                 <input
                                                     value={row.sku}
                                                     onChange={(e) => updateRow(index, 'sku', e.target.value)}
-                                                    required
                                                     className="w-full h-9 pl-3 pr-8 bg-white border border-slate-200 rounded-lg text-[10px] font-mono font-bold text-slate-900 focus:border-slate-900 outline-none transition-all uppercase placeholder:text-slate-300"
                                                     placeholder="SKU..."
                                                 />

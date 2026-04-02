@@ -8,7 +8,7 @@ import Papa from 'papaparse';
 
 const productSchema = z.object({
     name: z.string().min(1, "Name is required"),
-    sku: z.string().min(1, "SKU is required"),
+    sku: z.string().optional().nullable(),
     barcode: z.string().optional().nullable(),
     description: z.string().optional(),
     price: z.coerce.number().min(0, "Price must be positive").optional().nullable(),
@@ -29,10 +29,8 @@ const productSchema = z.object({
 export async function createProduct(formData: FormData) {
     const data = Object.fromEntries(formData.entries());
 
-    // Handle empty string for discountPrice as null
-    if (data.discountPrice === '') {
-        data.discountPrice = null as any;
-    }
+    if (data.discountPrice === '') data.discountPrice = null as any;
+    if (data.sku === '') data.sku = null as any;
 
     const result = productSchema.safeParse(data);
 
@@ -45,16 +43,10 @@ export async function createProduct(formData: FormData) {
         const finalBarcode = barcode || generateBarcode();
 
         const existing = await prisma.product.findFirst({
-            where: {
-                OR: [
-                    { sku },
-                    { barcode: finalBarcode }
-                ]
-            }
+            where: { barcode: finalBarcode }
         });
 
         if (existing) {
-            if (existing.sku === sku) return { error: 'Product with this SKU already exists' };
             if (existing.barcode === finalBarcode) {
                 return { error: 'Generated barcode conflict. Please try again.' };
             }
@@ -169,10 +161,8 @@ export async function createProduct(formData: FormData) {
 export async function updateProduct(id: string, formData: FormData) {
     const data = Object.fromEntries(formData.entries());
 
-    // Handle empty string for discountPrice as null
-    if (data.discountPrice === '') {
-        data.discountPrice = null as any;
-    }
+    if (data.discountPrice === '') data.discountPrice = null as any;
+    if (data.sku === '') data.sku = null as any;
 
     const result = productSchema.partial().safeParse(data);
 
@@ -525,16 +515,13 @@ export async function bulkCreateProducts(formData: FormData) {
                 const existing = await prisma.product.findFirst({
                     where: {
                         businessId,
-                        OR: [
-                            { sku },
-                            { barcode: finalBarcode }
-                        ]
+                        barcode: finalBarcode
                     } as any
                 });
 
                 if (existing) {
                     results.failed++;
-                    results.errors.push(`Row ${index + 1} (${name}): SKU or Barcode already exists`);
+                    results.errors.push(`Row ${index + 1} (${name}): Barcode already exists`);
                     continue;
                 }
 

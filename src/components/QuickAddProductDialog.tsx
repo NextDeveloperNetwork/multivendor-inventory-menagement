@@ -81,7 +81,6 @@ export default function QuickAddProductDialog({ onAdd }: { onAdd?: (product: any
                                 </label>
                                 <input
                                     name="sku"
-                                    required
                                     placeholder="SKU_REF"
                                     className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-50 transition-all shadow-sm font-mono uppercase placeholder:text-slate-300"
                                 />
