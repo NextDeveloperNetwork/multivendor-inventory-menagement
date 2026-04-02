@@ -140,6 +140,7 @@ export default function UsersClient({ initialUsers, shops, transporters }: Users
                                 <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border font-mono italic ${
                                     user.role === 'ADMIN' ? 'bg-amber-50 text-amber-600 border-amber-200' : 
                                     user.role === 'TRANSPORTER' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 
+                                    user.role === 'PRODUCTION_MANAGER' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 
                                     'bg-blue-50 text-blue-600 border-blue-200'
                                 }`}>
                                     <Shield size={10} />
@@ -166,7 +167,7 @@ export default function UsersClient({ initialUsers, shops, transporters }: Users
                         <DialogHeader>
                             <DialogTitle className="text-2xl font-black uppercase tracking-tighter italic">System Profile Settings</DialogTitle>
                             <DialogDescription className="text-blue-400 font-black uppercase text-[9px] tracking-[0.2em] mt-2 italic flex items-center gap-2">
-                                <div className="w-1 h-1 bg-blue-500" /> Updating User Permissions & Security Credentials
+                                <span className="inline-block w-1 h-1 bg-blue-500" /> Updating User Permissions & Security Credentials
                             </DialogDescription>
                         </DialogHeader>
                     </div>
@@ -189,6 +190,15 @@ export default function UsersClient({ initialUsers, shops, transporters }: Users
                                     className="w-full h-12 px-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black focus:border-blue-600 focus:bg-white transition-all outline-none text-xs font-mono"
                                 />
                             </div>
+                            <div>
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">New Password (Optional)</label>
+                                <input
+                                    name="password"
+                                    type="password"
+                                    placeholder="Leave blank to keep current password"
+                                    className="w-full h-12 px-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black focus:border-blue-600 focus:bg-white transition-all outline-none text-xs font-mono placeholder:text-slate-300 placeholder:normal-case placeholder:font-medium placeholder:not-italic"
+                                />
+                            </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Access Tier</label>
@@ -200,6 +210,7 @@ export default function UsersClient({ initialUsers, shops, transporters }: Users
                                         <option value="USER">Standard Staff</option>
                                         <option value="ADMIN">System Administrator</option>
                                         <option value="TRANSPORTER">Logistics Personnel</option>
+                                        <option value="PRODUCTION_MANAGER">Production Manager</option>
                                     </select>
                                 </div>
                                 <div>

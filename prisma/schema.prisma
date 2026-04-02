@@ -3,8 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
 }
 
 model Business {
@@ -324,6 +323,7 @@ enum Role {
   ADMIN
   USER
   TRANSPORTER
+  PRODUCTION_MANAGER
 }
 
 model CashTransfer {
@@ -341,4 +341,109 @@ model CashTransfer {
 
   @@index([shopId])
   @@index([shiftId])
+}
+
+model ProductionLog {
+  id          String   @id @default(cuid())
+  businessId  String?
+  workerId    String
+  orderId     String
+  articleName String
+  procName    String
+  isFinal     Boolean
+  quantity    Int
+  boxes       Int?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([businessId])
+  @@index([workerId])
+  @@index([date])
+}
+
+enum ProductionItemType {
+  MAIN
+  ACCESSORY
+}
+
+model ProductionArticle {
+  id            String             @id @default(cuid())
+  businessId    String?
+  name          String
+  sku           String?            @unique
+  description   String?
+  type          ProductionItemType @default(ACCESSORY)
+  stockQuantity Int               @default(0)
+  unit          String             @default("pcs")
+  entryDate     DateTime?
+  invoiceNo     String?
+  supplierName  String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  processes     ArticleProcess[]
+  bom           ArticleBOM[]       @relation("ArticleBOM")
+  usedInBOMs    ArticleBOM[]       @relation("AccessoryInBOM")
+
+  @@index([businessId])
+}
+
+model ArticleProcess {
+  id               String            @id @default(cuid())
+  articleId        String
+  processName      String
+  unitsPerHour     Float
+  sequence         Int
+  article          ProductionArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+}
+
+model ArticleBOM {
+  id               String            @id @default(cuid())
+  mainArticleId    String
+  accessoryId      String
+  usageQuantity    Float
+  processName      String?
+  mainArticle      ProductionArticle @relation("ArticleBOM", fields: [mainArticleId], references: [id], onDelete: Cascade)
+  accessory        ProductionArticle @relation("AccessoryInBOM", fields: [accessoryId], references: [id], onDelete: Cascade)
+
+  @@index([mainArticleId])
+  @@index([accessoryId])
+}
+
+model ProductionWorker {
+  id             String   @id @default(cuid())
+  name           String
+  skills         String[] // Array of process names
+  availableHours Float    @default(8.0)
+  businessId     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([businessId])
+}
+
+model ProductionMachine {
+  id               String   @id @default(cuid())
+  name             String
+  capableProcesses String[] // Array of process names
+  online           Boolean  @default(true)
+  businessId       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([businessId])
+}
+
+model ProductionProcess {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  requiresMachine Boolean  @default(true)
+  businessId      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([businessId])
 }

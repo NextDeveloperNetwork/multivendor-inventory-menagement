@@ -19,58 +19,55 @@ export const authOptions: NextAuthOptions = {
                 password: { label: 'Password', type: 'password' },
             },
             async authorize(credentials) {
+                console.log(`\n[AUTH] Attempting login for: ${credentials?.email}`);
                 if (!credentials?.email || !credentials?.password) {
+                    console.log(`[AUTH] Missing email or password`);
                     return null;
                 }
 
-                const user = await prisma.user.findUnique({
-                    where: {
-                        email: credentials.email,
-                    },
-                });
+                try {
+                    console.log(`[AUTH] Querying database...`);
+                    const user = await prisma.user.findUnique({
+                        where: {
+                            email: credentials.email,
+                        },
+                    });
 
-                if (!user) {
+                    if (!user) {
+                        console.log(`[AUTH] ❌ User not found in DB: ${credentials.email}`);
+                        return null;
+                    }
+
+                    console.log(`[AUTH] ✅ User retrieved: ${user.email} (Role: ${user.role})`);
+                    console.log(`[AUTH] Comparing passwords...`);
+                    const isPasswordValid = await bcrypt.compare(
+                        credentials.password,
+                        user.password
+                    );
+
+                    if (!isPasswordValid) {
+                        console.log(`[AUTH] ❌ Password mismatch for: ${credentials.email}`);
+                        return null;
+                    }
+
+                    console.log(`[AUTH] ✅ Successful login: ${user.email}`);
+                    return {
+                        id: user.id,
+                        email: user.email,
+                        name: user.name,
+                        role: user.role,
+                        shopId: user.shopId,
+                        transporterId: (user as any).transporterId,
+                    };
+                } catch (error) {
+                    console.error('[AUTH] 💥 DATABASE ERROR during login:', error);
                     return null;
                 }
-
-                const isPasswordValid = await bcrypt.compare(
-                    credentials.password,
-                    user.password
-                );
-
-                if (!isPasswordValid) {
-                    console.log(`[AUTH] Password mismatch for: ${credentials.email}`);
-                    return null;
-                }
-
-                console.log(`[AUTH] Successful login: ${user.email} (Role: ${user.role})`);
-                return {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    role: user.role,
-                    shopId: user.shopId,
-                    transporterId: (user as any).transporterId,
-                };
             },
         }),
     ],
     callbacks: {
-        async jwt({ token, user, trigger, session }) {
-            // Fresh data sync
-            if (token.id) {
-                const freshUser = await prisma.user.findUnique({
-                    where: { id: token.id as string },
-                    select: { role: true, shopId: true, transporterId: true } as any
-                });
-                if (freshUser) {
-                    const fu = freshUser as any;
-                    token.role = fu.role;
-                    token.shopId = fu.shopId;
-                    token.transporterId = fu.transporterId;
-                }
-            }
-
+        async jwt({ token, user }) {
             if (user) {
                 token.id = user.id;
                 token.role = user.role;

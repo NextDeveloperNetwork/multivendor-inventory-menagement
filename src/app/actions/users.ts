@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { logActivity } from './intelligence';
+import bcrypt from 'bcryptjs';
 
 export async function getUsers() {
     return prisma.user.findMany({
@@ -24,17 +25,24 @@ export async function updateUser(id: string, formData: FormData) {
     const role = formData.get('role') as any;
     const shopId = formData.get('shopId') as string;
     const transporterId = formData.get('transporterId') as string;
+    const password = formData.get('password') as string;
+
+    const updateData: any = {
+        name,
+        email,
+        role,
+        shopId: shopId || null,
+        transporterId: transporterId || null
+    };
+
+    if (password && password.trim() !== '') {
+        updateData.password = await bcrypt.hash(password, 10);
+    }
 
     try {
         const user = await prisma.user.update({
             where: { id },
-            data: {
-                name,
-                email,
-                role,
-                shopId: shopId || null,
-                transporterId: transporterId || null
-            } as any
+            data: updateData
         });
 
         await logActivity({

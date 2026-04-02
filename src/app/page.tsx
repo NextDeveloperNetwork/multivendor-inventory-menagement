@@ -12,6 +12,8 @@ export default async function Home() {
             redirect('/admin');
         } else if (user.role === 'TRANSPORTER' || user.transporterId) {
             redirect('/transporter');
+        } else if (user.role === 'PRODUCTION_MANAGER') {
+            redirect('/production');
         } else {
             redirect('/shop');
         }

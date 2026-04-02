@@ -10,12 +10,17 @@ export default function AdminLayout({
     children: React.ReactNode;
 }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     return (
         <div className="flex min-h-screen bg-slate-50/50">
-            <AdminSidebar isOpen={isOpen} setIsOpen={setIsOpen} />
-
-            <main className="flex-1 lg:ml-80 min-h-screen transition-all duration-300">
+            <AdminSidebar 
+                isOpen={isOpen} 
+                setIsOpen={setIsOpen}
+                isCollapsed={isCollapsed}
+                setIsCollapsed={setIsCollapsed}
+            />
+            <main className={`flex-1 min-h-screen transition-all duration-300 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-80'}`}>
                 {/* Responsive Header for Mobile */}
                 <div className="lg:hidden sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -35,7 +40,7 @@ export default function AdminLayout({
                     </button>
                 </div>
 
-                <div className="p-4 lg:p-10 max-w-[1600px] mx-auto">
+                <div className="p-4 lg:p-10 w-full transition-all duration-300">
                     {children}
                 </div>
             </main>
