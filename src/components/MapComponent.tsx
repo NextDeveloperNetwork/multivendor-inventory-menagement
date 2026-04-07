@@ -71,6 +71,7 @@ interface MapProps {
     paths?: Path[];
     onLocationSelect?: (lat: number, lng: number) => void;
     selectedLocation?: { latitude: number; longitude: number } | null;
+    showSidebar?: boolean;
 }
 
 function ChangeView({ bounds, userLocation }: { bounds: L.LatLngBoundsExpression | null, userLocation: [number, number] | null }) {
@@ -99,7 +100,18 @@ function MapEvents({ onLocationSelect }: { onLocationSelect?: (lat: number, lng:
     return null;
 }
 
-export default function MapComponent({ locations, paths = [], onLocationSelect, selectedLocation }: MapProps) {
+function ResizeHandler({ trigger }: { trigger: any }) {
+    const map = useMap();
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            map.invalidateSize();
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [trigger, map]);
+    return null;
+}
+
+export default function MapComponent({ locations, paths = [], onLocationSelect, selectedLocation, showSidebar }: MapProps) {
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
     const validLocations = locations.filter(l => l.latitude !== null && l.longitude !== null && !isNaN(l.latitude) && !isNaN(l.longitude));
 
@@ -139,8 +151,8 @@ export default function MapComponent({ locations, paths = [], onLocationSelect, 
                 center={bounds ? bounds.getCenter() : (userLocation || defaultCenter)}
                 zoom={bounds ? 4 : (userLocation ? 13 : 2)}
                 scrollWheelZoom={true}
-                className="h-full w-full"
-                style={{ height: '100%', width: '100%' }}
+                className="h-full w-full z-0"
+                style={{ height: '100%', width: '100%', zIndex: 0 }}
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -148,6 +160,7 @@ export default function MapComponent({ locations, paths = [], onLocationSelect, 
                 />
 
                 <MapEvents onLocationSelect={onLocationSelect} />
+                <ResizeHandler trigger={showSidebar} />
 
                 {userLocation && (
                     <>
@@ -290,47 +303,6 @@ export default function MapComponent({ locations, paths = [], onLocationSelect, 
                 <ChangeView bounds={bounds} userLocation={userLocation} />
             </MapContainer>
 
-            {/* Vivid HUD Overlay */}
-            <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8 z-[500] pointer-events-none flex flex-col gap-3 md:gap-4 max-w-[calc(100vw-32px)]">
-                <div className="bg-white/95 backdrop-blur-xl border-2 border-slate-100 p-4 md:p-6 rounded-[1.5rem] md:rounded-[2.5rem] space-y-3 md:space-y-4 shadow-xl ring-1 ring-black/5 pointer-events-auto">
-                    <div className="flex items-center gap-3 md:gap-4">
-                        <div className="w-2 h-2 md:w-3 md:h-3 bg-blue-500 rounded-full animate-ping"></div>
-                        <span className="text-[8px] md:text-[10px] font-black text-slate-800 uppercase tracking-widest whitespace-nowrap">Live Network Monitor</span>
-                    </div>
-                    <div className="flex flex-wrap gap-4 md:gap-6">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 md:w-2.5 h-2 md:h-2.5 bg-blue-500 rounded-md"></div>
-                            <span className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest">Shops</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 md:w-2.5 h-2 md:h-2.5 bg-purple-500 rounded-md"></div>
-                            <span className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest">Hubs</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 md:w-2.5 h-2 md:h-2.5 bg-amber-500 rounded-md"></div>
-                            <span className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest">Suppliers</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 md:gap-3 pointer-events-auto">
-                    <button
-                        onClick={() => {
-                            if (userLocation) setUserLocation([...userLocation]);
-                        }}
-                        className="bg-white hover:bg-blue-50 text-blue-600 p-3 md:p-4 rounded-xl md:rounded-2xl shadow-lg border border-slate-100 transition-all active:scale-90 flex items-center gap-2 md:gap-3"
-                    >
-                        <MapPin size={16} className="md:w-[20px] md:h-[20px]" />
-                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Recenter</span>
-                    </button>
-                    {userLocation && (
-                        <div className="bg-emerald-50 text-emerald-600 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl border border-emerald-100 flex items-center gap-2 md:gap-3">
-                            <div className="w-1.5 md:w-2 h-1.5 md:h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">GPS OK</span>
-                        </div>
-                    )}
-                </div>
-            </div>
 
             <style jsx global>{`
                 .custom-popup .leaflet-popup-content-wrapper {

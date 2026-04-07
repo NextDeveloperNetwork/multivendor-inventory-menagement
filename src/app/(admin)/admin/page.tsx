@@ -85,11 +85,9 @@ export default async function AdminDashboard() {
                         <p className="text-sm text-slate-400 font-medium">Strategic Business Overview & Performance</p>
                     </div>
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-3">
-                    <div className="w-64">
-                        <BusinessSelector className="mb-0" />
-                    </div>
+
                     <Link
                         href="/admin/inventory/new"
                         className="h-10 px-5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold text-sm flex items-center gap-2 shadow-sm transition-all"

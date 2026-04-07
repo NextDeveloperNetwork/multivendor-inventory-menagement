@@ -28,12 +28,14 @@ export default function MapWrapper({
     locations,
     paths = [],
     onLocationSelect,
-    selectedLocation
+    selectedLocation,
+    showSidebar = false
 }: {
     locations: any[],
     paths?: any[],
     onLocationSelect?: (lat: number, lng: number) => void,
-    selectedLocation?: { latitude: number; longitude: number } | null
+    selectedLocation?: { latitude: number; longitude: number } | null,
+    showSidebar?: boolean
 }) {
     return (
         <div className="relative w-full h-full min-h-[400px] overflow-hidden bg-slate-50">
@@ -42,6 +44,7 @@ export default function MapWrapper({
                 paths={paths}
                 onLocationSelect={onLocationSelect}
                 selectedLocation={selectedLocation}
+                showSidebar={showSidebar}
             />
         </div>
     );
