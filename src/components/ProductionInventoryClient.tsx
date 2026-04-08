@@ -199,7 +199,9 @@ export default function ProductionInventoryClient({
     const accessoriesList = items.filter(i => i.type === 'ACCESSORY');
     
     const filteredItems = items.filter(i => {
-        const matchesSearch = i.name.toLowerCase().includes(searchQuery.toLowerCase()) || (i.description?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || (i.sku?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+        const matchesSearch = i.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            (i.description?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || 
+            (i.sku?.toLowerCase() || '').includes(searchQuery.toLowerCase());
         const matchesFilter = filterType === 'ALL' || i.type === filterType;
         const matchesDate = !filterDate || i.entryDate === filterDate;
         return matchesSearch && matchesFilter && matchesDate;

@@ -244,8 +244,8 @@ export default function ProductionWorkforceClient({
     };
 
     const filteredEmployees = employees.filter(e => 
-        e.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        e.skills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()))
+        e.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        e.skills.some(s => s?.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     /* ---- Table Selection & Bulk Logic ---- */

@@ -203,8 +203,8 @@ export default function ProductionManagerInventoryClient({
     };
 
     const filteredItems = items.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const matchesSearch = item.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            item.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.invoiceNo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.supplierName?.toLowerCase().includes(searchQuery.toLowerCase());

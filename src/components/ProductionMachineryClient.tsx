@@ -219,8 +219,8 @@ export default function ProductionMachineryClient({
     const [viewMode, setViewMode] = useState<'asset' | 'function'>('asset');
 
     const machineList = machines.filter(m => 
-        m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        m.capableProcesses.some(p => p.toLowerCase().includes(searchQuery.toLowerCase()))
+        m.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        m.capableProcesses.some(p => p?.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     const functionGroups = processes.map(proc => {
@@ -235,7 +235,7 @@ export default function ProductionMachineryClient({
     }).filter(g => g.requiresMachine);
 
     const functionalList = functionGroups.filter(g => 
-        g.name.toLowerCase().includes(searchQuery.toLowerCase())
+        g.name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const machineDependentProcs = processes.filter(p => p.requiresMachine);

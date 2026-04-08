@@ -12,12 +12,8 @@ export default async function ProductionLayout({ children }: { children: React.R
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col">
-            <main className="flex-1 p-8">
-                <div className="max-w-7xl mx-auto h-full">
-                    {children}
-                </div>
-            </main>
+        <div className="min-h-screen bg-slate-100">
+            {children}
         </div>
     );
 }
