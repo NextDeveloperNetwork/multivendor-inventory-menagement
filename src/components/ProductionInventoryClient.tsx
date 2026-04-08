@@ -25,6 +25,7 @@ interface ProductionItem {
     sku: string;
     type: 'MAIN' | 'ACCESSORY';
     unit: string;
+    batchSize: number;
     stockQuantity: number;
     description?: string;
     entryDate?: Date | string;
@@ -46,6 +47,7 @@ interface BatchRow {
     type: 'MAIN' | 'ACCESSORY';
     description: string;
     quantity: string;
+    batchSize: string;
     unit: string;
     bom: AccessoryUsage[];
     processes: ProcessRequirement[];
@@ -101,6 +103,7 @@ export default function ProductionInventoryClient({
             type: 'ACCESSORY',
             description: '',
             quantity: '0',
+            batchSize: '1',
             unit: 'pcs',
             bom: [],
             processes: [],
@@ -111,7 +114,7 @@ export default function ProductionInventoryClient({
 
     const handleAddRow = () => {
         setBatchRows([...batchRows, {
-            id: generateId(), name: '', sku: '', description: '', type: 'ACCESSORY', quantity: '0', unit: 'pcs', bom: [], processes: [], isExpanded: false
+            id: generateId(), name: '', sku: '', description: '', type: 'ACCESSORY', quantity: '0', batchSize: '1', unit: 'pcs', bom: [], processes: [], isExpanded: false
         }]);
     };
 
@@ -144,6 +147,7 @@ export default function ProductionInventoryClient({
                 description: row.description,
                 type: row.type,
                 unit: row.unit,
+                batchSize: Number(row.batchSize) || 1,
                 stockQuantity: Number(row.quantity) || 0,
                 entryDate: new Date(batchDate),
                 bom: row.type === 'MAIN' ? row.bom : [],
@@ -272,7 +276,7 @@ export default function ProductionInventoryClient({
                                 <th className="px-6 py-4">Description</th>
                                 <th className="px-6 py-4 text-center">Ref/SKU</th>
                                 <th className="px-6 py-4">Type</th>
-                                <th className="px-6 py-4">Stock</th>
+                                <th className="px-6 py-4">Stock / Batch</th>
                                 <th className="px-6 py-4 text-center">Date</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
@@ -300,8 +304,13 @@ export default function ProductionInventoryClient({
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="font-black text-base">{item.stockQuantity}</span>
-                                            <span className="text-[10px] font-bold text-slate-400 ml-1">{item.unit}</span>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-baseline gap-1.5">
+                                                    <span className="font-black text-base">{item.stockQuantity}</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">{item.unit}</span>
+                                                </div>
+                                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 w-fit mt-1">Pack: {item.batchSize} pcs</span>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-[10px] font-black text-slate-400 text-center tabular-nums whitespace-nowrap">
                                             {item.entryDate instanceof Date ? item.entryDate.toLocaleDateString() : (item.entryDate || '-')}
@@ -401,19 +410,31 @@ export default function ProductionInventoryClient({
                                                 </div>
 
                                                 <div className="w-24 shrink-0">
+                                                    <label className="block text-[8px] font-black text-slate-400 uppercase mb-1">Initial Qty</label>
                                                     <input 
                                                         type="number" step="any" min="0" required
                                                         value={row.quantity || '0'} onChange={e => updateRow(row.id, 'quantity', e.target.value)} 
                                                         placeholder="Qty" 
-                                                        className="w-full text-sm font-semibold px-3 py-2 border border-slate-300 rounded-lg focus:outline-emerald-500 bg-white" 
+                                                        className="w-full text-xs font-semibold px-3 py-2 border border-slate-300 rounded-lg focus:outline-emerald-500 bg-white" 
                                                     />
                                                 </div>
 
                                                 <div className="w-24 shrink-0">
+                                                    <label className="block text-[8px] font-black text-slate-400 uppercase mb-1">Batch Size</label>
+                                                    <input 
+                                                        type="number" step="1" min="1" required
+                                                        value={row.batchSize || '1'} onChange={e => updateRow(row.id, 'batchSize', e.target.value)} 
+                                                        placeholder="Batch" 
+                                                        className="w-full text-xs font-bold px-3 py-2 border border-slate-300 rounded-lg focus:outline-indigo-500 bg-white" 
+                                                    />
+                                                </div>
+
+                                                <div className="w-24 shrink-0">
+                                                    <label className="block text-[8px] font-black text-slate-400 uppercase mb-1">Unit</label>
                                                     <input 
                                                         required value={row.unit || ''} onChange={e => updateRow(row.id, 'unit', e.target.value)} 
                                                         placeholder="Unit" 
-                                                        className="w-full text-sm font-semibold px-3 py-2 border border-slate-300 rounded-lg focus:outline-emerald-500 bg-white" 
+                                                        className="w-full text-xs font-semibold px-3 py-2 border border-slate-300 rounded-lg focus:outline-emerald-500 bg-white" 
                                                     />
                                                 </div>
 
@@ -594,6 +615,17 @@ export default function ProductionInventoryClient({
                                          required value={editingItem.unit || ''} onChange={e => setEditingItem({...editingItem, unit: e.target.value})} 
                                          className="w-full text-sm font-bold px-4 py-3 border border-slate-300 rounded-2xl focus:outline-indigo-500 bg-white shadow-sm" 
                                      />
+                                 </div>
+                                 <div>
+                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Pieces Per Production Batch</label>
+                                     <div className="relative">
+                                         <Box size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                         <input 
+                                             type="number" min="1" required
+                                             value={editingItem.batchSize || 1} onChange={e => setEditingItem({...editingItem, batchSize: Number(e.target.value)})} 
+                                             className="w-full text-sm font-black pl-10 pr-4 py-3 border border-slate-300 rounded-2xl focus:outline-indigo-500 bg-white shadow-sm" 
+                                         />
+                                     </div>
                                  </div>
                                  <div className="md:col-span-2">
                                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Article Description / Specifications</label>

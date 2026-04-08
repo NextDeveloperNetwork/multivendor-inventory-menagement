@@ -18,12 +18,12 @@ export async function logActivity(data: {
     shopId?: string;
 }) {
     const businessId = await getSelectedBusinessId();
-    if (!businessId) return;
 
     try {
         await prisma.activityLog.create({
             data: {
-                businessId: businessId,
+                // @ts-ignore
+                businessId: businessId || null,
                 action: data.action,
                 entityType: data.entityType,
                 entityId: data.entityId,

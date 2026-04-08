@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { logActivity } from './intelligence';
 
 const registerSchema = z.object({
     email: z.string().email(),
@@ -43,13 +44,20 @@ export async function registerUser(formData: FormData) {
         const userCount = await prisma.user.count();
         const role = userCount === 0 ? 'ADMIN' : 'USER';
 
-        await prisma.user.create({
+        const user = await prisma.user.create({
             data: {
                 email,
                 password: hashedPassword,
                 name,
                 role,
             },
+        });
+
+        await logActivity({
+            action: 'USER_REGISTERED',
+            entityType: 'USER',
+            entityId: user.id,
+            details: `New account created: ${email}. Initial role: ${role}`
         });
 
         return { success: true };

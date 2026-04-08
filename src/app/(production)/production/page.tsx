@@ -18,10 +18,18 @@ export default async function ProductionManagerPage() {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
+    const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: { shop: true }
+    });
+
+    const businessId = dbUser?.shop?.businessId || undefined;
+
     // @ts-ignore
     const todaysLogs = await prisma.productionLog.findMany({
         where: {
             workerId: user.id,
+            businessId: businessId || null,
             date: { gte: todayStart }
         },
         orderBy: { createdAt: 'desc' }
@@ -29,8 +37,9 @@ export default async function ProductionManagerPage() {
 
     return (
         <SimpleManagerDashboard 
-            user={{ id: user.id, name: user.name, role: user.role }} 
+            user={{ id: user.id, name: user.name, role: user.role, shopId: user.shopId }} 
             todaysLogsData={todaysLogs} 
+            businessId={businessId}
         />
     );
 }

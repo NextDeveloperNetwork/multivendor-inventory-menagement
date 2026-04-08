@@ -4,18 +4,25 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     LayoutDashboard, Clock, ChevronLeft, ChevronRight, Plus, X,
     Box, Users, Target, BarChart3, Activity, Calendar, Timer,
-    AlertCircle, ArrowRight, RefreshCw, Lock, AlertTriangle, ClipboardList
+    AlertCircle, ArrowRight, RefreshCw, Lock, AlertTriangle, ClipboardList, Trash2
 } from 'lucide-react';
 import { logProduction } from '@/app/actions/production';
+import { 
+    getProductionArticles, 
+    getProductionWorkforce, 
+    getProductionMachinery, 
+    getProductionProcesses 
+} from '@/app/actions/productionArticles';
+import { toast } from 'sonner';
 
 /* ─── INTERFACES ─── */
 interface AccessoryUsage { id: string; accessoryId: string; usageQuantity: number; processName?: string; }
 interface ProcessRequirement { id: string; processName: string; unitsPerHour: number; sequence: number; }
-interface ProductionItem { id: string; name: string; type: 'MAIN' | 'ACCESSORY'; unit: string; stockQuantity: number; processes: ProcessRequirement[]; bom: AccessoryUsage[]; businessId?: string; businessName?: string; }
+interface ProductionItem { id: string; name: string; type: 'MAIN' | 'ACCESSORY'; unit: string; batchSize: number; stockQuantity: number; processes: ProcessRequirement[]; bom: AccessoryUsage[]; businessId?: string; businessName?: string; }
 interface Employee { id: string; name: string; skills: string[]; availableHours: number; businessId?: string; businessName?: string; }
 interface Machine { id: string; name: string; capableProcesses: string[]; businessId?: string; businessName?: string; }
 interface GlobalProcess { id: string; name: string; requiresMachine: boolean; businessId?: string; businessName?: string; }
-interface ProductionOrder { id: string; mainPartId: string; quantity: number; priority: number; status: 'QUEUED' | 'IN_PRODUCTION' | 'COMPLETED'; finishedQuantity?: number; businessId?: string; businessName?: string; }
+interface ProductionOrder { id: string; mainPartId: string; quantity: number; priority: number; batchSize?: number; status: 'QUEUED' | 'IN_PRODUCTION' | 'COMPLETED'; finishedQuantity?: number; businessId?: string; businessName?: string; }
 
 /* ─── SIM TYPES ─── */
 interface MinuteSlot { orderId: string; businessId?: string; partName: string; procName: string; sequence: number; worker: string; workerId: string; machine: string; units: number; minuteStart: number; minuteEnd: number; }
@@ -89,44 +96,78 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                 const k = localStorage.key(i);
                 if (k && (k === baseKey || k.startsWith(`${baseKey}_`))) {
                     const bid = k.includes('_') ? k.split('_').pop() : '';
-                    const data = JSON.parse(localStorage.getItem(k) || '[]');
-                    results.push(...data.map((item: any) => ({ ...item, businessId: bid })));
+                    try {
+                        const data = JSON.parse(localStorage.getItem(k) || '[]');
+                        results.push(...data.map((item: any) => ({ ...item, businessId: bid })));
+                    } catch (e) {
+                        console.error(`Failed to parse ${k}`, e);
+                    }
                 }
             }
             return results;
         };
 
-        if (!businessId) {
-            // Global Aggregate Mode
-            setItems(loadAggregated('prod_items_v3'));
-            setEmployees(loadAggregated('prod_emps_v2'));
-            setMachines(loadAggregated('prod_macs_v2'));
-            setGlobalProcesses(loadAggregated('prod_procs_v2'));
-            setOrders(loadAggregated('prod_ords_v2'));
-            setInventory(loadAggregated('prod_ready_v1'));
-        } else {
-            // Specific Business Mode
-            const d = (k: string) => { const v = localStorage.getItem(getK(k)); return v ? JSON.parse(v) : null; };
-            const it = d('prod_items_v3'); setItems(it || []);
-            const em = d('prod_emps_v2'); setEmployees(em || []);
-            const ma = d('prod_macs_v2'); setMachines(ma || []);
-            const pr = d('prod_procs_v2'); setGlobalProcesses(pr || []);
-            const or = d('prod_ords_v2'); setOrders(or || []);
-            const ac = d('prod_actuals_v1'); setActuals(ac || []);
-            const inv = d('prod_ready_v1'); setInventory(inv || []);
-            const st = localStorage.getItem(getK('prod_plan_start'));
-            if (st) setPlanStartDate(st); else { const n = new Date().toISOString().split('T')[0]; setPlanStartDate(n); localStorage.setItem(getK('prod_plan_start'), n); }
-        }
-        setIsLoaded(true);
+        const loadFromDB = async () => {
+            setIsLoaded(false);
+            try {
+                // Fetch core catalog data from DB
+                const [dbArticles, dbWorkforce, dbMachinery, dbProcesses] = await Promise.all([
+                    getProductionArticles(businessId),
+                    getProductionWorkforce(businessId),
+                    getProductionMachinery(businessId),
+                    getProductionProcesses(businessId)
+                ]);
+
+                setItems(dbArticles as any);
+                setEmployees(dbWorkforce as any);
+                setMachines(dbMachinery as any);
+                setGlobalProcesses(dbProcesses as any);
+
+                // Load simulation-specific data from localStorage with V1 -> V2 migration
+                const d = (k: string) => { 
+                    const v = localStorage.getItem(getK(k)); 
+                    try { return v ? JSON.parse(v) : null; } catch(e) { return null; }
+                };
+
+                let or = d('prod_ords_v2') || d('prod_plan_v2') || d('prod_ords_v1'); 
+                if (or && (!Array.isArray(or))) or = [];
+                setOrders(or || []);
+
+                let ac = d('prod_actuals_v1') || d('prod_acts_v2') || d('prod_acts_v1') || d('actuals');
+                if (ac && (!Array.isArray(ac))) ac = [];
+                setActuals(ac || []);
+
+                let inv = d('prod_ready_v1') || d('inventory');
+                if (inv && (!Array.isArray(inv))) inv = [];
+                setInventory(inv || []);
+                
+                const st = localStorage.getItem(getK('prod_plan_start'));
+                if (st && st.length >= 10) {
+                    setPlanStartDate(st);
+                } else {
+                    const n = new Date().toISOString().split('T')[0];
+                    setPlanStartDate(n);
+                    localStorage.setItem(getK('prod_plan_start'), n);
+                }
+                
+                console.log('Production Planner state initialized:', { orders: or?.length || 0, actuals: ac?.length || 0 });
+            } catch (error) {
+                console.error('Failed to load production data:', error);
+                toast.error('Failed to load production data from server.');
+            } finally {
+                setIsLoaded(true);
+            }
+        };
+
+        loadFromDB();
     }, [businessId]);
 
     useEffect(() => {
         if (!isLoaded) return;
         localStorage.setItem(getK('prod_ords_v2'), JSON.stringify(orders));
-        localStorage.setItem(getK('prod_items_v3'), JSON.stringify(items));
         localStorage.setItem(getK('prod_actuals_v1'), JSON.stringify(actuals));
         localStorage.setItem(getK('prod_ready_v1'), JSON.stringify(inventory));
-    }, [orders, items, actuals, inventory, isLoaded, businessId]);
+    }, [orders, actuals, inventory, isLoaded, businessId]);
 
     const dates = useMemo(() => {
         const base = planStartDate ? new Date(planStartDate) : new Date();
@@ -136,337 +177,262 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
     /* ─── SIMULATION ENGINE ─── */
     const simulation = useMemo((): SimResult => {
         if (!isLoaded || orders.length === 0) return { days: [], orderTimelines: {} };
+
         const HOURS = 8;
+        const MINS_PER_DAY = HOURS * 60;
+        const SIM_DAYS = 60;
+        const TOTAL_MINS = SIM_DAYS * MINS_PER_DAY;
+
         const colorMap: Record<string, OrderColor> = {};
         [...orders].sort((a, b) => a.priority - b.priority).forEach((o, i) => { colorMap[o.id] = COLORS[i % COLORS.length]; });
-        const stocks = items.map(i => ({ ...i }));
+
+        const stocks: Record<string, number> = {};
+        items.forEach(i => { stocks[i.id] = i.stockQuantity; });
+
         const timelines: Record<string, { firstDay: number; lastDay: number; partName: string; totalFinished: number; bottleneck?: string }> = {};
-        const days: DayPlan[] = [];
 
         const now = new Date();
         const start = planStartDate ? new Date(planStartDate) : new Date();
-        const currentDayIdx = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        const currentDayIdx = Math.max(0, Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
 
-        // Pre-calculate historical totals up TO the day we start simulating
-        const historyUpTo = (cutoffDay: number) => {
-            const h: Record<string, Record<string, number>> = {};
-            actuals.forEach(a => {
-                if (a.dayIdx < cutoffDay) {
-                    if (!h[a.orderId]) h[a.orderId] = {};
-                    h[a.orderId][a.procName] = (h[a.orderId][a.procName] || 0) + a.units;
-                }
-            });
-            return h;
+        // remaining  = units not yet assigned at step 1 (deducted when worker is assigned)
+        // wip[seq]   = units COMPLETED at that step (only credited when task finishes)
+        // inFlight[seq] = units currently in progress (assigned but not yet done)
+        // stepStarts[seq] = absolute minute when step first had a worker assigned
+        type OrderState = {
+            id: string; businessId?: string; priority: number; mainPartId: string;
+            remaining: number; wip: Record<number, number>; inFlight: Record<number, number>; stepStarts: Record<number, number>;
         };
-
-        const initialHistory = historyUpTo(currentDayIdx);
-
-        const state = orders.map(o => {
+        const state: OrderState[] = orders.map(o => {
             const prod = items.find(i => i.id === o.mainPartId);
-            const firstProcName = prod?.processes.sort((a, b) => a.sequence - b.sequence)[0]?.processName;
             const wip: Record<number, number> = {};
-
-            // Collect ALL actuals for this order, including today's entries
             const orderActuals: Record<string, number> = {};
-            actuals.forEach(a => {
-                if (a.orderId === o.id) {
-                    orderActuals[a.procName] = (orderActuals[a.procName] || 0) + a.units;
-                }
-            });
-
-            prod?.processes.forEach(p => {
-                wip[p.sequence] = orderActuals[p.processName] || 0;
-            });
-
-            return {
-                id: o.id,
-                businessId: o.businessId,
-                priority: o.priority,
-                mainPartId: o.mainPartId,
-                remaining: Math.max(0, o.quantity - (orderActuals[firstProcName || ''] || 0)),
-                wip,
-                stepStarts: {} as Record<number, number>
-            };
+            actuals.forEach(a => { if (a.orderId === o.id) orderActuals[a.procName] = (orderActuals[a.procName] || 0) + a.units; });
+            prod?.processes.forEach(p => { wip[p.sequence] = orderActuals[p.processName] || 0; });
+            const firstProc = prod?.processes.sort((a, b) => a.sequence - b.sequence)[0];
+            const alreadyStarted = firstProc ? (orderActuals[firstProc.processName] || 0) : 0;
+            return { id: o.id, businessId: o.businessId, priority: o.priority, mainPartId: o.mainPartId, remaining: Math.max(0, o.quantity - alreadyStarted), wip, inFlight: {}, stepStarts: {} };
         });
 
-        for (let day = 0; day < 60; day++) {
+        type WorkerTask = { orderId: string; procName: string; sequence: number; partName: string; machineId?: string; startedAt: number; completesAt: number; units: number; };
+        type WorkerState = { id: string; name: string; skills: string[]; freeAt: number; task: WorkerTask | null; };
+        const workerState: WorkerState[] = employees.map(e => ({ id: e.id, name: e.name, skills: e.skills, freeAt: currentDayIdx * MINS_PER_DAY, task: null }));
+
+        const macFreeAt: Record<string, number> = {};
+        machines.forEach(m => { macFreeAt[m.id] = currentDayIdx * MINS_PER_DAY; });
+
+        type DayAccum = {
+            sumMap: Record<string, { orderId: string; businessId?: string; partName: string; color: OrderColor; totalUnits: number; byProcess: Record<string, { sequence: number; units: number; assignments: Set<string> }> }>;
+            hourSlots: HourSlot[];
+            empMinsBusy: Record<string, number>;
+            macMinsBusy: Record<string, number>;
+        };
+        const dayAccums: DayAccum[] = Array.from({ length: SIM_DAYS }, () => ({
+            sumMap: {}, hourSlots: Array.from({ length: HOURS }, (_, h) => ({ hour: h, slots: [] })), empMinsBusy: {}, macMinsBusy: {},
+        }));
+
+        // Distribute a completed task's work proportionally across the day/hour slots it spans
+        const recordTask = (task: WorkerTask, w: WorkerState) => {
+            if (task.units <= 0) return;
+            const macName = task.machineId ? (machines.find(m => m.id === task.machineId)?.name || 'Machine') : 'Manual';
+            const totalMins = task.completesAt - task.startedAt;
+            if (totalMins <= 0) return;
+            let cur = task.startedAt;
+            let unitsRemaining = task.units;
+            while (cur < task.completesAt && unitsRemaining > 0) {
+                const day = Math.floor(cur / MINS_PER_DAY);
+                if (day < 0 || day >= SIM_DAYS) { cur += 60; continue; }
+                const hourInDay = Math.floor((cur % MINS_PER_DAY) / 60);
+                if (hourInDay >= HOURS) { cur = (day + 1) * MINS_PER_DAY; continue; }
+                const segEnd = Math.min(task.completesAt, day * MINS_PER_DAY + (hourInDay + 1) * 60);
+                const segMins = segEnd - cur;
+                // Last segment gets the remainder to prevent rounding drift
+                const isLastSeg = segEnd >= task.completesAt;
+                const segUnits = isLastSeg ? unitsRemaining : Math.min(unitsRemaining, Math.round((segMins / totalMins) * task.units));
+                if (segUnits > 0) {
+                    const acc = dayAccums[day];
+                    // minuteStart/End = offset WITHIN the current hour (0-60)
+                    const hourStartAbs = day * MINS_PER_DAY + hourInDay * 60;
+                    const minuteStart = cur - hourStartAbs;
+                    const minuteEnd = segEnd - hourStartAbs;
+                    acc.hourSlots[hourInDay].slots.push({ orderId: task.orderId, partName: task.partName, procName: task.procName, sequence: task.sequence, worker: w.name, workerId: w.id, machine: macName, units: segUnits, minuteStart, minuteEnd });
+                    if (!acc.sumMap[task.orderId]) acc.sumMap[task.orderId] = { orderId: task.orderId, businessId: state.find(s => s.id === task.orderId)?.businessId, partName: task.partName, color: colorMap[task.orderId] || COLORS[0], totalUnits: 0, byProcess: {} };
+                    // totalUnits only counts the first sequence step to avoid double-counting multi-step orders
+                    const product = items.find(i => i.id === state.find(s => s.id === task.orderId)?.mainPartId);
+                    const firstSeq = product?.processes.sort((a, b) => a.sequence - b.sequence)[0]?.sequence ?? task.sequence;
+                    if (task.sequence === firstSeq) acc.sumMap[task.orderId].totalUnits += segUnits;
+                    if (!acc.sumMap[task.orderId].byProcess[task.procName]) acc.sumMap[task.orderId].byProcess[task.procName] = { sequence: task.sequence, units: 0, assignments: new Set() };
+                    acc.sumMap[task.orderId].byProcess[task.procName].units += segUnits;
+                    acc.sumMap[task.orderId].byProcess[task.procName].assignments.add(`${w.name} | ${macName} | ${w.skills.join(',')}`);
+                    acc.empMinsBusy[w.id] = (acc.empMinsBusy[w.id] || 0) + segMins;
+                    if (task.machineId) acc.macMinsBusy[task.machineId] = (acc.macMinsBusy[task.machineId] || 0) + segMins;
+                    unitsRemaining -= segUnits;
+                }
+                cur = segEnd;
+            }
+        };
+
+        const completeTask = (task: WorkerTask) => {
+            const node = state.find(s => s.id === task.orderId);
+            if (!node) return;
+            node.wip[task.sequence] = (node.wip[task.sequence] ?? 0) + task.units;
+            node.inFlight[task.sequence] = Math.max(0, (node.inFlight[task.sequence] ?? 0) - task.units);
+        };
+
+        const tryAssign = (w: WorkerState, nowMin: number): boolean => {
+            if (nowMin >= TOTAL_MINS) return false;
+            for (const node of [...state].sort((a, b) => a.priority - b.priority)) {
+                const product = items.find(i => i.id === node.mainPartId);
+                if (!product) continue;
+                const procs = [...product.processes].sort((a, b) => a.sequence - b.sequence);
+                const batchSize = product.batchSize || 1;
+
+                for (let pi = 0; pi < procs.length; pi++) {
+                    const proc = procs[pi];
+                    if (!w.skills.includes(proc.processName)) continue;
+                    const isFirst = pi === 0;
+                    const prevSeq = isFirst ? null : procs[pi - 1].sequence;
+
+                    let readyUnits = 0;
+                    if (isFirst) {
+                        // remaining already excludes in-flight units (deducted at assignment)
+                        readyUnits = node.remaining;
+                    } else {
+                        const prevStartMin = node.stepStarts[prevSeq!];
+                        if (prevStartMin === undefined || nowMin < prevStartMin + 60) continue;
+                        const prevCompleted = node.wip[prevSeq!] ?? 0;
+                        const alreadyCovered = (node.wip[proc.sequence] ?? 0) + (node.inFlight[proc.sequence] ?? 0);
+                        readyUnits = prevCompleted - alreadyCovered;
+                    }
+
+                    const effectiveBatch = Math.min(batchSize, readyUnits);
+                    if (effectiveBatch <= 0) continue;
+
+                    const stepBom = product.bom.filter(b => b.processName === proc.processName || (isFirst && !b.processName));
+                    if (stepBom.some(b => (stocks[b.accessoryId] ?? 0) < b.usageQuantity * effectiveBatch)) continue;
+
+                    const needsMac = globalProcesses.find(gp => gp.name === proc.processName)?.requiresMachine ?? false;
+                    let machineId: string | undefined;
+                    if (needsMac) {
+                        const avail = machines.filter(m => m.capableProcesses.includes(proc.processName) && (macFreeAt[m.id] ?? 0) <= nowMin);
+                        if (avail.length === 0) continue;
+                        machineId = avail[0].id;
+                    }
+
+                    // No day boundary clamping — let batches run their full natural duration
+                    const minsNeeded = Math.ceil((effectiveBatch / proc.unitsPerHour) * 60);
+                    const completesAt = nowMin + minsNeeded;
+
+                    w.task = { orderId: node.id, procName: proc.processName, sequence: proc.sequence, partName: product.name, machineId, startedAt: nowMin, completesAt, units: effectiveBatch };
+                    w.freeAt = completesAt;
+                    if (machineId) macFreeAt[machineId] = completesAt;
+
+                    stepBom.forEach(b => { stocks[b.accessoryId] = (stocks[b.accessoryId] ?? 0) - b.usageQuantity * effectiveBatch; });
+                    if (isFirst) node.remaining -= effectiveBatch;
+                    node.inFlight[proc.sequence] = (node.inFlight[proc.sequence] ?? 0) + effectiveBatch;
+                    if (node.stepStarts[proc.sequence] === undefined) node.stepStarts[proc.sequence] = nowMin;
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        // Prime: assign all workers at simulation start (failures retry in 1 hour)
+        const startMin = currentDayIdx * MINS_PER_DAY;
+        workerState.forEach(w => { if (!tryAssign(w, startMin)) w.freeAt = startMin + 60; });
+
+        let iterations = 0;
+        while (iterations++ < 300_000) {
+            // Find the next event time across ALL workers
+            let nextMin = TOTAL_MINS;
+            for (const w of workerState) { if (w.freeAt < nextMin) nextMin = w.freeAt; }
+            if (nextMin >= TOTAL_MINS) break;
+
+            // Gather all workers whose event fires at exactly this minute
+            const atEvent = workerState.filter(w => w.freeAt === nextMin);
+
+            // Phase 1: Complete ALL active tasks first (WIP must be updated before re-assigning)
+            for (const w of atEvent) {
+                if (w.task) {
+                    recordTask(w.task, w);
+                    completeTask(w.task);
+                    w.task = null;
+                }
+            }
+
+            // Phase 2: Offer new work to ALL free workers at this time (including idle ones)
+            for (const w of atEvent) {
+                if (!w.task) {
+                    if (!tryAssign(w, nextMin)) {
+                        // No work right now — retry in 1 hour (fine-grained retry for stagger unlock)
+                        w.freeAt = nextMin + 60;
+                    }
+                }
+            }
+        }
+
+        // Build DayPlan array
+        const days: DayPlan[] = [];
+        for (let day = 0; day < SIM_DAYS; day++) {
             if (day < currentDayIdx) {
-                // Build a historical articlesSummary from 'actuals' for this day
                 const dayActuals = actuals.filter(a => a.dayIdx === day);
                 const dailySum: Record<string, ArticleSummaryItem> = {};
-
                 dayActuals.forEach(a => {
                     const c = colorMap[a.orderId] || COLORS[0];
                     if (!dailySum[a.orderId]) {
-                        dailySum[a.orderId] = {
-                            orderId: a.orderId,
-                            partName: items.find(it => it.id === orders.find(o => o.id === a.orderId)?.mainPartId)?.name || '?',
-                            color: c,
-                            totalUnits: 0,
-                            byProcess: []
-                        };
+                        const partName = items.find(it => it.id === orders.find(o => o.id === a.orderId)?.mainPartId)?.name || '?';
+                        dailySum[a.orderId] = { orderId: a.orderId, partName, color: c, totalUnits: 0, byProcess: [] };
                     }
                     dailySum[a.orderId].totalUnits += a.units;
                     let p = dailySum[a.orderId].byProcess.find(bp => bp.procName === a.procName);
                     if (!p) {
-                        p = { procName: a.procName, sequence: items.find(it => it.id === orders.find(o => o.id === a.orderId)?.mainPartId)?.processes.find(pr => pr.processName === a.procName)?.sequence || 0, units: 0, assignments: [] };
-                        dailySum[a.orderId].byProcess.push(p);
+                        const seq = items.find(it => it.id === orders.find(o => o.id === a.orderId)?.mainPartId)?.processes.find(pr => pr.processName === a.procName)?.sequence || 0;
+                        p = { procName: a.procName, sequence: seq, units: 0, assignments: [] }; dailySum[a.orderId].byProcess.push(p);
                     }
                     p.units += a.units;
                     p.assignments.push({ worker: employees.find(e => e.id === a.workerId)?.name || '?', machine: 'Manual', skills: [] });
                 });
-
                 days.push({ day, date: dates[day], articlesSummary: Object.values(dailySum), hours: [], unusedPersonnel: [], unusedMachinery: [] });
                 continue;
             }
-            const empBusy: Record<string, Set<number>> = {};
-            employees.forEach(e => { empBusy[e.id] = new Set(); });
-            const macBusy: Record<string, Set<number>> = {};
-            machines.forEach(m => { macBusy[m.id] = new Set(); });
-            const hourSlots: HourSlot[] = Array.from({ length: HOURS }, (_, h) => ({ hour: h, slots: [] }));
-            const sumMap: Record<string, {
-                orderId: string;
-                partName: string;
-                businessId?: string;
-                color: OrderColor;
-                totalUnits: number;
-                byProcess: Record<string, {
-                    sequence: number;
-                    units: number;
-                    assignments: Set<string>; // Combined worker+machine+skills string
-                }>;
-            }> = {};
 
-            // ── HOUR-FIRST LOOP ─────────────────────────────────────────────────────
-            // Snapshot node.wip at the START of each hour. Downstream processes
-            // (seq > 1) can ONLY consume units present in that snapshot, so
-            // process N+1 can never start until process N has produced WIP in
-            // a *previous* hour — enforcing the real sequential constraint.
-            for (let h = 0; h < HOURS; h++) {
-                const minStart = h * 60;
-                const minEnd = (h + 1) * 60;
-                const wipSnap: Record<string, Record<number, number>> = {};
-                for (const node of state) { wipSnap[node.id] = { ...node.wip }; }
+            const acc = dayAccums[day];
+            const articlesSummary: ArticleSummaryItem[] = Object.values(acc.sumMap).map(item => ({
+                orderId: item.orderId, businessId: item.businessId, partName: item.partName, color: colorMap[item.orderId] || COLORS[0], totalUnits: item.totalUnits,
+                byProcess: Object.entries(item.byProcess).map(([pn, d]) => ({
+                    procName: pn, sequence: d.sequence, units: d.units,
+                    assignments: Array.from(d.assignments).map(s => { const [wk, mc, sk] = s.split(' | '); return { worker: wk, machine: mc, skills: sk ? sk.split(',') : [] }; })
+                })).sort((a, b) => a.sequence - b.sequence)
+            }));
+            const unusedPersonnel = employees.filter(e => !acc.empMinsBusy[e.id]).map(e => ({ name: e.name, skills: e.skills }));
+            const unusedMachinery = machines.filter(m => !acc.macMinsBusy[m.id]).map(m => m.name);
+            days.push({ day, date: dates[day], articlesSummary, hours: acc.hourSlots, unusedPersonnel, unusedMachinery });
 
-                for (const node of [...state].sort((a, b) => a.priority - b.priority)) {
-                    const product = items.find(i => i.id === node.mainPartId);
-                    if (!product) continue;
-                    const procs = [...product.processes].sort((a, b) => a.sequence - b.sequence);
-
-                    for (let pi = 0; pi < procs.length; pi++) {
-                        const proc = procs[pi];
-                        const isFirst = pi === 0;
-                        const prevSeq = isFirst ? null : procs[pi - 1].sequence;
-                        let unitsReady: number;
-
-                        // ── ACCESSORY & STOCK GATING ────────────────────────────────────────
-                        // Determine which accessories are required for THIS specific process.
-                        // If an accessory has NO linked processName, it's assumed to be 
-                        // required at the very first step.
-                        const stepBom = product.bom.filter(b =>
-                            b.processName === proc.processName || (isFirst && !b.processName)
-                        );
-
-                        if (isFirst) {
-                            if (node.remaining <= 0) continue;
-                            unitsReady = node.remaining;
-
-                            // Only cap by the available BOM accessories, NOT the finished good's own stock.
-                            let cap = Infinity;
-                            stepBom.forEach(b => {
-                                const a = stocks.find(s => s.id === b.accessoryId);
-                                cap = Math.min(cap, Math.floor((a?.stockQuantity ?? 0) / b.usageQuantity));
-                            });
-                            unitsReady = Math.min(unitsReady, cap);
-                        } else {
-                            // Use snapshot: process N+1 cannot start until process N
-                            // produced units in a PREVIOUS hour (not the current one).
-                            const prevAvail = prevSeq !== null ? (wipSnap[node.id][prevSeq] ?? 0) : 0;
-                            unitsReady = prevAvail - (node.wip[proc.sequence] ?? 0);
-
-                            // Check accessories for this specific non-first step
-                            let cap = Infinity;
-                            stepBom.forEach(b => {
-                                const a = stocks.find(s => s.id === b.accessoryId);
-                                cap = Math.min(cap, Math.floor((a?.stockQuantity ?? 0) / b.usageQuantity));
-                            });
-                            unitsReady = Math.min(unitsReady, cap);
-
-                            // ── 1-HOUR LAG CONSTRAINT ────────────────────────────────────────
-                            // Process N+1 must wait at least 1 hour after Process N started.
-                            const globalHour = (day * HOURS) + h;
-                            const prevStart = prevSeq !== null ? node.stepStarts[prevSeq] : undefined;
-                            if (prevStart !== undefined && globalHour < prevStart + 1) {
-                                unitsReady = 0;
-                            }
-                        }
-                        if (unitsReady <= 0) continue;
-
-                        const qualEmp = employees
-                            .filter(e => e.skills.includes(proc.processName))
-                            .sort((a, b) => a.skills.length - b.skills.length); // Prioritize specialists
-                        const needsMac = globalProcesses.find(gp => gp.name === proc.processName)?.requiresMachine ?? false;
-                        const qualMac = needsMac
-                            ? machines.filter(m => m.capableProcesses.includes(proc.processName)).sort((a, b) => a.capableProcesses.length - b.capableProcesses.length)
-                            : [];
-                        // ── INTELLIGENT MULTI-RESOURCE ALLOCATION ─────────────────────────────
-                        // Each minute, allocate ALL free qualified employees (and machines)
-                        // simultaneously. This maximises throughput: 3 skilled workers = 3×
-                        // output rate. Priority order ensures higher-priority orders grab
-                        // resources first; leftovers go to lower-priority orders.
-                        let unitsLeft = unitsReady;
-                        for (let min = minStart; min < minEnd && unitsLeft > 0; min++) {
-                            for (const emp of qualEmp) {
-                                if (unitsLeft <= 0) break;
-                                if (empBusy[emp.id].has(min)) continue;
-                                let mac: Machine | undefined;
-                                if (needsMac) { mac = qualMac.find(m => !macBusy[m.id].has(min)); if (!mac) continue; }
-                                empBusy[emp.id].add(min);
-                                if (mac) macBusy[mac.id].add(min);
-                                const u = Math.min(proc.unitsPerHour / 60, unitsLeft);
-                                unitsLeft -= u;
-                                const slot: MinuteSlot = { orderId: node.id, partName: product.name, procName: proc.processName, sequence: proc.sequence, worker: emp.name, workerId: emp.id, machine: mac?.name ?? 'Manual', units: u, minuteStart: min % 60, minuteEnd: (min % 60) + 1 };
-                                hourSlots[h].slots.push(slot);
-                                if (!sumMap[node.id]) sumMap[node.id] = { orderId: node.id, businessId: node.businessId, partName: product.name, color: colorMap[node.id], totalUnits: 0, byProcess: {} };
-                                sumMap[node.id].totalUnits += u;
-                                if (!sumMap[node.id].byProcess[proc.processName]) {
-                                    sumMap[node.id].byProcess[proc.processName] = { sequence: proc.sequence, units: 0, assignments: new Set() };
-                                }
-                                sumMap[node.id].byProcess[proc.processName].units += u;
-                                sumMap[node.id].byProcess[proc.processName].assignments.add(`${emp.name} | ${mac?.name ?? 'Manual'} | ${emp.skills.join(',')}`);
-                            }
-                        }
-                        const done = unitsReady - unitsLeft;
-                        node.wip[proc.sequence] = (node.wip[proc.sequence] ?? 0) + done;
-                        if (done > 0 && node.stepStarts[proc.sequence] === undefined) {
-                            node.stepStarts[proc.sequence] = (day * HOURS) + h;
-                        }
-                        if (done > 0) {
-                            // Deduct stock for accessories used in THIS process
-                            stepBom.forEach(bm => {
-                                const a = stocks.find(s => s.id === bm.accessoryId);
-                                if (a) a.stockQuantity = Math.max(0, a.stockQuantity - done * bm.usageQuantity);
-                            });
-
-                            if (isFirst) {
-                                const used = Math.min(done, node.remaining);
-                                node.remaining -= used;
-                            }
-                        }
-                        if (done > 0) {
-                            if (!timelines[node.id]) timelines[node.id] = { firstDay: day, lastDay: day, partName: product.name, totalFinished: 0 };
-                            timelines[node.id].lastDay = day;
-                            const isLast = pi === procs.length - 1;
-                            if (isLast) timelines[node.id].totalFinished += done;
-                        }
-                    }
+            state.forEach(node => {
+                const product = items.find(i => i.id === node.mainPartId);
+                const lastSeq = product?.processes.sort((a, b) => b.sequence - a.sequence)[0]?.sequence ?? 0;
+                const finished = node.wip[lastSeq] || 0;
+                if (finished > 0) {
+                    if (!timelines[node.id]) timelines[node.id] = { firstDay: day, lastDay: day, partName: product?.name || '?', totalFinished: 0 };
+                    timelines[node.id].lastDay = day;
+                    timelines[node.id].totalFinished = finished;
                 }
-            } // end hour loop
-
-            if (day < currentDayIdx) {
-                // HISTORICAL ACTUALS OVERRIDE
-                const hisSumMap: Record<string, any> = {};
-                const hisHourSlots: HourSlot[] = Array.from({ length: HOURS }, (_, h) => ({ hour: h, slots: [] }));
-
-                actuals.filter(a => a.dayIdx === day).forEach(a => {
-                    const order = orders.find(o => o.id === a.orderId);
-                    const prod = items.find(it => it.id === order?.mainPartId);
-                    if (!order || !prod) return;
-                    if (!hisSumMap[a.orderId]) hisSumMap[a.orderId] = { orderId: a.orderId, businessId: a.businessId, partName: prod.name, color: colorMap[a.orderId], totalUnits: 0, byProcess: {} };
-                    const proc = prod.processes.find(p => p.processName === a.procName);
-                    if (!proc) return;
-                    hisSumMap[a.orderId].totalUnits += a.units;
-                    if (!hisSumMap[a.orderId].byProcess[a.procName]) hisSumMap[a.orderId].byProcess[a.procName] = { sequence: proc.sequence, units: 0, assignments: new Set() };
-                    hisSumMap[a.orderId].byProcess[a.procName].units += a.units;
-                    hisHourSlots[0].slots.push({ orderId: a.orderId, partName: prod.name, procName: a.procName, sequence: proc.sequence, worker: 'Confirmed Output', workerId: 'confirm', machine: 'Stock', units: a.units, minuteStart: 0, minuteEnd: 60 });
-                });
-
-                days.push({
-                    day,
-                    date: dates[day],
-                    articlesSummary: Object.values(hisSumMap).map(item => ({
-                        ...item,
-                        byProcess: Object.entries(item.byProcess).map(([pn, d]: [string, any]) => ({ procName: pn, sequence: d.sequence, units: d.units, assignments: [] })).sort((a, b) => a.sequence - b.sequence)
-                    })),
-                    hours: hisHourSlots,
-                    unusedPersonnel: [],
-                    unusedMachinery: []
-                });
-            } else {
-                const articlesSummary: ArticleSummaryItem[] = Object.values(sumMap).map(item => ({
-                    orderId: item.orderId,
-                    businessId: item.businessId,
-                    partName: item.partName,
-                    color: item.color,
-                    totalUnits: item.totalUnits,
-                    byProcess: Object.entries(item.byProcess).map(([pn, d]) => ({
-                        procName: pn,
-                        sequence: d.sequence,
-                        units: d.units,
-                        assignments: Array.from(d.assignments).map(s => {
-                            const [w, m, sk] = s.split(' | ');
-                            return { worker: w, machine: m, skills: sk ? sk.split(',') : [] };
-                        })
-                    })).sort((a, b) => a.sequence - b.sequence)
-                }));
-
-                const unusedPersonnel = employees.filter(e => empBusy[e.id].size === 0).map(e => ({ name: e.name, skills: e.skills }));
-                const unusedMachinery = machines.filter(m => macBusy[m.id].size === 0).map(m => m.name);
-
-                days.push({ day, date: dates[day], articlesSummary, hours: hourSlots, unusedPersonnel, unusedMachinery });
-            }
+            });
         }
 
-        /* ── BOTTLENECK ANALYSIS ── */
+        // Bottleneck analysis
         state.forEach(node => {
             const tl = timelines[node.id];
             const o = orders.find(x => x.id === node.id);
-            if (!o) return;
             const product = items.find(i => i.id === node.mainPartId);
-            if (!product) return;
-
-            // If it never started, or started but didn't finish its quantity, it is bottlenecked.
+            if (!o || !product) return;
             if (!tl || tl.totalFinished < o.quantity) {
                 let reason = 'Capacity Limit (60 Days)';
-
-                // Check raw material limit
-                let rawShortage = false;
-                for (const b of product.bom) {
-                    const a = stocks.find(s => s.id === b.accessoryId);
-                    // A crude check: if we need materials for ANY step, did we run out?
-                    // Because simulation deducts as it goes, the local `stocks` array holds final values.
-                    if (!a || a.stockQuantity < b.usageQuantity) {
-                        rawShortage = true;
-                        break;
-                    }
-                }
-
-                if (rawShortage) {
-                    reason = 'Raw Materials Depleted';
-                } else {
-                    let missingSkill = false;
-                    for (const p of product.processes) {
-                        if (!employees.some(e => e.skills.includes(p.processName))) missingSkill = true;
-                    }
-                    if (missingSkill) {
-                        reason = 'Missing Skilled Labor';
-                    } else {
-                        let missingMac = false;
-                        for (const p of product.processes) {
-                            const gp = globalProcesses.find(x => x.name === p.processName);
-                            if (gp?.requiresMachine && !machines.some(m => m.capableProcesses.includes(p.processName))) {
-                                missingMac = true;
-                            }
-                        }
-                        if (missingMac) reason = 'Missing Machinery';
-                    }
-                }
-
-                if (!tl) {
-                    timelines[node.id] = { firstDay: 0, lastDay: 0, partName: product.name, totalFinished: 0, bottleneck: reason };
-                } else {
-                    tl.bottleneck = reason;
-                }
+                if (product.bom.some(b => (stocks[b.accessoryId] ?? 0) < b.usageQuantity)) reason = 'Raw Materials Depleted';
+                else if (product.processes.some(p => !employees.some(e => e.skills.includes(p.processName)))) reason = 'Missing Skilled Labor';
+                else if (product.processes.some(p => globalProcesses.find(gp => gp.name === p.processName)?.requiresMachine && !machines.some(m => m.capableProcesses.includes(p.processName)))) reason = 'Missing Machinery';
+                if (!tl) timelines[node.id] = { firstDay: 0, lastDay: 0, partName: product.name, totalFinished: 0, bottleneck: reason };
+                else tl.bottleneck = reason;
             }
         });
 
@@ -529,6 +495,18 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => {
+                            if (confirm('Clear entire production queue? This cannot be undone.')) {
+                                setOrders([]);
+                                localStorage.removeItem(getK('prod_ords_v2'));
+                                toast.success('Production queue purged.');
+                            }
+                        }} 
+                        className="h-7 px-2.5 border border-rose-200 bg-rose-50 hover:bg-rose-100 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1 text-rose-700 transition-colors"
+                    >
+                        <Trash2 size={10} />Purge Queue
+                    </button>
                     <button onClick={autoPopulate} className="h-7 px-2.5 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1 text-emerald-700 transition-colors">
                         <RefreshCw size={10} />Auto-Populate
                     </button>
@@ -763,7 +741,7 @@ function DailyView({ days, orderTimelines, orders, items, activeDayIdx, setActiv
     const visibleDays = days.slice(windowOffset, windowOffset + 40);
 
     /* stats */
-    const totalWorking = activeDay?.hours.flatMap(h => h.slots).reduce((s, sl) => { s.add(sl.workerId); return s; }, new Set<string>()).size ?? 0;
+    const totalWorking = (activeDay?.hours.flatMap(h => h.slots) || []).reduce((s, sl) => { s.add(sl.workerId); return s; }, new Set<string>()).size ?? 0;
 
     return (
         <div className="space-y-3">
@@ -1185,7 +1163,14 @@ function HourlyView({ day, dayIdx, activeHourIdx, setActiveHourIdx, empColorMap,
                 {day.hours.map(hs => {
                     const workers = new Set(hs.slots.map(s => s.workerId)).size;
                     const procs = new Set(hs.slots.map(s => s.procName)).size;
-                    const units = hs.slots.reduce((s, sl) => s + sl.units, 0);
+                    // Deduplicate: each slot entry represents a segment, count units once per unique task segment
+                    const seen = new Set<string>();
+                    const units = hs.slots.reduce((s, sl) => {
+                        const key = `${sl.orderId}__${sl.procName}__${sl.worker}__${sl.minuteStart}`;
+                        if (seen.has(key)) return s;
+                        seen.add(key);
+                        return s + sl.units;
+                    }, 0);
                     const isActive = activeHourIdx === hs.hour;
                     return (
                         <button key={hs.hour} onClick={() => setActiveHourIdx(hs.hour)} className={`bg-white rounded-xl border p-2 text-left transition-all shadow-sm ${isActive ? 'border-indigo-400 ring-2 ring-indigo-200' : 'border-slate-200 hover:border-slate-300'}`}>
@@ -1205,6 +1190,9 @@ function HourlyView({ day, dayIdx, activeHourIdx, setActiveHourIdx, empColorMap,
 ══════════════════════════════════════════ */
 function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, onHourChange, selectedOrderId, orders, items, setItems, employees, actuals, setActuals, setOrders, inventory, setInventory, gid, planStartDate }:
     { day: DayPlan | undefined; hourIdx: number; dayIdx: number; empColorMap: Record<string, string>; orderColorMap: Record<string, OrderColor>; onBack: () => void; onHourChange: (h: number) => void; selectedOrderId: string | null; orders: ProductionOrder[]; items: ProductionItem[]; setItems: any; employees: Employee[]; actuals: any[]; setActuals: React.Dispatch<React.SetStateAction<any[]>>; setOrders: React.Dispatch<React.SetStateAction<ProductionOrder[]>>; inventory: any[]; setInventory: React.Dispatch<React.SetStateAction<any[]>>; gid: () => string; planStartDate?: string; }) {
+
+    const [showPrintModal, setShowPrintModal] = useState(false);
+    const [printMode, setPrintMode] = useState<'WORKER' | 'ARTICLE'>('WORKER');
 
     if (!day) return <Empty msg="No data for this day." />;
 
@@ -1233,17 +1221,23 @@ function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, 
         while (i < slots.length) {
             const cur = slots[i];
             let j = i + 1;
-            let sumU = cur ? cur.units : 0;
+            const uniqueSlots = new Set<MinuteSlot>();
+            if (cur) uniqueSlots.add(cur);
+
             while (j < slots.length) {
                 const nx = slots[j];
                 if (!nx && !cur) { j++; continue; }
                 if (nx && cur && nx.orderId === cur.orderId && nx.procName === cur.procName) {
-                    sumU += nx.units;
-                    j++;
-                    continue;
+                    uniqueSlots.add(nx);
+                    j++; 
+                    continue; 
                 }
                 break;
             }
+            
+            // totalPlanned = sum of units from all segment slices that make up this continuous block
+            let sumU = 0;
+            uniqueSlots.forEach(s => sumU += s.units);
             r.push({ slot: cur, start: i, len: j - i, totalPlanned: sumU });
             i = j;
         }
@@ -1252,10 +1246,18 @@ function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, 
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center gap-3">
-                <button onClick={onBack} className="flex items-center gap-1 text-[9px] font-black text-slate-400 hover:text-indigo-600 uppercase tracking-wider transition-colors"><ChevronLeft size={11} />Back</button>
-                <div className="h-4 w-px bg-slate-200" />
-                <h1 className="text-xs font-black text-slate-700 uppercase tracking-widest">Shift Timeline (480 mins)</h1>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <button onClick={onBack} className="flex items-center gap-1 text-[9px] font-black text-slate-400 hover:text-indigo-600 uppercase tracking-wider transition-colors"><ChevronLeft size={11} />Back</button>
+                    <div className="h-4 w-px bg-slate-200" />
+                    <h1 className="text-xs font-black text-slate-700 uppercase tracking-widest">Shift Timeline (480 mins)</h1>
+                </div>
+                <button 
+                    onClick={() => setShowPrintModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors border border-indigo-100 shadow-sm"
+                >
+                    <ClipboardList size={12} /> Print Daily Plan
+                </button>
             </div>
 
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col">
@@ -1302,7 +1304,8 @@ function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, 
                                                     <div key={ri} className="absolute top-0 h-full border-r border-white/5" style={{ left: `${(run.start / SHIFT_MINUTES) * 100}%`, width: `${(run.len / SHIFT_MINUTES) * 100}%` }}>
                                                         {run.slot ? (
                                                             <div
-                                                                className="h-full w-full flex flex-col justify-center py-1 px-1.5 overflow-hidden transition-all hover:brightness-110 shadow-[inner_0_1px_0_0_rgba(255,255,255,0.2)]"
+                                                                title={`Article: ${run.slot.partName}\nProcess: ${run.slot.procName}\nPlanned Units: ${Math.round(run.totalPlanned)}`}
+                                                                className="h-full w-full flex flex-col justify-center py-1 px-1.5 overflow-hidden transition-all hover:brightness-110 shadow-[inner_0_1px_0_0_rgba(255,255,255,0.2)] cursor-help"
                                                                 style={{ backgroundColor: c?.bg ?? '#6366f1' }}
                                                             >
                                                                 {(run.len / SHIFT_MINUTES) > 0.03 && <span className="text-white text-[7px] font-black leading-tight uppercase truncate">{run.slot.procName}</span>}
@@ -1361,6 +1364,185 @@ function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, 
                     </div>
                 </div>
             </div>
+
+            {/* PRINT MODAL OVERLAY */}
+            {showPrintModal && (
+                <div className="fixed inset-0 bg-white z-[200] overflow-y-auto p-8 print:p-0">
+                    <div className="max-w-5xl mx-auto bg-white min-h-screen">
+                        {/* SCREEN ONLY CONTROLS */}
+                        <div className="flex items-center justify-between mb-8 print:hidden bg-slate-800 p-4 rounded-2xl shadow-xl">
+                            <h2 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2"><ClipboardList className="text-indigo-400" /> Executive Print Preview</h2>
+                            <div className="flex gap-3 items-center">
+                                <div className="flex bg-slate-900 p-1 rounded-lg mr-4">
+                                    <button onClick={() => setPrintMode('WORKER')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${printMode === 'WORKER' ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>Worker View</button>
+                                    <button onClick={() => setPrintMode('ARTICLE')} className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${printMode === 'ARTICLE' ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>Article View</button>
+                                </div>
+                                <button onClick={() => window.print()} className="px-5 py-2 bg-indigo-500 text-white rounded-lg text-xs font-black uppercase tracking-wider hover:bg-indigo-400 shadow-md flex items-center gap-2 transition-all"><ClipboardList size={16} /> Print Document</button>
+                                <button onClick={() => setShowPrintModal(false)} className="px-5 py-2 bg-slate-700 text-white rounded-lg text-xs font-black uppercase tracking-wider hover:bg-slate-600 transition-all">Close</button>
+                            </div>
+                        </div>
+
+                        {/* PRINTABLE CONTENT */}
+                        <div className="print:block text-slate-900 bg-white">
+                            
+                            {/* OFFICIAL LETTERHEAD */}
+                            <div className="mb-8 pb-4 border-b-[3px] border-slate-900 flex justify-between items-end">
+                                <div>
+                                    <h1 className="text-3xl font-black uppercase tracking-[0.2em] text-slate-900">Production Plan</h1>
+                                    <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Operational Roster & Logistics Directory</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-xl font-black text-indigo-600">{day.date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Shift Start: 08:00 · Duration: 8 Hours</div>
+                                </div>
+                            </div>
+
+                            {/* EXECUTIVE SUMMARY */}
+                            <div className="flex gap-4 mb-8 break-inside-avoid">
+                                <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 p-4 print:bg-white print:border-slate-300">
+                                    <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">Total Yield Target</div>
+                                    <div className="text-2xl font-black text-indigo-600">
+                                        {Math.round(day.hours.flatMap(h => h.slots).reduce((acc: any, s) => {
+                                            const key = `${s.orderId}__${s.procName}__${s.worker}__${s.minuteStart}`;
+                                            if (!acc.seen.has(key)) { acc.seen.add(key); acc.sum += s.units; }
+                                            return acc;
+                                        }, { sum: 0, seen: new Set() }).sum)} <span className="text-sm font-bold text-slate-500">units</span>
+                                    </div>
+                                </div>
+                                <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 p-4 print:bg-white print:border-slate-300">
+                                    <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">Scheduled Staff</div>
+                                    <div className="text-2xl font-black text-slate-800">
+                                        {new Set(day.hours.flatMap(h => h.slots).map(s => s.workerId)).size} <span className="text-sm font-bold text-slate-500">workers</span>
+                                    </div>
+                                </div>
+                                <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 p-4 print:bg-white print:border-slate-300">
+                                    <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">Active Processes</div>
+                                    <div className="text-2xl font-black text-slate-800">
+                                        {new Set(day.hours.flatMap(h => h.slots).map(s => s.procName)).size} <span className="text-sm font-bold text-slate-500">tasks</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {printMode === 'WORKER' ? (
+                                <table className="w-full text-left border-collapse border border-slate-300">
+                                    <thead className="print:table-header-group">
+                                        <tr className="border-b-2 border-slate-400 bg-slate-100 print:bg-slate-100">
+                                            <th className="py-2.5 px-3 font-black uppercase tracking-wider text-[10px] text-slate-600 border-r border-slate-300 w-1/4">Assigned Worker</th>
+                                            <th className="py-2.5 px-3 font-black uppercase tracking-wider text-[10px] text-slate-600 border-r border-slate-300 w-1/3">Target Article</th>
+                                            <th className="py-2.5 px-3 font-black uppercase tracking-wider text-[10px] text-slate-600 border-r border-slate-300">Process Task</th>
+                                            <th className="py-2.5 px-3 font-black uppercase tracking-wider text-[10px] text-slate-600 text-right">Planned Qty</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200">
+                                        {entries.map(emp => {
+                                            const pruns = runs(emp.slots).filter(run => run.slot);
+                                            if (pruns.length === 0) return null;
+                                            
+                                            const aggregated = Object.values(pruns.reduce((acc: any, run) => {
+                                                const key = `${run.slot!.orderId}__${run.slot!.procName}`;
+                                                if (!acc[key]) acc[key] = { partName: run.slot!.partName, procName: run.slot!.procName, units: 0 };
+                                                acc[key].units += run.totalPlanned;
+                                                return acc;
+                                            }, {}));
+
+                                            return aggregated.map((agg: any, idx) => (
+                                                <tr key={`${emp.id}-${idx}`} className="break-inside-avoid hover:bg-slate-50 print:hover:bg-transparent">
+                                                    <td className="py-2.5 px-3 text-sm font-black text-slate-800 border-r border-slate-200 align-top">{idx === 0 ? emp.name : ''}</td>
+                                                    <td className="py-2.5 px-3 text-sm font-bold text-slate-600 border-r border-slate-200">{agg.partName}</td>
+                                                    <td className="py-2.5 px-3 text-sm font-bold uppercase border-r border-slate-200 text-slate-700">{agg.procName}</td>
+                                                    <td className="py-2.5 px-3 text-sm font-black text-right tabular-nums text-indigo-700">{Math.round(agg.units)} u</td>
+                                                </tr>
+                                            ));
+                                        })}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <div className="space-y-6">
+                                    {Object.values(day.hours.reduce((acc: any, h) => {
+                                        h.slots.forEach(s => {
+                                            if (!acc[s.orderId]) acc[s.orderId] = { partName: s.partName, procs: {} };
+                                            if (!acc[s.orderId].procs[s.procName]) acc[s.orderId].procs[s.procName] = { hours: {} };
+                                            if (!acc[s.orderId].procs[s.procName].hours[h.hour]) acc[s.orderId].procs[s.procName].hours[h.hour] = {};
+                                            
+                                            if (!acc[s.orderId].procs[s.procName].hours[h.hour][s.workerId]) {
+                                                acc[s.orderId].procs[s.procName].hours[h.hour][s.workerId] = { name: s.worker, units: 0, seen: new Set() };
+                                            }
+                                            const mKey = s.minuteStart.toString();
+                                            if (!acc[s.orderId].procs[s.procName].hours[h.hour][s.workerId].seen.has(mKey)) {
+                                                acc[s.orderId].procs[s.procName].hours[h.hour][s.workerId].seen.add(mKey);
+                                                acc[s.orderId].procs[s.procName].hours[h.hour][s.workerId].units += s.units;
+                                            }
+                                        });
+                                        return acc;
+                                    }, {})).map((art: any, i) => (
+                                        <div key={i} className="break-inside-avoid border-2 border-slate-300 rounded-xl overflow-hidden bg-white shadow-sm print:shadow-none print:border-slate-400">
+                                            <div className="bg-slate-800 print:bg-slate-200 print:text-slate-900 text-white px-4 py-2.5 flex items-center justify-between border-b-2 border-slate-300">
+                                                <h3 className="text-sm font-black uppercase tracking-widest">{art.partName}</h3>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">Production Article</span>
+                                            </div>
+                                            <div className="divide-y divide-slate-200">
+                                                {Object.entries(art.procs).map(([pName, pObj]: any, pi) => (
+                                                    <div key={pi} className="flex flex-col md:flex-row divide-x divide-slate-200">
+                                                        <div className="w-1/3 bg-slate-50 print:bg-transparent p-4 flex flex-col justify-center">
+                                                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Process Action</div>
+                                                            <div className="text-base font-black text-slate-800 uppercase print:text-slate-900 mt-0.5">{pName}</div>
+                                                        </div>
+                                                        <div className="w-2/3 p-0">
+                                                            <table className="w-full text-left h-full">
+                                                                <tbody className="divide-y divide-slate-100">
+                                                                    {Object.entries(pObj.hours).sort(([ha],[hb]) => Number(ha)-Number(hb)).map(([hStr, wObj]: any, hi) => {
+                                                                        const hourIndex = Number(hStr);
+                                                                        const timeStr = `${fh(hourIndex)} - ${fh(hourIndex+1)}`;
+                                                                        const workers = Object.values(wObj);
+                                                                        return (
+                                                                            <tr key={hi}>
+                                                                                <td className="w-28 px-3 py-2 text-[10px] font-black text-slate-500 uppercase tabular-nums tracking-widest border-r border-slate-100 bg-slate-50/50 print:bg-transparent">{timeStr}</td>
+                                                                                <td className="px-3 py-2 text-sm">
+                                                                                    <div className="flex flex-wrap gap-2">
+                                                                                        {workers.map((w: any, wi) => (
+                                                                                            <span key={wi} className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 border border-indigo-100 print:bg-white print:border-slate-300 rounded-md">
+                                                                                                <span className="font-bold text-slate-700 text-xs uppercase">{w.name}</span>
+                                                                                                <span className="text-[10px] font-black text-indigo-700 bg-white print:border-none px-1 rounded tabular-nums border border-indigo-100/50">{Math.round(w.units)} u</span>
+                                                                                            </span>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* PRINT FOOTER SIGNATURES */}
+                            <div className="mt-12 pt-6 border-t-[3px] border-slate-900 flex justify-between items-end break-inside-avoid">
+                                <div className="text-[10px] uppercase font-bold text-slate-400 max-w-sm">
+                                    This document is an automatically generated system production forecast. 
+                                    Floor managers must properly record actual sequential yields in the unified dashboard comparing final outputs relative to these forecasted targets.
+                                </div>
+                                <div className="flex gap-12 text-sm font-black uppercase text-slate-800 text-center">
+                                    <div>
+                                        <div className="w-40 border-b-2 border-slate-400 mb-2 h-8"></div>
+                                        <div>Floor Supervisor</div>
+                                    </div>
+                                    <div>
+                                        <div className="w-40 border-b-2 border-slate-400 mb-2 h-8"></div>
+                                        <div>Operations Manager</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            )}
         </div>
     );
 }
@@ -1448,6 +1630,8 @@ function YieldInput({ agg, dayIdx, emp, actualRecord, items, setItems, setActual
     const maxSeq = itm ? Math.max(...itm.processes.map(p => p.sequence), 0) : 0;
     const isFinal = agg.sequence === maxSeq && maxSeq > 0;
 
+    const batchSize = itm?.batchSize || 1;
+
     const handleConfirm = async () => {
         if (val < 0) return;
         const prevVal = actualRecord?.units || 0;
@@ -1518,7 +1702,7 @@ function YieldInput({ agg, dayIdx, emp, actualRecord, items, setItems, setActual
                     <span className={`text-[10px] font-black truncate uppercase tracking-tighter ${confirmed ? 'text-emerald-800' : 'text-slate-900'}`}>{agg.procName}</span>
                     <span className="text-[10px] font-black text-indigo-600 tabular-nums bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100/50">{Math.round(agg.totalPlanned)}u</span>
                 </div>
-                <div className="text-[8px] text-slate-500 font-bold uppercase truncate tracking-tight">{agg.partName}</div>
+                <div className="text-[8px] text-slate-500 font-bold uppercase truncate tracking-tight">{agg.partName} <span className="text-indigo-400 opacity-60 ml-1">· Pack {batchSize}</span></div>
             </div>
             <div className="flex items-center gap-2">
                 <div className="relative group">

@@ -247,13 +247,15 @@ model TransferItem {
 
 model ActivityLog {
   id         String   @id @default(cuid())
-  businessId String
+  businessId String?
   userId     String?
   action     String
   entityType String
   entityId   String?
   details    String?
   createdAt  DateTime @default(now())
+
+  @@index([businessId])
 }
 
 model Customer {
@@ -376,6 +378,7 @@ model ProductionArticle {
   type          ProductionItemType @default(ACCESSORY)
   stockQuantity Int               @default(0)
   unit          String             @default("pcs")
+  batchSize     Int                @default(1)
   entryDate     DateTime?
   invoiceNo     String?
   supplierName  String?

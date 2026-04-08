@@ -14,7 +14,7 @@ interface ProcessRequirement { id: string; processName: string; unitsPerHour: nu
 interface ProductionItem { id: string; name: string; sku: string; type: 'MAIN' | 'ACCESSORY'; unit: string; stockQuantity: number; processes: ProcessRequirement[]; bom: AccessoryUsage[]; description?: string; supplierName?: string; businessId?: string; }
 
 interface SimpleManagerDashboardProps {
-    user: { id: string, name: string, role: string };
+    user: { id: string, name: string, role: string, shopId?: string };
     todaysLogsData: any[];
     businessId?: string;
 }
@@ -137,6 +137,7 @@ export default function SimpleManagerDashboard({ user, todaysLogsData, businessI
 
         try {
             const res = await logDailyProduction({
+                businessId: businessId,
                 workerId: user.id || '',
                 articleName: article.name,
                 quantity: quantity,

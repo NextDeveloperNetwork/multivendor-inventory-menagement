@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { logActivity } from './intelligence';
 
 export async function logProduction({
     businessId,
@@ -74,8 +75,9 @@ export async function logDailyProduction(data: {
     date?: string;
 }) {
     try {
+        // 1. Record the Log
         // @ts-ignore
-        await prisma.productionLog.create({
+        const log = await prisma.productionLog.create({
             data: {
                 businessId: data.businessId || null,
                 workerId: data.workerId,
@@ -88,11 +90,56 @@ export async function logDailyProduction(data: {
                 date: data.date ? new Date(data.date) : new Date()
             }
         });
+
+        // 2. Audit Trail
+        await logActivity({
+            action: 'PRODUCTION_LOGGED',
+            entityType: 'PRODUCTION',
+            entityId: log.id,
+            details: `Produced ${data.quantity} units of ${data.articleName} (${data.boxes} boxes)`,
+            userId: data.workerId
+        });
+
+        // 2. Automate Inventory Deduction (BOM)
+        const article = await prisma.productionArticle.findFirst({
+            where: { 
+                name: data.articleName,
+                businessId: data.businessId || null 
+            },
+            include: { bom: true }
+        });
+
+        if (article) {
+            // Deduct accessories from stock
+            for (const bomItem of article.bom) {
+                const totalNeeded = bomItem.usageQuantity * data.quantity;
+                await prisma.productionArticle.update({
+                    where: { id: bomItem.accessoryId },
+                    data: {
+                        stockQuantity: {
+                            decrement: totalNeeded
+                        }
+                    }
+                });
+            }
+
+            // Optionally increase the finished good's own stock if it's tracked
+            await prisma.productionArticle.update({
+                where: { id: article.id },
+                data: {
+                    stockQuantity: {
+                        increment: data.quantity
+                    }
+                }
+            });
+        }
+
         revalidatePath('/production');
         revalidatePath('/admin/production/inventory');
         return { success: true };
     } catch (error) {
-        return { success: false, error: 'Failed to record daily production.' };
+        console.error('Production logging error:', error);
+        return { success: false, error: 'Failed to record daily production and update inventory.' };
     }
 }
 
@@ -101,6 +148,13 @@ export async function deleteProductionLog(id: string) {
         // @ts-ignore
         await prisma.productionLog.delete({
             where: { id }
+        });
+
+        await logActivity({
+            action: 'PRODUCTION_REMOVED',
+            entityType: 'PRODUCTION',
+            entityId: id,
+            details: 'A factory production log entry was manually deleted'
         });
         revalidatePath('/admin/production/roster');
         revalidatePath('/admin/production/tracking');
