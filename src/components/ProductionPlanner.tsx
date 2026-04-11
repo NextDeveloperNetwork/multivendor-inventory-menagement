@@ -88,6 +88,7 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
     const [planStartDate, setPlanStartDate] = useState<string>('');
     const [actuals, setActuals] = useState<{ orderId: string, dayIdx: number, procName: string, workerId: string, units: number, businessId?: string }[]>([]);
     const [showingInsight, setShowingInsight] = useState<{ title: string; explanation: string; icon: React.ReactNode } | null>(null);
+    const [populateError, setPopulateError] = useState<{ title: string; message: string; steps: string[] } | null>(null);
 
     useEffect(() => {
         const loadAggregated = (baseKey: string) => {
@@ -279,8 +280,78 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
             node.inFlight[task.sequence] = Math.max(0, (node.inFlight[task.sequence] ?? 0) - task.units);
         };
 
+        // ── DAILY LOCK: worker → { day, orderId, procName } ──────────────────────
+        // Once a worker starts an article+process on a given day they are locked
+        // to it for the rest of that day.  The lock is cleared only when the
+        // article+process runs out of available work, allowing a fallback to a
+        // new assignment (which then becomes the new lock for that day).
+        const workerDayLock: Record<string, { day: number; orderId: string; procName: string }> = {};
+
+        const tryAssignLocked = (w: WorkerState, nowMin: number, lockedOrderId: string, lockedProcName: string): boolean => {
+            const node = state.find(s => s.id === lockedOrderId);
+            if (!node) return false;
+            const product = items.find(i => i.id === node.mainPartId);
+            if (!product) return false;
+            const procs = [...product.processes].sort((a, b) => a.sequence - b.sequence);
+            const batchSize = product.batchSize || 1;
+            const pi = procs.findIndex(p => p.processName === lockedProcName);
+            if (pi < 0) return false;
+            const proc = procs[pi];
+            if (!w.skills.includes(proc.processName)) return false;
+            const isFirst = pi === 0;
+            const prevSeq = isFirst ? null : procs[pi - 1].sequence;
+
+            let readyUnits = 0;
+            if (isFirst) {
+                readyUnits = node.remaining;
+            } else {
+                const prevStartMin = node.stepStarts[prevSeq!];
+                if (prevStartMin === undefined || nowMin < prevStartMin + 60) return false;
+                const prevCompleted = node.wip[prevSeq!] ?? 0;
+                const alreadyCovered = (node.wip[proc.sequence] ?? 0) + (node.inFlight[proc.sequence] ?? 0);
+                readyUnits = prevCompleted - alreadyCovered;
+            }
+            const effectiveBatch = Math.min(batchSize, readyUnits);
+            if (effectiveBatch <= 0) return false;
+
+            const stepBom = product.bom.filter(b => b.processName === proc.processName || (isFirst && !b.processName));
+            if (stepBom.some(b => (stocks[b.accessoryId] ?? 0) < b.usageQuantity * effectiveBatch)) return false;
+
+            const needsMac = globalProcesses.find(gp => gp.name === proc.processName)?.requiresMachine ?? false;
+            let machineId: string | undefined;
+            if (needsMac) {
+                const avail = machines.filter(m => m.capableProcesses.includes(proc.processName) && (macFreeAt[m.id] ?? 0) <= nowMin);
+                if (avail.length === 0) return false;
+                machineId = avail[0].id;
+            }
+
+            const minsNeeded = Math.ceil((effectiveBatch / proc.unitsPerHour) * 60);
+            const completesAt = nowMin + minsNeeded;
+            w.task = { orderId: node.id, procName: proc.processName, sequence: proc.sequence, partName: product.name, machineId, startedAt: nowMin, completesAt, units: effectiveBatch };
+            w.freeAt = completesAt;
+            if (machineId) macFreeAt[machineId] = completesAt;
+            stepBom.forEach(b => { stocks[b.accessoryId] = (stocks[b.accessoryId] ?? 0) - b.usageQuantity * effectiveBatch; });
+            if (isFirst) node.remaining -= effectiveBatch;
+            node.inFlight[proc.sequence] = (node.inFlight[proc.sequence] ?? 0) + effectiveBatch;
+            if (node.stepStarts[proc.sequence] === undefined) node.stepStarts[proc.sequence] = nowMin;
+            return true;
+        };
+
         const tryAssign = (w: WorkerState, nowMin: number): boolean => {
             if (nowMin >= TOTAL_MINS) return false;
+            const currentDay = Math.floor(nowMin / MINS_PER_DAY);
+
+            // ── EFFICIENCY RULE: respect daily lock ─────────────────────────────
+            // If the worker already started a process today, try to continue it.
+            // Only fall through to normal assignment if that work is exhausted.
+            const lock = workerDayLock[w.id];
+            if (lock && lock.day === currentDay) {
+                if (tryAssignLocked(w, nowMin, lock.orderId, lock.procName)) return true;
+                // Locked work is exhausted — clear the lock and fall through to normal assignment
+                delete workerDayLock[w.id];
+            }
+
+            // ── NORMAL PRIORITY-BASED ASSIGNMENT ────────────────────────────────
             for (const node of [...state].sort((a, b) => a.priority - b.priority)) {
                 const product = items.find(i => i.id === node.mainPartId);
                 if (!product) continue;
@@ -295,7 +366,6 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
 
                     let readyUnits = 0;
                     if (isFirst) {
-                        // remaining already excludes in-flight units (deducted at assignment)
                         readyUnits = node.remaining;
                     } else {
                         const prevStartMin = node.stepStarts[prevSeq!];
@@ -331,6 +401,10 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                     if (isFirst) node.remaining -= effectiveBatch;
                     node.inFlight[proc.sequence] = (node.inFlight[proc.sequence] ?? 0) + effectiveBatch;
                     if (node.stepStarts[proc.sequence] === undefined) node.stepStarts[proc.sequence] = nowMin;
+
+                    // ── Set daily lock for this worker on this day ───────────────
+                    workerDayLock[w.id] = { day: currentDay, orderId: node.id, procName: proc.processName };
+
                     return true;
                 }
             }
@@ -440,13 +514,79 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
     }, [orders, items, employees, machines, globalProcesses, isLoaded, dates, actuals, planStartDate]);
 
     const autoPopulate = () => {
-        const mains = items.filter(i => i.type === 'MAIN' && i.processes.length > 0);
+        // ── Diagnose why populate might fail ──────────────────────────────────
+        if (items.length === 0) {
+            setPopulateError({
+                title: 'No Articles Found',
+                message: 'The production catalog is empty. There are no articles to populate into the planning queue.',
+                steps: [
+                    'Go to Admin → Production → Inventory',
+                    'Add at least one article with type set to "MAIN"',
+                    'Make sure the article has at least one Process defined',
+                    'Return here and click Auto-Populate again',
+                ],
+            });
+            return;
+        }
+
+        const mains = items.filter(i => i.type === 'MAIN');
+        if (mains.length === 0) {
+            setPopulateError({
+                title: 'No Main Articles',
+                message: `Found ${items.length} article(s) but none are set as type "MAIN". Only MAIN articles can be queued for production planning.`,
+                steps: [
+                    'Go to Admin → Production → Inventory',
+                    'Edit your article(s) and set the type to "MAIN"',
+                    'Return here and click Auto-Populate again',
+                ],
+            });
+            return;
+        }
+
+        const mainsWithProcesses = mains.filter(i => i.processes.length > 0);
+        if (mainsWithProcesses.length === 0) {
+            setPopulateError({
+                title: 'No Processes Defined',
+                message: `Found ${mains.length} MAIN article(s) but none have any production processes configured. The simulation engine requires at least one process (e.g. "Sewing", "Cutting") to schedule work.`,
+                steps: [
+                    'Go to Admin → Production → Inventory',
+                    'Edit your MAIN article(s) and add at least one Process with a speed (units/hour)',
+                    'Make sure workers have the matching skill assigned',
+                    'Return here and click Auto-Populate again',
+                ],
+            });
+            return;
+        }
+
         const existing = new Set(orders.map(o => o.mainPartId));
-        const news: ProductionOrder[] = mains.filter(i => !existing.has(i.id)).map((item, idx) => ({ id: gid(), mainPartId: item.id, quantity: Math.max(item.stockQuantity, 50), priority: orders.length + idx + 1, status: 'QUEUED' as const, finishedQuantity: 0 }));
-        if (news.length === 0) return;
+        const news: ProductionOrder[] = mainsWithProcesses
+            .filter(i => !existing.has(i.id))
+            .map((item, idx) => ({
+                id: gid(),
+                mainPartId: item.id,
+                quantity: Math.max(item.stockQuantity, 50),
+                priority: orders.length + idx + 1,
+                status: 'QUEUED' as const,
+                finishedQuantity: 0,
+            }));
+
+        if (news.length === 0) {
+            setPopulateError({
+                title: 'All Articles Already Queued',
+                message: `All ${mainsWithProcesses.length} eligible MAIN article(s) are already in the production queue. Nothing new to add.`,
+                steps: [
+                    'Use the order sidebar on the left to review existing queued orders',
+                    'Right-click any order to edit its quantity or priority',
+                    'To reset, click "Purge Queue" then Auto-Populate again',
+                ],
+            });
+            return;
+        }
+
         const updated = [...orders, ...news];
         setOrders(updated);
         localStorage.setItem(getK('prod_ords_v2'), JSON.stringify(updated));
+        toast.success(`✓ Queued ${news.length} article(s) for production planning.`);
     };
 
     const empColorMap = useMemo(() => {
@@ -513,7 +653,7 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                     <div className="h-5 w-px bg-slate-200" />
                     <select value={selPartId} onChange={e => setSelPartId(e.target.value)} className="h-7 bg-slate-50 border border-slate-200 rounded text-[9px] font-bold px-2 focus:ring-0 focus:outline-none min-w-[110px]">
                         <option value="">Select Article…</option>
-                        {items.filter(i => i.type === 'MAIN').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        {items.filter(i => i.type === 'MAIN').map(p => <option key={p.id} value={p.id}>{p.name} · {p.stockQuantity.toLocaleString()} {p.unit}</option>)}
                     </select>
                     <input type="number" value={qty} onChange={e => setQty(e.target.value)} className="w-14 h-7 bg-slate-50 border border-slate-200 rounded text-center font-black text-[10px] focus:ring-0 focus:outline-none" />
                     <button onClick={() => { if (!selPartId) return; setOrders(prev => [...prev, { id: gid(), mainPartId: selPartId, quantity: Number(qty), priority: prev.length + 1, status: 'QUEUED', finishedQuantity: 0 }]); }} className="h-7 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[9px] font-black uppercase flex items-center gap-1 transition-colors">
@@ -723,6 +863,62 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                     </div>
                 </div>
             )}
+
+            {/* ── Auto-Populate Error Dialog ── */}
+            {populateError && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+                        {/* Header stripe */}
+                        <div style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81,#4338ca)', padding: '28px 32px 20px' }}>
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                                    <AlertCircle size={22} className="text-rose-300" />
+                                </div>
+                                <div>
+                                    <p className="text-indigo-300 text-[9px] uppercase tracking-[0.2em] font-bold mb-0.5">Auto-Populate Failed</p>
+                                    <h2 className="text-white font-black text-lg leading-tight">{populateError.title}</h2>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 space-y-5">
+                            {/* Message */}
+                            <p className="text-sm text-slate-600 font-medium leading-relaxed">{populateError.message}</p>
+
+                            {/* Steps */}
+                            <div className="rounded-2xl overflow-hidden border border-slate-100" style={{ background: '#f8fafc' }}>
+                                <div className="px-4 py-2.5 border-b border-slate-100">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                                        <ArrowRight size={10} /> How to Fix
+                                    </p>
+                                </div>
+                                <ol className="px-4 py-3 space-y-2">
+                                    {populateError.steps.map((step, i) => (
+                                        <li key={i} className="flex items-start gap-3">
+                                            <span
+                                                className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5"
+                                                style={{ background: '#eef2ff', color: '#4f46e5' }}
+                                            >
+                                                {i + 1}
+                                            </span>
+                                            <span className="text-xs text-slate-600 leading-relaxed">{step}</span>
+                                        </li>
+                                    ))}
+                                </ol>
+                            </div>
+
+                            {/* Action */}
+                            <button
+                                onClick={() => setPopulateError(null)}
+                                className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
+                                style={{ background: 'linear-gradient(135deg,#1e1b4b,#4338ca)', color: '#fff', boxShadow: '0 6px 20px rgba(67,56,202,0.3)' }}
+                            >
+                                Got It
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -834,7 +1030,13 @@ function DailyView({ days, orderTimelines, orders, items, activeDayIdx, setActiv
                                 </div>
                             );
                         })}
-                        {sortedOrders.length === 0 && <p className="py-6 text-center text-slate-400 text-xs font-bold">Add orders to visualise the Gantt</p>}
+                        {sortedOrders.length === 0 && (
+                            <div className="py-8 flex flex-col items-center gap-2 text-center">
+                                <BarChart3 size={24} className="text-slate-200" />
+                                <p className="text-slate-400 text-xs font-black uppercase tracking-widest">No Orders Queued</p>
+                                <p className="text-slate-300 text-[10px] max-w-[280px] leading-relaxed">Use <span className="font-black text-emerald-500">Auto-Populate</span> in the top bar or select an article and click <span className="font-black text-indigo-500">Queue</span></p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -852,7 +1054,24 @@ function DailyView({ days, orderTimelines, orders, items, activeDayIdx, setActiv
                 </div>
 
                 {(!activeDay || activeDay.articlesSummary.length === 0) ? (
-                    <div className="py-14 text-center text-slate-400 text-xs font-bold">No production scheduled for this day</div>
+                    <div className="py-12 flex flex-col items-center gap-3 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center">
+                            <ClipboardList size={20} className="text-slate-300" />
+                        </div>
+                        {orders.length === 0 ? (
+                            <>
+                                <p className="text-slate-400 text-xs font-black uppercase tracking-widest">No Orders In Queue</p>
+                                <p className="text-slate-300 text-[10px] max-w-[260px] leading-relaxed">
+                                    Click <span className="font-black text-emerald-500">Auto-Populate</span> in the toolbar to automatically queue all eligible articles, or manually select an article and click <span className="font-black text-indigo-500">Queue</span>.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-slate-400 text-xs font-black uppercase tracking-widest">No Work On This Day</p>
+                                <p className="text-slate-300 text-[10px] max-w-[240px] leading-relaxed">All orders may finish before this day, or work starts on a later day. Use the Gantt above to find active days.</p>
+                            </>
+                        )}
+                    </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">

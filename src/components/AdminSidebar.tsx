@@ -129,7 +129,7 @@ export function AdminSidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }:
                             </div>
                             {!isCollapsed && (
                                 <div className="animate-in fade-in duration-300">
-                                    <h1 className="text-lg font-bold text-slate-900 leading-tight">Administration</h1>
+                                    <h1 className="text-lg font-bold text-slate-900 leading-tight">Trainship by Erasmus</h1>
                                     <p className="text-[10px] text-slate-500 font-medium">Headquarters Console</p>
                                 </div>
                             )}
