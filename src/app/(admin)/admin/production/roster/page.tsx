@@ -5,23 +5,53 @@ import { ClipboardList, Users, Package, Calendar, Activity, AlertCircle, Trash2 
 import { format } from 'date-fns';
 import { clearProductionLogs } from '@/app/actions/production';
 import Link from 'next/link';
+import { ProductionRosterFilterBar } from '@/components/ProductionRosterFilterBar';
+import { DeleteLogButton } from '@/components/DeleteLogButton';
+import { Search, Filter, Hash } from 'lucide-react';
+
 
 export const dynamic = 'force-dynamic';
 
-export default async function ProductionRosterPage() {
+export default async function ProductionRosterPage({ searchParams }: { searchParams: { q?: string; date?: string } }) {
     const businessId = await getSelectedBusinessId();
-    const filter = await getBusinessFilter();
+    const query = searchParams.q || '';
+    const dateQuery = searchParams.date || '';
+
+    const allEmployees = await prisma.user.findMany({
+        where: businessId ? { shop: { businessId } } : {}
+    });
+
+    // Find worker IDs matching the search query to allow searching by name
+    const matchingWorkerIds = allEmployees
+        .filter(e => e.name?.toLowerCase().includes(query.toLowerCase()))
+        .map(e => e.id);
 
     // @ts-ignore - Temporary bypass for Prisma generation lock on Windows
     const logs = await prisma.productionLog.findMany({
-        where: businessId ? { businessId } : {},
+        where: {
+            ...(businessId ? { businessId } : {}),
+            orderId: { not: 'MANUAL' },
+            ...(query ? {
+                OR: [
+                    { articleName: { contains: query, mode: 'insensitive' } },
+                    { procName: { contains: query, mode: 'insensitive' } },
+                    { workerId: { in: matchingWorkerIds } }
+                ]
+            } : {}),
+            ...(dateQuery ? {
+                date: {
+                    gte: new Date(dateQuery),
+                    lte: new Date(new Date(dateQuery).setHours(23, 59, 59, 999))
+                }
+            } : {})
+        },
         orderBy: { date: 'desc' },
         take: 1000
     });
 
-    const employees = await prisma.user.findMany({
-        where: businessId ? { shop: { businessId } } : {}
-    });
+
+    const employees = allEmployees;
+
 
     const stats = {
         totalYield: logs.reduce((sum: number, l: any) => sum + l.quantity, 0),
@@ -54,7 +84,11 @@ export default async function ProductionRosterPage() {
                 </div>
             </div>
 
+            {/* Tactical Filters */}
+            <ProductionRosterFilterBar initialSearch={query} initialDate={dateQuery} />
+
             {/* Tactical Stats Grid */}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
                     { label: 'Cumulative Yield', value: stats.totalYield, icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50' },
@@ -134,10 +168,14 @@ export default async function ProductionRosterPage() {
                                             <span className="ml-1 text-[8px] text-slate-400 font-bold uppercase">pcs</span>
                                         </td>
                                         <td className="px-8 py-5 text-center">
-                                            <div className="bg-emerald-50 text-emerald-600 h-6 w-6 rounded-lg flex items-center justify-center mx-auto border border-emerald-100 shadow-sm shadow-emerald-100/50">
-                                                <Activity size={10} />
+                                            <div className="flex items-center justify-center gap-2">
+                                                <div className="bg-emerald-50 text-emerald-600 h-8 w-8 rounded-lg flex items-center justify-center border border-emerald-100 shadow-sm shadow-emerald-100/50">
+                                                    <Activity size={12} />
+                                                </div>
+                                                <DeleteLogButton id={log.id} />
                                             </div>
                                         </td>
+
                                     </tr>
                                 );
                             })}

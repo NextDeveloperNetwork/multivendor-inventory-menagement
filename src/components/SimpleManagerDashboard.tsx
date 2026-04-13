@@ -16,7 +16,7 @@ interface ProcessRequirement { id: string; processName: string; unitsPerHour: nu
 interface AccessoryUsage { id: string; accessoryId: string; usageQuantity: number; }
 interface ProductionItem {
     id: string; name: string; sku: string; type: string; unit: string;
-    stockQuantity: number; description?: string; supplierName?: string;
+    stockQuantity: number; totalYield?: number; description?: string; supplierName?: string;
     businessId?: string; entryDate?: string;
     processes: ProcessRequirement[]; bom: AccessoryUsage[];
 }
@@ -127,10 +127,10 @@ function ArticleInfoCard({ article, prevTotal }: { article: ProductionItem; prev
                 <div className="px-3 py-3 flex flex-col gap-0.5" style={{ background: '#fff' }}>
                     <div className="flex items-center gap-1">
                         <Boxes size={10} style={{ color: '#6366f1' }} />
-                        <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#94a3b8' }}>Stoku</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#94a3b8' }}>Targeti / Mbetja</span>
                     </div>
-                    <p className="text-sm font-black" style={{ color: article.stockQuantity > 0 ? '#16a34a' : '#dc2626' }}>
-                        {article.stockQuantity.toLocaleString()} <span className="font-medium text-xs" style={{ color: '#94a3b8' }}>{article.unit}</span>
+                    <p className="text-sm font-black" style={{ color: '#1e1b4b' }}>
+                        {article.stockQuantity.toLocaleString()} <span className="font-medium text-xs text-slate-400">/</span> <span className="text-indigo-600">{(article.stockQuantity - (article.totalYield || 0)).toLocaleString()}</span> <span className="font-medium text-xs" style={{ color: '#94a3b8' }}>{article.unit}</span>
                     </p>
                 </div>
 
@@ -330,7 +330,7 @@ function ProductionSheet({
                                     <option value="">— ZGJIDH NGA LISTA —</option>
                                     {filtered.map(a => (
                                         <option key={a.id} value={a.id}>
-                                            {a.name} · {a.sku || 'No SKU'} · {a.stockQuantity} {a.unit}
+                                            {a.name} · {a.sku || 'No SKU'} · MJES: {a.stockQuantity - (a.totalYield || 0)} {a.unit} (GOAL: {a.stockQuantity})
                                         </option>
                                     ))}
                                 </select>
@@ -464,7 +464,7 @@ export default function SimpleManagerDashboard({ user, todaysLogsData, businessI
     useEffect(() => {
         (async () => {
             try {
-                const db = await getProductionArticles(businessId);
+                const db = await getProductionArticles(businessId, 'MANAGER');
                 if (db) {
                     setItems(db.map((a: any) => ({
                         ...a,

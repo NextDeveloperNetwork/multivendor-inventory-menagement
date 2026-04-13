@@ -18,7 +18,7 @@ export default async function AdminManagerInventoryPage() {
     }
 
     const businessId = await getSelectedBusinessId();
-    const rawArticles = await getProductionArticles(businessId || undefined);
+    const rawArticles = await getProductionArticles(businessId || undefined, 'MANAGER');
     
     // Convert Dates to Strings for Client Component
     const articles = rawArticles.map((a: any) => ({

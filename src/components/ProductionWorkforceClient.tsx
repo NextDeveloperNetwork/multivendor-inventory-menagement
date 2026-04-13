@@ -5,7 +5,7 @@ import { Search, Plus, Users, Trash2, X, Briefcase, FileBadge, UserPlus, Upload,
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
-import { getProductionWorkforce, syncProductionWorker, deleteProductionWorker, getProductionProcesses } from '@/app/actions/productionArticles';
+import { getProductionWorkforce, syncProductionWorker, deleteProductionWorker, deleteAllProductionWorkers, getProductionProcesses } from '@/app/actions/productionArticles';
 
 interface GlobalProcess {
     id: string;
@@ -47,7 +47,9 @@ export default function ProductionWorkforceClient({
                 const procs = await getProductionProcesses(businessId);
                 setProcesses(procs as any);
                 
-                if (!initialEmployees.length) {
+                if (initialEmployees.length > 0) {
+                    setEmployees(initialEmployees);
+                } else {
                     const fetched = await getProductionWorkforce(businessId);
                     setEmployees(fetched as any);
                 }
@@ -192,6 +194,19 @@ export default function ProductionWorkforceClient({
         }
     };
 
+    const handleDeleteAllWorkers = async () => {
+        if (employees.length === 0) return;
+        if (confirm(`Are you absolutely sure you want to delete ALL ${employees.length} workers? This action is irreversible.`)) {
+            const result = await deleteAllProductionWorkers(businessId);
+            if (result.error) {
+                toast.error(result.error);
+            } else {
+                setEmployees([]);
+                toast.success('Entire workforce registry cleared.');
+            }
+        }
+    };
+
     /* ---- Excel Import/Export ---- */
     const handleDownloadTemplate = () => {
         const templateData = [
@@ -331,6 +346,9 @@ export default function ProductionWorkforceClient({
                         </div>
                         <button onClick={openDialog} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-sm flex items-center gap-2 shadow-xl shadow-indigo-100 transition active:scale-95">
                             <Plus size={18} /> Mass Staff Importer
+                        </button>
+                        <button onClick={handleDeleteAllWorkers} disabled={employees.length === 0} className="px-6 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl font-black text-sm flex items-center gap-2 shadow-sm disabled:opacity-50 transition active:scale-95">
+                            <Trash2 size={18} /> Delete All
                         </button>
                     </div>
                 </div>

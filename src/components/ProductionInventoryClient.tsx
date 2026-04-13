@@ -70,8 +70,10 @@ export default function ProductionInventoryClient({
             const procs = await getProductionProcesses(businessId);
             setProcesses(procs as any);
             
-            if (!initialItems.length) {
-                const fetched = await getProductionArticles(businessId);
+            if (initialItems.length > 0) {
+                setItems(initialItems);
+            } else {
+                const fetched = await getProductionArticles(businessId, 'ADMIN');
                 setItems(fetched as any);
             }
             setIsLoaded(true);
@@ -152,6 +154,7 @@ export default function ProductionInventoryClient({
                 entryDate: new Date(batchDate),
                 bom: row.type === 'MAIN' ? row.bom : [],
                 processes: row.type === 'MAIN' ? row.processes : [],
+                isManager: false,
                 businessId
             };
 
@@ -163,7 +166,7 @@ export default function ProductionInventoryClient({
         }
 
         if (!hasError) {
-            const refreshed = await getProductionArticles(businessId);
+            const refreshed = await getProductionArticles(businessId, 'ADMIN');
             setItems(refreshed as any);
             setIsDialogOpen(false);
         }
@@ -173,11 +176,11 @@ export default function ProductionInventoryClient({
         e.preventDefault();
         if (!editingItem) return;
         
-        const result = await syncProductionArticle({ ...editingItem, businessId });
+        const result = await syncProductionArticle({ ...editingItem, isManager: false, businessId });
         if (result.error) {
             alert(`Update failed: ${result.error}`);
         } else {
-            const refreshed = await getProductionArticles(businessId);
+            const refreshed = await getProductionArticles(businessId, 'ADMIN');
             setItems(refreshed as any);
             setEditingItem(null);
         }
@@ -189,7 +192,7 @@ export default function ProductionInventoryClient({
             if (result.error) {
                 alert(result.error);
             } else {
-                const refreshed = await getProductionArticles(businessId);
+                const refreshed = await getProductionArticles(businessId, 'ADMIN');
                 setItems(refreshed as any);
             }
         }
@@ -308,12 +311,20 @@ export default function ProductionInventoryClient({
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
                                                 <div className="flex items-baseline gap-1.5">
-                                                    <span className="font-black text-base">{item.stockQuantity}</span>
+                                                    <span className="font-black text-base">
+                                                        {item.type === 'MAIN' ? Math.max(0, item.stockQuantity - ((item as any).totalYield || 0)) : item.stockQuantity}
+                                                    </span>
                                                     <span className="text-[10px] font-bold text-slate-400 uppercase">{item.unit}</span>
                                                 </div>
+                                                {item.type === 'MAIN' && ((item as any).totalYield || 0) > 0 && (
+                                                    <span className="text-[9px] font-bold text-indigo-400 mt-0.5">
+                                                        {(item as any).totalYield} produced
+                                                    </span>
+                                                )}
                                                 <span className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 w-fit mt-1">Pack: {item.batchSize} pcs</span>
                                             </div>
                                         </td>
+
                                         <td className="px-6 py-4 text-[10px] font-black text-slate-400 text-center tabular-nums whitespace-nowrap">
                                             {item.entryDate instanceof Date ? item.entryDate.toLocaleDateString() : (item.entryDate || '-')}
                                         </td>

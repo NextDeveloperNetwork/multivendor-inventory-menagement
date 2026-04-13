@@ -15,15 +15,26 @@ export function BusinessSelector({ className }: { className?: string }) {
     const [newName, setNewName] = useState('');
     const router = useRouter();
 
+    const fetchLatestData = async () => {
+        const b = await getBusinesses();
+        setBusinesses(b);
+    };
+
     useEffect(() => {
         const load = async () => {
-            const b = await getBusinesses();
+            await fetchLatestData();
             const sid = await getSelectedBusinessId();
-            setBusinesses(b);
             setSelectedId(sid);
         };
         load();
     }, []);
+
+    const handleToggle = async () => {
+        if (!isOpen) {
+            await fetchLatestData();
+        }
+        setIsOpen(!isOpen);
+    };
 
     const handleSelect = async (id: string | null) => {
         await setSelectedBusinessId(id);
@@ -60,7 +71,7 @@ export function BusinessSelector({ className }: { className?: string }) {
     return (
         <div className={cn("relative mb-8 z-[60]", className)}>
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleToggle}
                 className="w-full flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-[1.5rem] hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/10 transition-all group relative overflow-hidden"
             >
                 <div className="flex items-center gap-3 relative z-10">

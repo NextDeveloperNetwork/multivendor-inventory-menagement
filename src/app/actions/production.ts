@@ -12,7 +12,8 @@ export async function logProduction({
     procName,
     isFinal,
     quantity,
-    date
+    date,
+    bomDeductions
 }: {
     businessId?: string;
     workerId: string;
@@ -22,10 +23,11 @@ export async function logProduction({
     isFinal: boolean;
     quantity: number;
     date?: string;
+    bomDeductions?: { accessoryId: string, totalNeeded: number }[];
 }) {
     try {
         // @ts-ignore - Temporary bypass for Prisma generation lock on Windows
-        await prisma.productionLog.create({
+        const created = await prisma.productionLog.create({
             data: {
                 businessId: businessId || null,
                 workerId,
@@ -37,8 +39,21 @@ export async function logProduction({
                 date: date ? new Date(date) : new Date()
             }
         });
+
+
+        if (bomDeductions && bomDeductions.length > 0) {
+            for (const bomItem of bomDeductions) {
+                // @ts-ignore
+                await prisma.productionArticle.update({
+                    where: { id: bomItem.accessoryId },
+                    data: { stockQuantity: { decrement: bomItem.totalNeeded } }
+                });
+            }
+        }
+
         revalidatePath('/admin/production/roster');
-        return { success: true };
+        return { success: true, id: created.id };
+
     } catch (error) {
         console.error('Failed to log production:', error);
         return { success: false, error: 'Failed to record yield in database.' };
@@ -63,6 +78,37 @@ export async function clearProductionLogs(businessId?: string) {
         return { success: true };
     } catch (error) {
         return { success: false };
+    }
+}
+
+export async function resetShiftLogs(date: string, businessId?: string) {
+    try {
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // @ts-ignore
+        const deleted = await prisma.productionLog.deleteMany({
+            where: {
+                ...(businessId ? { businessId } : {}),
+                date: { gte: startOfDay, lte: endOfDay }
+            }
+        });
+
+        await logActivity({
+            action: 'SHIFT_RESET',
+            entityType: 'PRODUCTION',
+            entityId: date,
+            details: `Shift reset for ${date} — ${deleted.count} log(s) removed`
+        });
+
+        revalidatePath('/admin/production/roster');
+        revalidatePath('/admin/production/tracking');
+        return { success: true, deleted: deleted.count };
+    } catch (error) {
+        console.error('Shift reset failed:', error);
+        return { success: false, error: 'Failed to reset shift data.' };
     }
 }
 
@@ -101,10 +147,12 @@ export async function logDailyProduction(data: {
         });
 
         // 2. Automate Inventory Deduction (BOM)
+        // @ts-ignore
         const article = await prisma.productionArticle.findFirst({
             where: { 
                 name: data.articleName,
-                businessId: data.businessId || null 
+                businessId: data.businessId || null,
+                isManager: false
             },
             include: { bom: true }
         });
@@ -217,6 +265,7 @@ export async function getArticleCumulativeYield(articleName: string, businessId?
         const aggregations = await prisma.productionLog.aggregate({
             where: { 
                 articleName,
+                isFinal: true,
                 ...(businessId ? { businessId } : {})
             },
             _sum: {

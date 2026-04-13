@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function ProductionInventoryPage() {
     const businessId = await getSelectedBusinessId();
-    const rawArticles = await getProductionArticles(businessId || undefined);
+    const rawArticles = await getProductionArticles(businessId || undefined, 'ADMIN');
     const initialArticles = rawArticles.map((a: any) => ({
         ...a,
         entryDate: a.entryDate ? new Date(a.entryDate).toISOString().split('T')[0] : null,

@@ -5,13 +5,15 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import SimpleManagerDashboard from '@/components/SimpleManagerDashboard';
 
+import { getSelectedBusinessId } from '@/app/actions/business';
+
 export const dynamic = 'force-dynamic';
 
 export default async function ProductionManagerPage() {
     const session = await getServerSession(authOptions);
     const user = session?.user as any;
 
-    if (!user || user.role !== 'PRODUCTION_MANAGER') {
+    if (!user || (user.role !== 'PRODUCTION_MANAGER' && user.role !== 'ADMIN' && user.role !== 'USER')) {
         redirect('/login');
     }
 
@@ -23,7 +25,8 @@ export default async function ProductionManagerPage() {
         include: { shop: true }
     });
 
-    const businessId = dbUser?.shop?.businessId || undefined;
+    const selectedBusinessId = await getSelectedBusinessId();
+    const businessId = selectedBusinessId || dbUser?.shop?.businessId || undefined;
 
     // @ts-ignore
     const todaysLogs = await prisma.productionLog.findMany({

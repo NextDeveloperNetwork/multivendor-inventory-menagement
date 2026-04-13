@@ -6,7 +6,9 @@ import {
     Box, Users, Target, BarChart3, Activity, Calendar, Timer,
     AlertCircle, ArrowRight, RefreshCw, Lock, AlertTriangle, ClipboardList, Trash2
 } from 'lucide-react';
-import { logProduction } from '@/app/actions/production';
+import { logProduction, deleteProductionLog, resetShiftLogs } from '@/app/actions/production';
+
+
 import { 
     getProductionArticles, 
     getProductionWorkforce, 
@@ -21,7 +23,7 @@ interface ProcessRequirement { id: string; processName: string; unitsPerHour: nu
 interface ProductionItem { id: string; name: string; type: 'MAIN' | 'ACCESSORY'; unit: string; batchSize: number; stockQuantity: number; processes: ProcessRequirement[]; bom: AccessoryUsage[]; businessId?: string; businessName?: string; }
 interface Employee { id: string; name: string; skills: string[]; availableHours: number; businessId?: string; businessName?: string; }
 interface Machine { id: string; name: string; capableProcesses: string[]; businessId?: string; businessName?: string; }
-interface GlobalProcess { id: string; name: string; requiresMachine: boolean; businessId?: string; businessName?: string; }
+interface GlobalProcess { id: string; name: string; requiresMachine: boolean; deployAllWorkforce?: boolean; businessId?: string; businessName?: string; }
 interface ProductionOrder { id: string; mainPartId: string; quantity: number; priority: number; batchSize?: number; status: 'QUEUED' | 'IN_PRODUCTION' | 'COMPLETED'; finishedQuantity?: number; businessId?: string; businessName?: string; }
 
 /* ─── SIM TYPES ─── */
@@ -113,7 +115,7 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
             try {
                 // Fetch core catalog data from DB
                 const [dbArticles, dbWorkforce, dbMachinery, dbProcesses] = await Promise.all([
-                    getProductionArticles(businessId),
+                    getProductionArticles(businessId, 'ADMIN'),
                     getProductionWorkforce(businessId),
                     getProductionMachinery(businessId),
                     getProductionProcesses(businessId)
@@ -207,17 +209,32 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
         const state: OrderState[] = orders.map(o => {
             const prod = items.find(i => i.id === o.mainPartId);
             const wip: Record<number, number> = {};
-            const orderActuals: Record<string, number> = {};
-            actuals.forEach(a => { if (a.orderId === o.id) orderActuals[a.procName] = (orderActuals[a.procName] || 0) + a.units; });
-            prod?.processes.forEach(p => { wip[p.sequence] = orderActuals[p.processName] || 0; });
+
+            // PAST actuals (before today) = work already done, reduces remaining
+            const pastActuals: Record<string, number> = {};
+            actuals.forEach(a => { if (a.orderId === o.id && a.dayIdx < currentDayIdx) pastActuals[a.procName] = (pastActuals[a.procName] || 0) + a.units; });
+
+            prod?.processes.forEach(p => { wip[p.sequence] = pastActuals[p.processName] || 0; });
             const firstProc = prod?.processes.sort((a, b) => a.sequence - b.sequence)[0];
-            const alreadyStarted = firstProc ? (orderActuals[firstProc.processName] || 0) : 0;
-            return { id: o.id, businessId: o.businessId, priority: o.priority, mainPartId: o.mainPartId, remaining: Math.max(0, o.quantity - alreadyStarted), wip, inFlight: {}, stepStarts: {} };
+
+            // Base remaining = total order - what was done in PAST days
+            // We DO NOT subtract todayActuals here so Day 0 generates its original "Pristine Plan"
+            const alreadyDonePast = firstProc ? (pastActuals[firstProc.processName] || 0) : 0;
+            const remaining = Math.max(0, o.quantity - alreadyDonePast);
+
+            return { id: o.id, businessId: o.businessId, priority: o.priority, mainPartId: o.mainPartId, remaining, wip, inFlight: {}, stepStarts: {} };
         });
 
-        type WorkerTask = { orderId: string; procName: string; sequence: number; partName: string; machineId?: string; startedAt: number; completesAt: number; units: number; };
+
+        type WorkerTask = { orderId: string; businessId?: string; procName: string; sequence: number; partName: string; machineId?: string; startedAt: number; completesAt: number; units: number; };
         type WorkerState = { id: string; name: string; skills: string[]; freeAt: number; task: WorkerTask | null; };
-        const workerState: WorkerState[] = employees.map(e => ({ id: e.id, name: e.name, skills: e.skills, freeAt: currentDayIdx * MINS_PER_DAY, task: null }));
+        const workerState: WorkerState[] = employees.map(e => {
+            // ALL workers start at currentDayIdx so Day 0 generates its pristine plan
+            const freeAt = currentDayIdx * MINS_PER_DAY;
+            return { id: e.id, name: e.name, skills: e.skills, freeAt, task: null };
+        });
+
+
 
         const macFreeAt: Record<string, number> = {};
         machines.forEach(m => { macFreeAt[m.id] = currentDayIdx * MINS_PER_DAY; });
@@ -256,7 +273,7 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                     const hourStartAbs = day * MINS_PER_DAY + hourInDay * 60;
                     const minuteStart = cur - hourStartAbs;
                     const minuteEnd = segEnd - hourStartAbs;
-                    acc.hourSlots[hourInDay].slots.push({ orderId: task.orderId, partName: task.partName, procName: task.procName, sequence: task.sequence, worker: w.name, workerId: w.id, machine: macName, units: segUnits, minuteStart, minuteEnd });
+                    acc.hourSlots[hourInDay].slots.push({ orderId: task.orderId, businessId: task.businessId, partName: task.partName, procName: task.procName, sequence: task.sequence, worker: w.name, workerId: w.id, machine: macName, units: segUnits, minuteStart, minuteEnd });
                     if (!acc.sumMap[task.orderId]) acc.sumMap[task.orderId] = { orderId: task.orderId, businessId: state.find(s => s.id === task.orderId)?.businessId, partName: task.partName, color: colorMap[task.orderId] || COLORS[0], totalUnits: 0, byProcess: {} };
                     // totalUnits only counts the first sequence step to avoid double-counting multi-step orders
                     const product = items.find(i => i.id === state.find(s => s.id === task.orderId)?.mainPartId);
@@ -288,6 +305,7 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
         const workerDayLock: Record<string, { day: number; orderId: string; procName: string }> = {};
 
         const tryAssignLocked = (w: WorkerState, nowMin: number, lockedOrderId: string, lockedProcName: string): boolean => {
+
             const node = state.find(s => s.id === lockedOrderId);
             if (!node) return false;
             const product = items.find(i => i.id === node.mainPartId);
@@ -296,7 +314,9 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
             const batchSize = product.batchSize || 1;
             const pi = procs.findIndex(p => p.processName === lockedProcName);
             if (pi < 0) return false;
+
             const proc = procs[pi];
+
             if (!w.skills.includes(proc.processName)) return false;
             const isFirst = pi === 0;
             const prevSeq = isFirst ? null : procs[pi - 1].sequence;
@@ -311,11 +331,32 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                 const alreadyCovered = (node.wip[proc.sequence] ?? 0) + (node.inFlight[proc.sequence] ?? 0);
                 readyUnits = prevCompleted - alreadyCovered;
             }
-            const effectiveBatch = Math.min(batchSize, readyUnits);
-            if (effectiveBatch <= 0) return false;
+            let maxBatchForWorker = batchSize;
+            const deployAll = globalProcesses.find(gp => gp.name === proc.processName)?.deployAllWorkforce ?? false;
+            
+            // If deployAll is true, completely bypass batchSize and assign the entire shift gap.
+            // If deployAll is false, ensure batchSize is at least the hourly rate so `Math.ceil` fractional minutes don't halve throughput.
+            if (deployAll) {
+                const minsLeftInDay = MINS_PER_DAY - (nowMin % MINS_PER_DAY);
+                const maxUnitsInDay = Math.floor((minsLeftInDay / 60) * proc.unitsPerHour);
+                maxBatchForWorker = Math.max(1, maxUnitsInDay);
+            } else {
+                const minOptimalBatch = proc.unitsPerHour; // Best size to guarantee true output rates without integer time penalties
+                if (maxBatchForWorker < minOptimalBatch) maxBatchForWorker = minOptimalBatch;
+            }
 
             const stepBom = product.bom.filter(b => b.processName === proc.processName || (isFirst && !b.processName));
-            if (stepBom.some(b => (stocks[b.accessoryId] ?? 0) < b.usageQuantity * effectiveBatch)) return false;
+            let maxMatUnits = readyUnits;
+            stepBom.forEach(b => {
+                const stock = stocks[b.accessoryId] ?? 0;
+                if (b.usageQuantity > 0) {
+                    const matLimit = Math.floor(stock / b.usageQuantity);
+                    if (matLimit < maxMatUnits) maxMatUnits = matLimit;
+                }
+            });
+
+            const effectiveBatch = Math.min(maxBatchForWorker, maxMatUnits);
+            if (effectiveBatch <= 0) return false;
 
             const needsMac = globalProcesses.find(gp => gp.name === proc.processName)?.requiresMachine ?? false;
             let machineId: string | undefined;
@@ -327,7 +368,7 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
 
             const minsNeeded = Math.ceil((effectiveBatch / proc.unitsPerHour) * 60);
             const completesAt = nowMin + minsNeeded;
-            w.task = { orderId: node.id, procName: proc.processName, sequence: proc.sequence, partName: product.name, machineId, startedAt: nowMin, completesAt, units: effectiveBatch };
+            w.task = { orderId: node.id, businessId: node.businessId, procName: proc.processName, sequence: proc.sequence, partName: product.name, machineId, startedAt: nowMin, completesAt, units: effectiveBatch };
             w.freeAt = completesAt;
             if (machineId) macFreeAt[machineId] = completesAt;
             stepBom.forEach(b => { stocks[b.accessoryId] = (stocks[b.accessoryId] ?? 0) - b.usageQuantity * effectiveBatch; });
@@ -338,6 +379,7 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
         };
 
         const tryAssign = (w: WorkerState, nowMin: number): boolean => {
+
             if (nowMin >= TOTAL_MINS) return false;
             const currentDay = Math.floor(nowMin / MINS_PER_DAY);
 
@@ -361,7 +403,9 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                 for (let pi = 0; pi < procs.length; pi++) {
                     const proc = procs[pi];
                     if (!w.skills.includes(proc.processName)) continue;
+
                     const isFirst = pi === 0;
+
                     const prevSeq = isFirst ? null : procs[pi - 1].sequence;
 
                     let readyUnits = 0;
@@ -375,11 +419,30 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                         readyUnits = prevCompleted - alreadyCovered;
                     }
 
-                    const effectiveBatch = Math.min(batchSize, readyUnits);
-                    if (effectiveBatch <= 0) continue;
+                    let maxBatchForWorker = batchSize;
+                    const deployAll = globalProcesses.find(gp => gp.name === proc.processName)?.deployAllWorkforce ?? false;
+                    
+                    if (deployAll) {
+                        const minsLeftInDay = MINS_PER_DAY - (nowMin % MINS_PER_DAY);
+                        const maxUnitsInDay = Math.floor((minsLeftInDay / 60) * proc.unitsPerHour);
+                        maxBatchForWorker = Math.max(1, maxUnitsInDay);
+                    } else {
+                        const minOptimalBatch = proc.unitsPerHour;
+                        if (maxBatchForWorker < minOptimalBatch) maxBatchForWorker = minOptimalBatch;
+                    }
 
                     const stepBom = product.bom.filter(b => b.processName === proc.processName || (isFirst && !b.processName));
-                    if (stepBom.some(b => (stocks[b.accessoryId] ?? 0) < b.usageQuantity * effectiveBatch)) continue;
+                    let maxMatUnits = readyUnits;
+                    stepBom.forEach(b => {
+                        const stock = stocks[b.accessoryId] ?? 0;
+                        if (b.usageQuantity > 0) {
+                            const matLimit = Math.floor(stock / b.usageQuantity);
+                            if (matLimit < maxMatUnits) maxMatUnits = matLimit;
+                        }
+                    });
+
+                    const effectiveBatch = Math.min(maxBatchForWorker, maxMatUnits);
+                    if (effectiveBatch <= 0) continue;
 
                     const needsMac = globalProcesses.find(gp => gp.name === proc.processName)?.requiresMachine ?? false;
                     let machineId: string | undefined;
@@ -393,7 +456,7 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                     const minsNeeded = Math.ceil((effectiveBatch / proc.unitsPerHour) * 60);
                     const completesAt = nowMin + minsNeeded;
 
-                    w.task = { orderId: node.id, procName: proc.processName, sequence: proc.sequence, partName: product.name, machineId, startedAt: nowMin, completesAt, units: effectiveBatch };
+                    w.task = { orderId: node.id, businessId: node.businessId, procName: proc.processName, sequence: proc.sequence, partName: product.name, machineId, startedAt: nowMin, completesAt, units: effectiveBatch };
                     w.freeAt = completesAt;
                     if (machineId) macFreeAt[machineId] = completesAt;
 
@@ -411,16 +474,78 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
             return false;
         };
 
-        // Prime: assign all workers at simulation start (failures retry in 1 hour)
+        // Prime: assign all workers at simulation start
         const startMin = currentDayIdx * MINS_PER_DAY;
-        workerState.forEach(w => { if (!tryAssign(w, startMin)) w.freeAt = startMin + 60; });
+        workerState.forEach(w => {
+            if (!tryAssign(w, startMin)) w.freeAt = startMin + 60;
+        });
 
         let iterations = 0;
+        let day0Adjusted = false;
+
         while (iterations++ < 300_000) {
             // Find the next event time across ALL workers
             let nextMin = TOTAL_MINS;
             for (const w of workerState) { if (w.freeAt < nextMin) nextMin = w.freeAt; }
             if (nextMin >= TOTAL_MINS) break;
+
+            // ── END OF DAY 0 OVERRIDE ───────────────────────────────────────────
+            // Right exactly as Day 0 ends, we assess what the "Pristine Plan" simulated
+            // for today, and adjust `remaining` and `wip` based on user's actuals!
+            const boundaryMin = (currentDayIdx + 1) * MINS_PER_DAY;
+            if (!day0Adjusted && nextMin >= boundaryMin) {
+                day0Adjusted = true;
+                
+                // Track simulated units
+                const day0SimOutputs: Record<string, number> = {};
+                if (dayAccums[currentDayIdx]) {
+                    dayAccums[currentDayIdx].hourSlots.forEach(hs => hs.slots.forEach(s => {
+                        const key = `${s.workerId}_${s.orderId}_${s.procName}`;
+                        day0SimOutputs[key] = (day0SimOutputs[key] || 0) + s.units;
+                    }));
+                }
+                
+                // Account for in-flight tasks that cross the 480-min boundary
+                workerState.forEach(w => {
+                    if (w.task && w.task.startedAt < boundaryMin) {
+                        const day0Duration = boundaryMin - w.task.startedAt;
+                        const taskDuration = Math.max(1, w.task.completesAt - w.task.startedAt);
+                        const segUnits = Math.round((day0Duration / taskDuration) * w.task.units);
+                        if (segUnits > 0) {
+                            const key = `${w.id}_${w.task.orderId}_${w.task.procName}`;
+                            day0SimOutputs[key] = (day0SimOutputs[key] || 0) + segUnits;
+                        }
+                    }
+                });
+
+                // Over-write simulation state utilizing actuals
+                const todayActuals = actuals.filter(a => a.dayIdx === currentDayIdx);
+                todayActuals.forEach(a => {
+                    const key = `${a.workerId}_${a.orderId}_${a.procName}`;
+                    const simUnits = day0SimOutputs[key] || 0;
+                    const shortfall = simUnits - a.units;
+                    
+                    if (shortfall !== 0) {
+                        const node = state.find(s => s.id === a.orderId);
+                        if (node) {
+                            const product = items.find(i => i.id === node.mainPartId);
+                            const proc = product?.processes.find(p => p.processName === a.procName);
+                            if (proc) {
+                                const isFirst = product!.processes.sort((x, y) => x.sequence - y.sequence)[0].processName === a.procName;
+                                if (isFirst) {
+                                    node.remaining += shortfall;
+                                }
+                                node.wip[proc.sequence] = Math.max(0, (node.wip[proc.sequence] || 0) - shortfall);
+                            }
+                        }
+                    }
+                });
+                
+                // Free idle workers that were confirmed so they are ready for Day 1
+                // and skip tasks safely. This ensures confirmed workers don't get stuck.
+                // We do NOT strictly freeze them on Day 1.
+            }
+
 
             // Gather all workers whose event fires at exactly this minute
             const atEvent = workerState.filter(w => w.freeAt === nextMin);
@@ -471,13 +596,31 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
             }
 
             const acc = dayAccums[day];
-            const articlesSummary: ArticleSummaryItem[] = Object.values(acc.sumMap).map(item => ({
-                orderId: item.orderId, businessId: item.businessId, partName: item.partName, color: colorMap[item.orderId] || COLORS[0], totalUnits: item.totalUnits,
-                byProcess: Object.entries(item.byProcess).map(([pn, d]) => ({
-                    procName: pn, sequence: d.sequence, units: d.units,
-                    assignments: Array.from(d.assignments).map(s => { const [wk, mc, sk] = s.split(' | '); return { worker: wk, machine: mc, skills: sk ? sk.split(',') : [] }; })
-                })).sort((a, b) => a.sequence - b.sequence)
-            }));
+            const dayActuals = actuals.filter(a => a.dayIdx === day);
+            const articlesSummary: ArticleSummaryItem[] = Object.values(acc.sumMap).map(item => {
+                const combined = { ...item, byProcess: { ...item.byProcess } };
+                dayActuals.filter(a => a.orderId === item.orderId).forEach(a => {
+                    const product = items.find(it => it.id === orders.find(ord => ord.id === a.orderId)?.mainPartId);
+                    const proc = product?.processes.find(p => p.processName === a.procName);
+                    const firstSeq = product?.processes.sort((ax, bx) => ax.sequence - bx.sequence)[0]?.sequence ?? -1;
+                    
+                    if (proc?.sequence === firstSeq) combined.totalUnits += a.units;
+                    if (!combined.byProcess[a.procName]) {
+                        combined.byProcess[a.procName] = { sequence: proc?.sequence ?? 0, units: 0, assignments: new Set() };
+                    }
+                    combined.byProcess[a.procName].units += a.units;
+                    combined.byProcess[a.procName].assignments.add(`${employees.find(e => e.id === a.workerId)?.name || '?'} | Manual | []`);
+                });
+
+                return {
+                    orderId: combined.orderId, businessId: combined.businessId, partName: combined.partName, color: colorMap[combined.orderId] || COLORS[0], totalUnits: combined.totalUnits,
+                    byProcess: Object.entries(combined.byProcess).map(([pn, d]) => ({
+                        procName: pn, sequence: d.sequence, units: d.units,
+                        assignments: Array.from(d.assignments).map(s => { const [wk, mc, sk] = s.split(' | '); return { worker: wk, machine: mc, skills: sk ? sk.split(',') : [] }; })
+                    })).sort((ax, bx) => ax.sequence - bx.sequence)
+                };
+            });
+
             const unusedPersonnel = employees.filter(e => !acc.empMinsBusy[e.id]).map(e => ({ name: e.name, skills: e.skills }));
             const unusedMachinery = machines.filter(m => !acc.macMinsBusy[m.id]).map(m => m.name);
             days.push({ day, date: dates[day], articlesSummary, hours: acc.hourSlots, unusedPersonnel, unusedMachinery });
@@ -651,6 +794,16 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                         <RefreshCw size={10} />Auto-Populate
                     </button>
                     <div className="h-5 w-px bg-slate-200" />
+                    <div className="flex items-center gap-1 border-r border-slate-200 pr-2">
+                        <label className="text-[9px] font-black uppercase text-slate-400">Timeline Start</label>
+                        <input type="date" value={planStartDate} onChange={e => {
+                            const val = e.target.value;
+                            if (val) {
+                                setPlanStartDate(val);
+                                localStorage.setItem(getK('prod_plan_start'), val);
+                            }
+                        }} className="h-7 bg-slate-50 border border-slate-200 rounded text-[10px] font-bold px-2 focus:ring-0 focus:outline-none" />
+                    </div>
                     <select value={selPartId} onChange={e => setSelPartId(e.target.value)} className="h-7 bg-slate-50 border border-slate-200 rounded text-[9px] font-bold px-2 focus:ring-0 focus:outline-none min-w-[110px]">
                         <option value="">Select Article…</option>
                         {items.filter(i => i.type === 'MAIN').map(p => <option key={p.id} value={p.id}>{p.name} · {p.stockQuantity.toLocaleString()} {p.unit}</option>)}
@@ -675,7 +828,11 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                             const c = COLORS[idx % COLORS.length];
                             const part = items.find(i => i.id === o.mainPartId);
                             const tl = simulation.orderTimelines[o.id];
-                            const pct = tl ? Math.min(100, Math.round((tl.totalFinished / o.quantity) * 100)) : 0;
+                            const realityPct = Math.min(100, Math.round(((o.finishedQuantity || 0) / o.quantity) * 100));
+                            const projectionPct = tl ? Math.min(100, Math.round((tl.totalFinished / o.quantity) * 100)) : 0;
+                            // Show reality progress as the primary bar, but allow projection to show in the background if it's higher
+                            const pct = Math.max(realityPct, projectionPct);
+
                             const isSelected = selectedOrderId === o.id;
                             return (
                                 <div key={o.id}
@@ -760,7 +917,7 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                     </nav>
 
                     <div className="flex-1 overflow-auto p-3 space-y-3">
-                        {viewMode === 'DAILY' && <DailyView days={simulation.days} orderTimelines={simulation.orderTimelines} orders={orders} items={items} activeDayIdx={activeDayIdx} setActiveDayIdx={setActiveDayIdx} orderColorMap={orderColorMap} onDrillHourly={() => setViewMode('HOURLY')} setSelectedOrderId={setSelectedOrderId} windowOffset={windowOffset} setWindowOffset={setWindowOffset} setActuals={setActuals} setOrders={setOrders} gid={gid} />}
+                        {viewMode === 'DAILY' && <DailyView days={simulation.days} orderTimelines={simulation.orderTimelines} orders={orders} items={items} activeDayIdx={activeDayIdx} setActiveDayIdx={setActiveDayIdx} orderColorMap={orderColorMap} onDrillHourly={() => setViewMode('HOURLY')} setSelectedOrderId={setSelectedOrderId} windowOffset={windowOffset} setWindowOffset={setWindowOffset} actuals={actuals} setActuals={setActuals} setOrders={setOrders} gid={gid} />}
                         {viewMode === 'HOURLY' && <HourlyView day={activeDay} dayIdx={activeDayIdx} activeHourIdx={activeHourIdx} setActiveHourIdx={h => { setActiveHourIdx(h); setViewMode('MINUTE'); }} empColorMap={empColorMap} orderColorMap={orderColorMap} selectedOrderId={selectedOrderId} setSelectedOrderId={setSelectedOrderId} orders={orders} items={items} />}
                         {viewMode === 'MINUTE' && (
                             <MinuteView
@@ -783,6 +940,7 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                                 setInventory={setInventory}
                                 gid={gid}
                                 planStartDate={planStartDate}
+                                businessId={businessId}
                             />
                         )}
                     </div>
@@ -929,8 +1087,8 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
    - Article summary: one card per article
      showing process breakdown in sequence
 ══════════════════════════════════════════ */
-function DailyView({ days, orderTimelines, orders, items, activeDayIdx, setActiveDayIdx, orderColorMap, onDrillHourly, setSelectedOrderId, windowOffset, setWindowOffset, setActuals, setOrders, gid }:
-    { days: DayPlan[]; orderTimelines: SimResult['orderTimelines']; orders: ProductionOrder[]; items: ProductionItem[]; activeDayIdx: number; setActiveDayIdx: (d: number) => void; orderColorMap: Record<string, OrderColor>; onDrillHourly: () => void; setSelectedOrderId: (id: string | null) => void; windowOffset: number; setWindowOffset: (n: number) => void; setActuals: React.Dispatch<React.SetStateAction<any[]>>; setOrders: React.Dispatch<React.SetStateAction<ProductionOrder[]>>; gid: () => string; }) {
+function DailyView({ days, orderTimelines, orders, items, activeDayIdx, setActiveDayIdx, orderColorMap, onDrillHourly, setSelectedOrderId, windowOffset, setWindowOffset, actuals, setActuals, setOrders, gid }:
+    { days: DayPlan[]; orderTimelines: SimResult['orderTimelines']; orders: ProductionOrder[]; items: ProductionItem[]; activeDayIdx: number; setActiveDayIdx: (d: number) => void; orderColorMap: Record<string, OrderColor>; onDrillHourly: () => void; setSelectedOrderId: (id: string | null) => void; windowOffset: number; setWindowOffset: (n: number) => void; actuals: any[]; setActuals: React.Dispatch<React.SetStateAction<any[]>>; setOrders: React.Dispatch<React.SetStateAction<ProductionOrder[]>>; gid: () => string; }) {
 
     const activeDay = days[activeDayIdx];
     const sortedOrders = [...orders].sort((a, b) => a.priority - b.priority);
@@ -1114,9 +1272,28 @@ function DailyView({ days, orderTimelines, orders, items, activeDayIdx, setActiv
 
                                             {/* Units */}
                                             <td className="px-3 py-2.5 text-center">
-                                                <span className="text-sm font-black text-slate-800 tabular-nums">{Math.round(proc.units)}</span>
-                                                <span className="text-[9px] text-slate-400 font-bold ml-1">u</span>
+                                                {(() => {
+                                                    const actualYield = actuals.filter((a: any) => a.dayIdx === activeDayIdx && a.orderId === art.orderId && a.procName === proc.procName).reduce((s: number, x: any) => s + (x.units || 0), 0);
+                                                    if (actualYield > 0) {
+                                                        return (
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="text-sm font-black text-emerald-600 tabular-nums">{Math.round(actualYield)}</span>
+                                                                <div className="flex items-center gap-1">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                                                                    <span className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">Plan {Math.round(proc.units)}</span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <>
+                                                            <span className="text-sm font-black text-slate-800 tabular-nums">{Math.round(proc.units)}</span>
+                                                            <span className="text-[9px] text-slate-400 font-bold ml-1">u</span>
+                                                        </>
+                                                    );
+                                                })()}
                                             </td>
+
 
                                             {/* Personnel */}
                                             <td className="px-3 py-2">
@@ -1407,11 +1584,40 @@ function HourlyView({ day, dayIdx, activeHourIdx, setActiveHourIdx, empColorMap,
 /* ══════════════════════════════════════════
    MINUTE VIEW — per-employee timeline bar
 ══════════════════════════════════════════ */
-function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, onHourChange, selectedOrderId, orders, items, setItems, employees, actuals, setActuals, setOrders, inventory, setInventory, gid, planStartDate }:
-    { day: DayPlan | undefined; hourIdx: number; dayIdx: number; empColorMap: Record<string, string>; orderColorMap: Record<string, OrderColor>; onBack: () => void; onHourChange: (h: number) => void; selectedOrderId: string | null; orders: ProductionOrder[]; items: ProductionItem[]; setItems: any; employees: Employee[]; actuals: any[]; setActuals: React.Dispatch<React.SetStateAction<any[]>>; setOrders: React.Dispatch<React.SetStateAction<ProductionOrder[]>>; inventory: any[]; setInventory: React.Dispatch<React.SetStateAction<any[]>>; gid: () => string; planStartDate?: string; }) {
+function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, onHourChange, selectedOrderId, orders, items, setItems, employees, actuals, setActuals, setOrders, inventory, setInventory, gid, planStartDate, businessId }:
+    { day: DayPlan | undefined; hourIdx: number; dayIdx: number; empColorMap: Record<string, string>; orderColorMap: Record<string, OrderColor>; onBack: () => void; onHourChange: (h: number) => void; selectedOrderId: string | null; orders: ProductionOrder[]; items: ProductionItem[]; setItems: any; employees: Employee[]; actuals: any[]; setActuals: React.Dispatch<React.SetStateAction<any[]>>; setOrders: React.Dispatch<React.SetStateAction<ProductionOrder[]>>; inventory: any[]; setInventory: React.Dispatch<React.SetStateAction<any[]>>; gid: () => string; planStartDate?: string; businessId?: string; }) {
 
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [printMode, setPrintMode] = useState<'WORKER' | 'ARTICLE'>('WORKER');
+    const [isResetting, setIsResetting] = useState(false);
+
+    // Calculate the calendar date for this dayIdx based on planStartDate
+    const shiftDate = (() => {
+        const base = planStartDate ? new Date(planStartDate) : new Date();
+        base.setDate(base.getDate() + dayIdx);
+        return base.toISOString().split('T')[0];
+    })();
+
+    const handleResetShift = async () => {
+        const todayActualsCount = actuals.filter(a => a.dayIdx === dayIdx).length;
+        if (todayActualsCount === 0) { toast.info('No shift data to reset for this day.'); return; }
+        if (!window.confirm(`⚠️ RESET SHIFT — Day ${dayIdx + 1} (${shiftDate})\n\nThis will permanently delete ${todayActualsCount} yield record(s) and restore the original simulation plan for this day.\n\nContinue?`)) return;
+        setIsResetting(true);
+        try {
+            const res = await resetShiftLogs(shiftDate, businessId);
+            if (res.success) {
+                // Clear local actuals for this day
+                setActuals(prev => prev.filter(a => a.dayIdx !== dayIdx));
+                toast.success(`Shift reset — ${(res as any).deleted || todayActualsCount} record(s) cleared. Plan restored.`);
+            } else {
+                toast.error((res as any).error || 'Failed to reset shift.');
+            }
+        } catch (e) {
+            toast.error('System error during shift reset.');
+        } finally {
+            setIsResetting(false);
+        }
+    };
 
     if (!day) return <Empty msg="No data for this day." />;
 
@@ -1433,6 +1639,16 @@ function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, 
     });
 
     const entries = Object.values(empMap);
+
+    // Also include workers who confirmed today but have NO sim slots (they were frozen).
+    // They still need to appear in the ledger with their confirmed yield.
+    const confirmedWorkerIds = new Set(actuals.filter(a => a.dayIdx === dayIdx).map((a: any) => a.workerId));
+    confirmedWorkerIds.forEach(wid => {
+        if (!empMap[wid]) {
+            const e = employees.find(emp => emp.id === wid);
+            if (e) entries.push({ id: e.id, name: e.name, skills: e.skills, color: empColorMap[e.id] ?? '#6366f1', slots: Array(SHIFT_MINUTES).fill(null) });
+        }
+    });
 
     function runs(slots: (MinuteSlot | null)[]) {
         const r: { slot: MinuteSlot | null; start: number; len: number; totalPlanned: number }[] = [];
@@ -1471,12 +1687,23 @@ function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, 
                     <div className="h-4 w-px bg-slate-200" />
                     <h1 className="text-xs font-black text-slate-700 uppercase tracking-widest">Shift Timeline (480 mins)</h1>
                 </div>
-                <button 
-                    onClick={() => setShowPrintModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors border border-indigo-100 shadow-sm"
-                >
-                    <ClipboardList size={12} /> Print Daily Plan
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleResetShift}
+                        disabled={isResetting}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-rose-100 transition-colors border border-rose-200 shadow-sm disabled:opacity-40"
+                    >
+                        {isResetting ? <RefreshCw size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                        {isResetting ? 'Resetting...' : `Reset Shift · Day ${dayIdx + 1}`}
+                    </button>
+                    <button 
+                        onClick={() => setShowPrintModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors border border-indigo-100 shadow-sm"
+                    >
+                        <ClipboardList size={12} /> Print Daily Plan
+                    </button>
+                </div>
+
             </div>
 
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col">
@@ -1516,7 +1743,7 @@ function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, 
                                             </div>
                                         </div>
 
-                                        <div className="flex-1 h-8 bg-slate-50 rounded-lg overflow-hidden relative flex border border-slate-100 shadow-inner group-hover:border-slate-200 transition-all">
+                                        <div className="flex-1 h-8 my-auto bg-slate-50 rounded-lg overflow-hidden relative flex border border-slate-100 shadow-inner group-hover:border-slate-200 transition-all">
                                             {r.map((run, ri) => {
                                                 const c = run.slot ? orderColorMap[run.slot.orderId] : null;
                                                 return (
@@ -1541,41 +1768,68 @@ function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, 
                                         </div>
 
                                         {/* COMPACT PER-EMPLOYEE YIELD LEDGER */}
-                                        <div className="w-60 shrink-0 flex flex-col gap-0.5 overflow-y-auto max-h-[80px] custom-scrollbar pr-1 ml-3">
-                                            {Object.values(
-                                                r.filter(run => run.slot).reduce((acc: any, run) => {
+                                        <div className="w-60 shrink-0 flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-1 ml-3 py-1">
+                                            {(() => {
+                                                // Build ledger entries from SIMULATION slots (pure plan, no actuals mixed in)
+                                                const ledgerMap: Record<string, any> = {};
+                                                r.filter(run => run.slot).forEach(run => {
                                                     const key = `${run.slot!.orderId}__${run.slot!.procName}`;
-                                                    if (!acc[key]) acc[key] = {
-                                                        procName: run.slot!.procName,
-                                                        partName: run.slot!.partName,
-                                                        sequence: run.slot!.sequence,
-                                                        totalPlanned: 0,
-                                                        orderId: run.slot!.orderId,
-                                                        businessId: run.slot!.businessId
-                                                    };
-                                                    acc[key].totalPlanned += run.totalPlanned;
-                                                    return acc;
-                                                }, {})
-                                            ).map((agg: any, ai) => {
-                                                const actualRecord = actuals.find(a => a.dayIdx === dayIdx && a.orderId === agg.orderId && a.procName === agg.procName && a.workerId === emp.id);
-                                                return (
-                                                    <YieldInput
-                                                        key={ai}
-                                                        agg={agg}
-                                                        dayIdx={dayIdx}
-                                                        emp={emp}
-                                                        actualRecord={actualRecord}
-                                                        items={items}
-                                                        setItems={setItems}
-                                                        setActuals={setActuals}
-                                                        setOrders={setOrders}
-                                                        inventory={inventory}
-                                                        setInventory={setInventory}
-                                                        gid={gid}
-                                                    />
-                                                );
-                                            })}
+                                                    if (!ledgerMap[key]) {
+                                                        ledgerMap[key] = {
+                                                            procName: run.slot!.procName,
+                                                            partName: run.slot!.partName,
+                                                            sequence: run.slot!.sequence,
+                                                            totalPlanned: 0,  // pure sim, no actuals here
+                                                            orderId: run.slot!.orderId,
+                                                            businessId: run.slot!.businessId
+                                                        };
+                                                    }
+                                                    ledgerMap[key].totalPlanned += run.totalPlanned;
+                                                });
+
+                                                // For confirmed workers who are frozen (no sim slots today),
+                                                // add their entries from actuals so the ledger still shows them
+                                                const todayWorkerActuals = actuals.filter(a => a.dayIdx === dayIdx && a.workerId === emp.id);
+                                                todayWorkerActuals.forEach(a => {
+                                                    const key = `${a.orderId}__${a.procName}`;
+                                                    if (!ledgerMap[key]) {
+                                                        const order = orders.find(o => o.id === a.orderId);
+                                                        const part = items.find(it => it.id === order?.mainPartId);
+                                                        const proc = part?.processes.find(p => p.processName === a.procName);
+                                                        ledgerMap[key] = {
+                                                            procName: a.procName,
+                                                            partName: part?.name || '?',
+                                                            sequence: proc?.sequence ?? 0,
+                                                            totalPlanned: a.units,  // show what they actually did as the plan for confirmed frozen workers
+                                                            orderId: a.orderId,
+                                                            businessId: a.businessId
+                                                        };
+                                                    }
+                                                });
+
+                                                return Object.values(ledgerMap).map((agg: any, ai) => {
+                                                    const actualRecord = actuals.find(a => a.dayIdx === dayIdx && a.orderId === agg.orderId && a.procName === agg.procName && a.workerId === emp.id);
+                                                    return (
+                                                        <YieldInput
+                                                            key={`${dayIdx}_${emp.id}_${agg.orderId}_${agg.procName}`}
+                                                            agg={agg}
+                                                            dayIdx={dayIdx}
+                                                            emp={emp}
+                                                            actualRecord={actualRecord}
+                                                            items={items}
+                                                            setItems={setItems}
+                                                            setActuals={setActuals}
+                                                            setOrders={setOrders}
+                                                            inventory={inventory}
+                                                            setInventory={setInventory}
+                                                            gid={gid}
+                                                            businessId={businessId}
+                                                        />
+                                                    );
+                                                });
+                                            })()}
                                         </div>
+
                                     </div>
                                 );
                             })
@@ -1841,110 +2095,160 @@ function RosterView({ actuals, employees, items, orders, dates, activeDayIdx }: 
     );
 }
 
-function YieldInput({ agg, dayIdx, emp, actualRecord, items, setItems, setActuals, setOrders, inventory, setInventory, gid }: { agg: any, dayIdx: number, emp: any, actualRecord: any, items: ProductionItem[], setItems: any, setActuals: any, setOrders: any, inventory: any[], setInventory: any, gid: any }) {
-    const [val, setVal] = useState(actualRecord?.units ?? 0);
+function YieldInput({ agg, dayIdx, emp, actualRecord, items, setItems, setActuals, setOrders, inventory, setInventory, gid, businessId }: { agg: any, dayIdx: number, emp: any, actualRecord: any, items: ProductionItem[], setItems: any, setActuals: any, setOrders: any, inventory: any[], setInventory: any, gid: any, businessId?: string }) {
+    const [val, setVal] = useState<number>(actualRecord?.units ?? Math.round(agg.totalPlanned));
     const [confirmed, setConfirmed] = useState(!!actualRecord);
+    const [saving, setSaving] = useState(false);
+
+    // Track dbId so we can delete the old record before re-registering
+    const [dbLogId, setDbLogId] = useState<string | undefined>(actualRecord?.dbId);
+
+    // Sync when an existing record arrives from parent
+    useEffect(() => {
+        setVal(actualRecord?.units ?? Math.round(agg.totalPlanned));
+        setConfirmed(!!actualRecord);
+        setDbLogId(actualRecord?.dbId);
+    }, [actualRecord?.units, actualRecord?.dbId]);
 
     const itm = items.find(it => it.id === agg.orderId || it.name === agg.partName);
     const maxSeq = itm ? Math.max(...itm.processes.map(p => p.sequence), 0) : 0;
     const isFinal = agg.sequence === maxSeq && maxSeq > 0;
-
     const batchSize = itm?.batchSize || 1;
 
-    const handleConfirm = async () => {
-        if (val < 0) return;
-        const prevVal = actualRecord?.units || 0;
+    // Planned target is the simulation-only number (pure projection, no actuals merged in)
+    const planned = Math.round(agg.totalPlanned);
 
-        // Update Actuals (Roster Local)
+    const handleConfirm = async () => {
+        if (val < 0 || saving) return;
+        setSaving(true);
+
+        const prevVal = actualRecord?.units || 0;
+        const diff = val - prevVal;
+
+        // ── 1. DELETE old DB record if we are updating ──────────────────────────
+        if (dbLogId) {
+            try {
+                await deleteProductionLog(dbLogId);
+            } catch (e) {
+                console.warn('Old log delete failed, proceeding anyway:', e);
+            }
+        }
+
+        // ── 2. Update local actuals state (replace, not append) ─────────────────
         setActuals((prev: any[]) => [
             ...prev.filter(x => !(x.dayIdx === dayIdx && x.orderId === agg.orderId && x.procName === agg.procName && x.workerId === emp.id)),
             { dayIdx, orderId: agg.orderId, procName: agg.procName, workerId: emp.id, units: val, businessId: agg.businessId }
         ]);
 
-        // REGISTER IN DATABASE (Roster Permanent)
-        console.log('Finalizing yield registration:', { workerId: emp.id, orderId: agg.orderId, qty: val });
-
-        // ── INVENTORY MATERIAL DEDUCTION ──
-        // When we confirm a yield, we deduct the required materials for THIS step from the local items/stocks.
-        const diff = val - prevVal;
+        // ── 3. BOM material deduction (incremental) ─────────────────────────────
+        let bomDeductions: any[] = [];
         if (diff > 0 && itm) {
             const stepBom = itm.bom.filter((b: any) =>
                 b.processName === agg.procName || (agg.sequence === 1 && !b.processName)
             );
-
             if (stepBom.length > 0) {
+                bomDeductions = stepBom.map((b: any) => ({ accessoryId: b.accessoryId, totalNeeded: diff * b.usageQuantity }));
                 setItems((prev: any[]) => prev.map(item => {
                     const bomReq = stepBom.find((b: any) => b.accessoryId === item.id);
-                    if (bomReq) {
-                        return { ...item, stockQuantity: Math.max(0, item.stockQuantity - (diff * bomReq.usageQuantity)) };
-                    }
-                    return item;
+                    return bomReq ? { ...item, stockQuantity: Math.max(0, item.stockQuantity - diff * bomReq.usageQuantity) } : item;
                 }));
             }
         }
 
-        await logProduction({
-            businessId: agg.businessId,
-            workerId: emp.id,
-            orderId: agg.orderId,
-            articleName: agg.partName,
-            procName: agg.procName,
-            isFinal,
-            quantity: val,
-            date: new Date().toISOString()
-        });
+        // ── 4. Persist to DB ────────────────────────────────────────────────────
+        try {
+            const res = await logProduction({
+                businessId: agg.businessId || businessId,
+                workerId: emp.id,
+                orderId: agg.orderId,
+                articleName: agg.partName,
+                procName: agg.procName,
+                isFinal,
+                quantity: val,
+                date: new Date().toISOString(),
+                bomDeductions
+            });
 
-        // If final process, push to Shipping Inventory
-        if (isFinal && val > 0) {
-            const diff = val - prevVal;
-            if (diff !== 0) {
-                setOrders((prev: any[]) => prev.map(o => o.id === agg.orderId ? { ...o, finishedQuantity: (o.finishedQuantity || 0) + diff } : o));
+            if (res.success) {
+                // Store the new dbId if returned, so future updates can delete it
+                if ((res as any).id) setDbLogId((res as any).id);
+                setConfirmed(true);
+                toast.success(`✓ ${val}u of ${agg.procName} saved for ${emp.name}`);
 
-                const ni = {
-                    id: gid(),
-                    orderId: agg.orderId,
-                    name: agg.partName,
-                    quantity: diff,
-                    confirmDate: new Date().toISOString().split('T')[0],
-                    businessId: agg.businessId
-                };
-                setInventory((prev: any[]) => [ni, ...prev]);
+                // If final process, update order progress + ready inventory
+                if (isFinal && diff !== 0) {
+                    setOrders((prev: any[]) => prev.map(o => o.id === agg.orderId
+                        ? { ...o, finishedQuantity: Math.max(0, (o.finishedQuantity || 0) + diff) }
+                        : o
+                    ));
+                    if (diff > 0) {
+                        setInventory((prev: any[]) => [{ id: gid(), orderId: agg.orderId, name: agg.partName, quantity: diff, confirmDate: new Date().toISOString().split('T')[0], businessId: agg.businessId }, ...prev]);
+                    }
+                }
+            } else {
+                toast.error(res.error || 'Failed to register yield');
             }
+        } catch (e) {
+            console.error(e);
+            toast.error('System error during yield registration');
+        } finally {
+            setSaving(false);
         }
-        setConfirmed(true);
     };
 
+    const diffFromPlan = val - planned;
+    const isOver = diffFromPlan > 0;
+    const isUnder = diffFromPlan < 0;
+
     return (
-        <div className={`flex items-center gap-3 p-1.5 rounded-xl border-2 transition-all shadow-md ${confirmed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-100 hover:border-indigo-300'}`}>
+        <div className={`flex items-center gap-3 p-2 rounded-xl border-2 transition-all shadow-md ${
+            confirmed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-100 hover:border-indigo-300'
+        }`}>
             <div className="flex-1 min-w-0 px-1">
-                <div className="flex items-center justify-between mb-1">
-                    <span className={`text-[10px] font-black truncate uppercase tracking-tighter ${confirmed ? 'text-emerald-800' : 'text-slate-900'}`}>{agg.procName}</span>
-                    <span className="text-[10px] font-black text-indigo-600 tabular-nums bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100/50">{Math.round(agg.totalPlanned)}u</span>
+                <div className="flex items-center justify-between mb-0.5">
+                    <span className={`text-[10px] font-black truncate uppercase tracking-tighter ${confirmed ? 'text-emerald-800' : 'text-slate-900'}`}>
+                        {agg.procName}
+                    </span>
+                    <span className="text-[9px] font-black text-indigo-600 tabular-nums bg-indigo-50 px-1.5 py-0.5 rounded-md border border-indigo-100/50">
+                        Plan {planned}u
+                    </span>
                 </div>
-                <div className="text-[8px] text-slate-500 font-bold uppercase truncate tracking-tight">{agg.partName} <span className="text-indigo-400 opacity-60 ml-1">· Pack {batchSize}</span></div>
+                <div className="flex items-center gap-1.5">
+                    <span className="text-[8px] text-slate-500 font-bold uppercase truncate tracking-tight">{agg.partName} · Pack {batchSize}</span>
+                    {confirmed && diffFromPlan !== 0 && (
+                        <span className={`text-[8px] font-black tabular-nums px-1 rounded ${
+                            isOver ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'
+                        }`}>
+                            {isOver ? '+' : ''}{diffFromPlan}u {isUnder ? '→ carry over' : ''}
+                        </span>
+                    )}
+                </div>
             </div>
             <div className="flex items-center gap-2">
-                <div className="relative group">
-                    <input
-                        type="number"
-                        value={val || ''}
-                        onChange={(e) => { setVal(Number(e.target.value)); setConfirmed(false); }}
-                        placeholder="0"
-                        className={`w-14 h-9 border-2 text-[14px] font-black rounded-xl text-center transition-all outline-none shadow-sm ${confirmed
-                                ? 'bg-emerald-100 border-emerald-400 text-emerald-800'
-                                : 'bg-slate-50 border-slate-200 text-indigo-700 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100'
-                            }`}
-                    />
-                </div>
+                <input
+                    type="number"
+                    value={val || ''}
+                    onChange={(e) => { setVal(Number(e.target.value)); setConfirmed(false); }}
+                    placeholder={`${planned}`}
+                    className={`w-14 h-9 border-2 text-[14px] font-black rounded-xl text-center transition-all outline-none shadow-sm ${
+                        confirmed
+                            ? 'bg-emerald-100 border-emerald-400 text-emerald-800'
+                            : 'bg-slate-50 border-slate-200 text-indigo-700 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100'
+                    }`}
+                />
                 <button
                     onClick={handleConfirm}
-                    disabled={confirmed || val <= 0}
-                    className={`w-9 h-9 rounded-xl transition-all flex items-center justify-center shadow-lg border-2 ${confirmed
-                            ? 'text-emerald-600 bg-white border-emerald-200'
-                            : 'text-white bg-indigo-600 border-indigo-500 hover:bg-emerald-600 hover:border-emerald-500 shadow-indigo-100 active:scale-90 disabled:opacity-20 disabled:grayscale'
-                        }`}
+                    disabled={saving || val <= 0}
+                    title={confirmed ? 'Click to update' : 'Confirm yield'}
+                    className={`w-9 h-9 rounded-xl transition-all flex items-center justify-center shadow-lg border-2 ${
+                        saving
+                            ? 'text-slate-400 bg-white border-slate-200 animate-pulse'
+                            : confirmed
+                                ? 'text-emerald-600 bg-white border-emerald-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-500'
+                                : 'text-white bg-indigo-600 border-indigo-500 hover:bg-emerald-600 hover:border-emerald-500 shadow-indigo-100 active:scale-90 disabled:opacity-20 disabled:grayscale'
+                    }`}
                 >
-                    <RefreshCw size={16} className={confirmed ? '' : 'text-white'} />
+                    {saving ? <RefreshCw size={14} className="animate-spin" /> : confirmed ? <Target size={16} /> : <RefreshCw size={16} className="text-white" />}
                 </button>
             </div>
         </div>

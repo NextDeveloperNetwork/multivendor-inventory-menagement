@@ -4,10 +4,14 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { logActivity } from './intelligence';
 
-export async function getProductionArticles(businessId?: string) {
+export async function getProductionArticles(businessId?: string, source?: 'ADMIN' | 'MANAGER') {
     try {
+        const whereClause: any = businessId ? { businessId } : {};
+        if (source === 'ADMIN') whereClause.isManager = false;
+        if (source === 'MANAGER') whereClause.isManager = true;
+
         const articles = await prisma.productionArticle.findMany({
-            where: businessId ? { businessId } : {},
+            where: whereClause,
             include: {
                 processes: { orderBy: { sequence: 'asc' } },
                 bom: true
@@ -15,27 +19,71 @@ export async function getProductionArticles(businessId?: string) {
             orderBy: { name: 'asc' }
         });
 
-        // Fetch yields for all articles in this business
+        // Fetch yields for all articles and processes
         // @ts-ignore
         const yields = await prisma.productionLog.groupBy({
-            by: ['articleName'],
+            by: ['articleName', 'procName'],
             where: businessId ? { businessId } : {},
             _sum: {
                 quantity: true
             }
         });
 
-        const yieldMap = new Map(yields.map((y: any) => [y.articleName, y._sum.quantity || 0]));
-        
-        return articles.map(a => ({
-            ...a,
-            totalYield: yieldMap.get(a.name) || 0
-        }));
+        // Create a fast lookup map: articleName -> { procName -> totalYield }
+        const yieldMap = new Map<string, Map<string, number>>();
+        yields.forEach((y: any) => {
+            if (!yieldMap.has(y.articleName)) yieldMap.set(y.articleName, new Map());
+            yieldMap.get(y.articleName)!.set(y.procName, y._sum.quantity || 0);
+        });
+        return articles.map(a => {
+            let finalYield = 0;
+            let startedYield = 0;
+            
+            if (a.isManager) {
+                const articleYields = yieldMap.get(a.name);
+                if (articleYields) {
+                    let total = 0;
+                    articleYields.forEach(qty => total += qty);
+                    finalYield = total;
+                    startedYield = total;
+                }
+            } else if (a.processes.length > 0) {
+                const firstProcess = a.processes[0];
+                const lastProcess = a.processes[a.processes.length - 1]; // Already ordered by sequence ascending
+                const articleYields = yieldMap.get(a.name);
+                
+                if (articleYields) {
+                    if (lastProcess) {
+                        finalYield = articleYields.get(lastProcess.processName) || 0;
+                    }
+                    if (firstProcess) {
+                        startedYield = articleYields.get(firstProcess.processName) || 0;
+                    }
+                }
+            } else {
+                // Fallback if the article has no processes defined but logs exist
+                const articleYields = yieldMap.get(a.name);
+                if (articleYields) {
+                    let maxOutput = 0;
+                    articleYields.forEach(val => { if (val > maxOutput) maxOutput = val; });
+                    finalYield = maxOutput;
+                    startedYield = maxOutput;
+                }
+            }
+
+            return {
+                ...a,
+                totalYield: finalYield,
+                startedYield: startedYield
+            };
+        });
     } catch (error) {
         console.error('Failed to fetch articles:', error);
         return [];
     }
 }
+
+
 
 export async function syncProductionArticle(article: any) {
     try {
@@ -64,6 +112,7 @@ export async function syncProductionArticle(article: any) {
                     entryDate: data.entryDate,
                     invoiceNo: data.invoiceNo,
                     supplierName: data.supplierName,
+                    isManager: data.isManager || false,
                     businessId: businessId || null,
                     processes: {
                         deleteMany: {},
@@ -97,6 +146,7 @@ export async function syncProductionArticle(article: any) {
                     entryDate: data.entryDate,
                     invoiceNo: data.invoiceNo,
                     supplierName: data.supplierName,
+                    isManager: data.isManager || false,
                     businessId: businessId || null,
                     processes: {
                         create: processes.map((p: any) => ({
@@ -183,7 +233,7 @@ export async function getProductionProcesses(businessId?: string) {
 
 export async function syncProductionProcess(process: any) {
     try {
-        const { id, name, requiresMachine, businessId } = process;
+        const { id, name, requiresMachine, deployAllWorkforce, businessId } = process;
         
         // Basic validation
         if (!name || name.trim() === '') return { error: 'Process name is required' };
@@ -192,7 +242,7 @@ export async function syncProductionProcess(process: any) {
             // Update existing
             await prisma.productionProcess.update({
                 where: { id },
-                data: { name: name.trim(), requiresMachine, businessId }
+                data: { name: name.trim(), requiresMachine, deployAllWorkforce, businessId }
             });
         } else {
             // Check for duplicate name if no ID (to provide better error than raw Prisma)
@@ -205,7 +255,7 @@ export async function syncProductionProcess(process: any) {
             }
 
             await prisma.productionProcess.create({
-                data: { name: name.trim(), requiresMachine, businessId }
+                data: { name: name.trim(), requiresMachine, deployAllWorkforce, businessId }
             });
         }
         return { success: true };
@@ -259,6 +309,17 @@ export async function syncProductionWorker(worker: any) {
 export async function deleteProductionWorker(id: string) {
     try {
         await prisma.productionWorker.delete({ where: { id } });
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+export async function deleteAllProductionWorkers(businessId?: string) {
+    try {
+        await prisma.productionWorker.deleteMany({
+            where: businessId ? { businessId } : {}
+        });
         return { success: true };
     } catch (error: any) {
         return { error: error.message };

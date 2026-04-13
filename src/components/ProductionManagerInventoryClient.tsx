@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Plus, Minus, Box, RotateCcw, X, Hash, Trash2, Save, Layers, Upload, FileText, Info, Calendar, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Minus, Box, RotateCcw, X, Hash, Trash2, Save, Layers, Upload, FileText, Info, Calendar, Filter, ChevronLeft, ChevronRight, Pencil, Check } from 'lucide-react';
+
 import { toast } from 'sonner';
 import { bulkSyncProductionArticles, getProductionArticles, deleteProductionArticle as dbDeleteArticle, syncProductionArticle } from '@/app/actions/productionArticles';
+import { logProduction } from '@/app/actions/production';
 
 interface ProductionItem {
     id: string;
@@ -42,6 +44,35 @@ export default function ProductionManagerInventoryClient({
     const [regDate, setRegDate] = useState(new Date().toISOString().split('T')[0]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Edit modal state
+    const [editItem, setEditItem] = useState<ProductionItem | null>(null);
+    const [editSaving, setEditSaving] = useState(false);
+
+    const openEdit = (item: ProductionItem) => setEditItem({ ...item });
+    const closeEdit = () => setEditItem(null);
+
+    const handleSaveEdit = async () => {
+        if (!editItem) return;
+        setEditSaving(true);
+        try {
+            await syncProductionArticle({ ...editItem, isManager: true, businessId });
+            // Refresh list from DB
+            const fresh = await getProductionArticles(businessId, 'MANAGER');
+            setItems((fresh || []).map((a: any) => ({
+                ...a,
+                entryDate: a.entryDate ? new Date(a.entryDate).toISOString().split('T')[0] : ''
+            })));
+            toast.success(`${editItem.name} updated successfully`);
+            closeEdit();
+        } catch (err: any) {
+            toast.error(err.message || 'Save failed');
+        } finally {
+            setEditSaving(false);
+        }
+    };
+
+
+
     // Batch rows state
     const [batchRows, setBatchRows] = useState<{id: string, name: string, sku: string, description: string, qty: string, unit: string, invoiceNo: string, supplierName: string}[]>([]);
 
@@ -52,7 +83,7 @@ export default function ProductionManagerInventoryClient({
                 return;
             }
             try {
-                const dbArticles = await getProductionArticles(businessId);
+                const dbArticles = await getProductionArticles(businessId, 'MANAGER');
                 if (dbArticles) {
                     const formatted = dbArticles.map((a: any) => ({
                         ...a,
@@ -98,6 +129,7 @@ export default function ProductionManagerInventoryClient({
             entryDate: regDate,
             invoiceNo: row.invoiceNo,
             supplierName: row.supplierName,
+            isManager: true,
             type: 'MAIN'
         }));
 
@@ -112,7 +144,7 @@ export default function ProductionManagerInventoryClient({
             }
 
             // Reload from DB to confirm persistence
-            const freshData = await getProductionArticles(businessId);
+            const freshData = await getProductionArticles(businessId, 'MANAGER');
             const formatted = (freshData || []).map((a: any) => ({
                 ...a,
                 entryDate: a.entryDate ? new Date(a.entryDate).toISOString().split('T')[0] : ''
@@ -182,7 +214,7 @@ export default function ProductionManagerInventoryClient({
         setItems(newItems);
         try {
             const itemToSync = newItems.find(i => i.id === id);
-            if (itemToSync) await syncProductionArticle({ ...itemToSync, businessId });
+            if (itemToSync) await syncProductionArticle({ ...itemToSync, isManager: true, businessId });
         } catch (err) {
             toast.error("Sync failed.");
         }
@@ -291,8 +323,10 @@ export default function ProductionManagerInventoryClient({
                                 <th className="px-8 py-5 text-left">Status</th>
                                 <th className="px-8 py-5 text-left">Description</th>
                                 <th className="px-6 py-5 text-center">Ref/SKU</th>
-                                <th className="px-6 py-5 text-center">Invoice/Supplier</th>
-                                <th className="px-6 py-5 text-left">Stock</th>
+                                <th className="px-6 py-5 text-center">Inv/Supplier</th>
+                                <th className="px-6 py-5 text-center">Initial Qty</th>
+                                <th className="px-6 py-5 text-center">Produced</th>
+                                <th className="px-6 py-5 text-center text-indigo-600">Remaining</th>
                                 <th className="px-6 py-5 text-center">Date</th>
                                 <th className="px-6 py-5 text-center">Adjust</th>
                             </tr>
@@ -306,6 +340,8 @@ export default function ProductionManagerInventoryClient({
                                     <td className="px-8 py-6">
                                         {(() => {
                                             const netStock = item.stockQuantity - (item.totalYield || 0);
+                                            const hasStarted = ((item as any).startedYield || item.totalYield || 0) > 0;
+                                            
                                             if (netStock <= 0) {
                                                 return (
                                                     <span className="px-3 py-1 bg-rose-50 text-rose-600 border border-rose-100 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 w-max">
@@ -313,7 +349,7 @@ export default function ProductionManagerInventoryClient({
                                                     </span>
                                                 );
                                             }
-                                            if ((item.totalYield || 0) > 0) {
+                                            if (hasStarted) {
                                                 return (
                                                     <span className="px-3 py-1 bg-orange-50 text-orange-600 border border-orange-100 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 w-max">
                                                         <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" /> IN PRODUCTION (WIP)
@@ -327,8 +363,9 @@ export default function ProductionManagerInventoryClient({
                                             );
                                         })()}
                                     </td>
+
                                     <td className="px-8 py-6">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase italic truncate max-w-[250px]" title={item.description}>{item.description || '-'}</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase italic truncate max-w-[250px] inline-block" title={item.description}>{item.description || '-'}</span>
                                     </td>
                                     <td className="px-6 py-6 text-center font-mono text-[10px] text-indigo-600 font-black tracking-widest whitespace-nowrap">
                                         {item.sku || '-'}
@@ -345,35 +382,90 @@ export default function ProductionManagerInventoryClient({
                                             )}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-6">
-                                        <div className="flex flex-col gap-0.5">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-2xl font-black text-slate-900 tabular-nums tracking-tighter">
-                                                    {item.stockQuantity - (item.totalYield || 0)}
-                                                </span>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.unit}</span>
-                                            </div>
-                                            {(item.totalYield || 0) > 0 && (
-                                                <div className="text-[9px] font-black text-indigo-400 uppercase tracking-tight">
-                                                    Produced: {item.totalYield} {item.unit}
-                                                </div>
-                                            )}
+                                    
+                                    <td className="px-6 py-6 text-center">
+                                        <div className="flex items-baseline justify-center gap-1">
+                                            <span className="text-xl font-bold text-slate-400 tabular-nums tracking-tighter">
+                                                {item.stockQuantity}
+                                            </span>
+                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{item.unit}</span>
                                         </div>
                                     </td>
+                                    
+                                    <td className="px-6 py-6 text-center">
+                                        <div className="flex items-baseline justify-center gap-1">
+                                            <span className="text-xl font-black text-indigo-500 tabular-nums tracking-tighter">
+                                                {item.totalYield || 0}
+                                            </span>
+                                            <span className="text-[9px] font-black text-indigo-300 uppercase tracking-widest">{item.unit}</span>
+                                        </div>
+                                    </td>
+                                    
+                                    <td className="px-6 py-6 text-center bg-slate-50/50">
+                                        <div className="flex items-baseline justify-center gap-1">
+                                            <span className="text-2xl font-black text-slate-900 tabular-nums tracking-tighter">
+                                                {item.stockQuantity - (item.totalYield || 0)}
+                                            </span>
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.unit}</span>
+                                        </div>
+                                    </td>
+
                                     <td className="px-6 py-6 text-center font-black text-[10px] text-slate-400 tabular-nums">
                                         {item.entryDate || '-'}
                                     </td>
                                     <td className="px-6 py-6 border-l border-slate-50">
                                         <div className="flex items-center justify-center gap-2">
+                                            <button
+                                                onClick={() => openEdit(item)}
+                                                className="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all border border-slate-100 hover:border-indigo-100 shadow-sm"
+                                                title="Edit Article"
+                                            >
+                                                <Pencil size={15} />
+                                            </button>
                                             <button 
-                                                onClick={() => handleAdjustment(item.id, -1)}
-                                                className="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all border border-slate-100 hover:border-rose-100 shadow-sm"
+                                                onClick={async () => {
+                                                    const val = window.prompt(`How many pieces of ${item.name} did you produce? (This will add to the PRODUCED column and reduce the REMAINING column)`);
+                                                    if (val !== null && !isNaN(Number(val)) && Number(val) > 0) {
+                                                        const amountProduced = Number(val);
+                                                        
+                                                        toast.loading(`Logging ${amountProduced} pieces to ${item.name}...`, { id: 'log-prod' });
+                                                        
+                                                        // Ensure we don't break the inventory fetch assumption by logging a dummy final process
+                                                        const procFallback = "QUICK_LOG";
+                                                        
+                                                        const res = await logProduction({
+                                                            businessId,
+                                                            workerId: "SUPERVISOR",
+                                                            orderId: "MANUAL",
+                                                            articleName: item.name,
+                                                            procName: procFallback,
+                                                            isFinal: true,
+                                                            quantity: amountProduced
+                                                        });
+                                                        
+                                                        if (res.success) {
+                                                            toast.success(`Successfully logged ${amountProduced} pieces`, { id: 'log-prod' });
+                                                            // Reload DB
+                                                            const freshData = await getProductionArticles(businessId, 'MANAGER');
+                                                            const formatted = (freshData || []).map((a: any) => ({
+                                                                ...a,
+                                                                entryDate: a.entryDate ? new Date(a.entryDate).toISOString().split('T')[0] : ''
+                                                            }));
+                                                            setItems(formatted);
+                                                        } else {
+                                                            toast.error(`Log failed: ${res.error}`, { id: 'log-prod' });
+                                                        }
+                                                    }
+                                                }}
+                                                className="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-orange-50 text-slate-400 hover:text-orange-600 rounded-xl transition-all border border-slate-100 hover:border-orange-100 shadow-sm"
+                                                title="Log Bulk Production"
                                             >
                                                 <Minus size={16} />
                                             </button>
                                             <button 
                                                 onClick={() => handleAdjustment(item.id, 1)}
                                                 className="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 rounded-xl transition-all border border-slate-100 hover:border-emerald-100 shadow-sm"
+                                                title="Add to target"
                                             >
                                                 <Plus size={16} />
                                             </button>
@@ -384,6 +476,7 @@ export default function ProductionManagerInventoryClient({
                                             >
                                                 <Trash2 size={16} />
                                             </button>
+
                                         </div>
                                     </td>
                                 </tr>
@@ -565,6 +658,127 @@ export default function ProductionManagerInventoryClient({
                             <button onClick={() => setIsBatchModalOpen(false)} className="px-8 py-3 rounded-2xl font-bold text-sm text-slate-400 hover:text-slate-800 transition uppercase tracking-widest">Discard Batch</button>
                             <button type="submit" form="batch-manager-form" className="px-16 py-5 bg-slate-900 hover:bg-black text-white rounded-3xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-slate-900/20 active:scale-95 flex items-center gap-4 transition-all">
                                 <Save size={20} /> Register Article Catalog
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ── EDIT MODAL ───────────────────────────────────────────────────── */}
+            {editItem && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-2xl border border-slate-200 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col overflow-hidden">
+                        {/* Header */}
+                        <div className="px-10 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+                                    <Pencil size={18} className="text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Edit Article</h2>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Modify catalog entry · changes saved to database</p>
+                                </div>
+                            </div>
+                            <button onClick={closeEdit} className="text-slate-400 hover:text-slate-800 transition-colors"><X size={22} /></button>
+                        </div>
+
+                        {/* Form */}
+                        <div className="p-10 space-y-6 overflow-y-auto">
+                            {/* Name + SKU */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Article Name *</label>
+                                    <input
+                                        required
+                                        value={editItem.name}
+                                        onChange={e => setEditItem(p => p ? { ...p, name: e.target.value.toUpperCase() } : p)}
+                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black focus:bg-white focus:border-indigo-500 outline-none uppercase tracking-tight transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">SKU / Code</label>
+                                    <input
+                                        value={editItem.sku || ''}
+                                        onChange={e => setEditItem(p => p ? { ...p, sku: e.target.value } : p)}
+                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:bg-white focus:border-indigo-500 outline-none uppercase tracking-widest text-indigo-600 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Description */}
+                            <div className="space-y-1.5">
+                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Description / Notes</label>
+                                <textarea
+                                    rows={2}
+                                    value={editItem.description || ''}
+                                    onChange={e => setEditItem(p => p ? { ...p, description: e.target.value } : p)}
+                                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:bg-white focus:border-indigo-500 outline-none transition-all resize-none"
+                                />
+                            </div>
+
+                            {/* Stock + Unit */}
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-1.5 col-span-2">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Stock Quantity</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        value={editItem.stockQuantity}
+                                        onChange={e => setEditItem(p => p ? { ...p, stockQuantity: Number(e.target.value) } : p)}
+                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-lg font-black tabular-nums text-center focus:bg-white focus:border-indigo-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Unit</label>
+                                    <input
+                                        value={editItem.unit || 'pcs'}
+                                        onChange={e => setEditItem(p => p ? { ...p, unit: e.target.value } : p)}
+                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black focus:bg-white focus:border-indigo-500 outline-none uppercase text-center transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Invoice + Supplier */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Invoice Number</label>
+                                    <input
+                                        value={editItem.invoiceNo || ''}
+                                        onChange={e => setEditItem(p => p ? { ...p, invoiceNo: e.target.value } : p)}
+                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black focus:bg-white focus:border-rose-400 outline-none uppercase tracking-widest text-rose-600 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Supplier Name</label>
+                                    <input
+                                        value={editItem.supplierName || ''}
+                                        onChange={e => setEditItem(p => p ? { ...p, supplierName: e.target.value.toUpperCase() } : p)}
+                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:bg-white focus:border-indigo-500 outline-none uppercase transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Entry Date */}
+                            <div className="space-y-1.5 max-w-xs">
+                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Entry Date</label>
+                                <input
+                                    type="date"
+                                    value={editItem.entryDate || ''}
+                                    onChange={e => setEditItem(p => p ? { ...p, entryDate: e.target.value } : p)}
+                                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black focus:bg-white focus:border-indigo-500 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="px-10 py-6 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                            <button onClick={closeEdit} className="px-8 py-3 rounded-2xl font-bold text-sm text-slate-400 hover:text-slate-800 transition uppercase tracking-widest">Cancel</button>
+                            <button
+                                onClick={handleSaveEdit}
+                                disabled={editSaving || !editItem.name.trim()}
+                                className="px-12 py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-indigo-100 active:scale-95 flex items-center gap-3 transition-all"
+                            >
+                                {editSaving ? <RotateCcw size={18} className="animate-spin" /> : <Check size={18} />}
+                                {editSaving ? 'Saving...' : 'Save Changes'}
                             </button>
                         </div>
                     </div>

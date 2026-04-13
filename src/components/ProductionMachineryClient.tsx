@@ -17,6 +17,7 @@ interface GlobalProcess {
     id: string;
     name: string;
     requiresMachine: boolean;
+    deployAllWorkforce?: boolean;
     businessId?: string;
 }
 
@@ -50,7 +51,9 @@ export default function ProductionMachineryClient({
             const procs = await getProductionProcesses(businessId);
             setProcesses(procs as any);
             
-            if (!initialMachines.length) {
+            if (initialMachines.length > 0) {
+                setMachines(initialMachines);
+            } else {
                 const fetched = await getProductionMachinery(businessId);
                 setMachines(fetched as any);
             }
@@ -67,6 +70,7 @@ export default function ProductionMachineryClient({
     /* ---- Process Management ---- */
     const [tmpProcName, setTmpProcName] = useState('');
     const [tmpProcMac, setTmpProcMac] = useState(true);
+    const [tmpDeployAll, setTmpDeployAll] = useState(false);
 
     const [isProcLoading, setIsProcLoading] = useState(false);
     const handleAddProcess = async (e: React.FormEvent) => {
@@ -84,6 +88,7 @@ export default function ProductionMachineryClient({
             const result = await syncProductionProcess({ 
                 name: cleanName, 
                 requiresMachine: tmpProcMac,
+                deployAllWorkforce: tmpDeployAll,
                 businessId 
             });
             
@@ -93,6 +98,7 @@ export default function ProductionMachineryClient({
                 const procs = await getProductionProcesses(businessId);
                 setProcesses(procs as any);
                 setTmpProcName('');
+                setTmpDeployAll(false);
                 toast.success(`Process "${cleanName}" added to registry.`);
             }
         } catch (err) {
@@ -181,7 +187,7 @@ export default function ProductionMachineryClient({
         try {
             for (const row of validRows) {
                 await syncProductionMachine({
-                    id: row.id.includes('.') ? undefined : row.id, // Handle new vs existing
+                    id: row.id.length < 10 ? undefined : row.id, // Handle new vs existing
                     name: row.name,
                     capableProcesses: row.selectedProcesses,
                     online: true,
@@ -322,11 +328,17 @@ export default function ProductionMachineryClient({
                     <div className="p-4 space-y-4">
                         <form onSubmit={handleAddProcess} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
                             <input value={tmpProcName} onChange={e=>setTmpProcName(e.target.value)} required placeholder="New Process Name" className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-indigo-500 font-bold text-xs" />
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-2 mb-2">
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" checked={tmpProcMac} onChange={e=>setTmpProcMac(e.target.checked)} className="w-3.5 h-3.5 rounded text-indigo-600" />
                                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Machine Required</span>
                                 </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" checked={tmpDeployAll} onChange={e=>setTmpDeployAll(e.target.checked)} className="w-3.5 h-3.5 rounded text-emerald-600" />
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest" title="When active, all available workers will prioritize and swarm this process simultaneously">Deploy All Workforce</span>
+                                </label>
+                            </div>
+                            <div className="flex items-center justify-end">
                                 <button type="submit" className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-[10px] uppercase tracking-widest shadow-md">Add</button>
                             </div>
                         </form>
@@ -334,11 +346,12 @@ export default function ProductionMachineryClient({
                         <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
                            {processes.map(p => (
                                <div key={`${p.id}-${p.businessId || 'root'}`} className="flex items-center justify-between bg-white border border-slate-100 p-2.5 rounded-xl group hover:border-slate-300 transition shadow-sm">
-                                   <div className="flex items-center gap-2.5">
+                                   <div className="flex items-center gap-2.5 flex-wrap flex-1">
                                        {p.requiresMachine ? <div className="p-1.5 bg-orange-50 text-orange-600 rounded-lg"><Cpu size={12}/></div> : <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><Hammer size={12}/></div>}
                                        <span className="text-xs font-bold text-slate-800">{p.name}</span>
+                                       {p.deployAllWorkforce && <span className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded text-[8px] font-black uppercase tracking-wider ml-auto">Deploy All</span>}
                                    </div>
-                                   <button onClick={()=>handleDeleteProcess(p.id)} className="text-slate-300 hover:text-rose-500 p-1 opacity-0 group-hover:opacity-100 transition"><Trash2 size={14}/></button>
+                                   <button onClick={()=>handleDeleteProcess(p.id)} className="text-slate-300 hover:text-rose-500 p-1 opacity-0 group-hover:opacity-100 transition shrink-0 ml-2"><Trash2 size={14}/></button>
                                </div>
                            ))}
                         </div>
