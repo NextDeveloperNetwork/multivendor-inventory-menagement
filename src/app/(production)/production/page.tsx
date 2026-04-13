@@ -28,10 +28,10 @@ export default async function ProductionManagerPage() {
     const selectedBusinessId = await getSelectedBusinessId();
     const businessId = selectedBusinessId || dbUser?.shop?.businessId || undefined;
 
-    // @ts-ignore
     const todaysLogs = await prisma.productionLog.findMany({
         where: {
             workerId: user.id,
+            isManager: true,
             businessId: businessId || null,
             date: { gte: todayStart }
         },

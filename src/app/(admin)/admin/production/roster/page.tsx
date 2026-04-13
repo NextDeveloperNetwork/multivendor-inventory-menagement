@@ -12,7 +12,8 @@ import { Search, Filter, Hash } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ProductionRosterPage({ searchParams }: { searchParams: { q?: string; date?: string } }) {
+export default async function ProductionRosterPage(props: { searchParams: Promise<{ q?: string; date?: string }> }) {
+    const searchParams = await props.searchParams;
     const businessId = await getSelectedBusinessId();
     const query = searchParams.q || '';
     const dateQuery = searchParams.date || '';
@@ -30,7 +31,7 @@ export default async function ProductionRosterPage({ searchParams }: { searchPar
     const logs = await prisma.productionLog.findMany({
         where: {
             ...(businessId ? { businessId } : {}),
-            orderId: { not: 'MANUAL' },
+            isManager: false,
             ...(query ? {
                 OR: [
                     { articleName: { contains: query, mode: 'insensitive' } },

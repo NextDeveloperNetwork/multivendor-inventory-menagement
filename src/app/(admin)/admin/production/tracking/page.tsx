@@ -18,8 +18,8 @@ export default async function ProductionManagerTrackingPage() {
     // @ts-ignore
     const logs = await prisma.productionLog.findMany({
         where: {
-            isFinal: true,
-            boxes: { not: null },
+            isManager: true,
+            orderId: 'MANUAL', // Only manager-dashboard entries from /production
             ...(businessId ? { businessId } : {}),
             date: {
                 gte: today,

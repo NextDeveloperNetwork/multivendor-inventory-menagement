@@ -782,7 +782,11 @@ export default function ProductionPlanner({ businessId }: { businessId?: string 
                         onClick={() => {
                             if (confirm('Clear entire production queue? This cannot be undone.')) {
                                 setOrders([]);
+                                setActuals([]);
+                                setInventory([]);
                                 localStorage.removeItem(getK('prod_ords_v2'));
+                                localStorage.removeItem(getK('prod_actuals_v1'));
+                                localStorage.removeItem(getK('prod_ready_v1'));
                                 toast.success('Production queue purged.');
                             }
                         }} 
@@ -1789,7 +1793,7 @@ function MinuteView({ day, hourIdx, dayIdx, empColorMap, orderColorMap, onBack, 
 
                                                 // For confirmed workers who are frozen (no sim slots today),
                                                 // add their entries from actuals so the ledger still shows them
-                                                const todayWorkerActuals = actuals.filter(a => a.dayIdx === dayIdx && a.workerId === emp.id);
+                                                const todayWorkerActuals = actuals.filter(a => a.dayIdx === dayIdx && a.workerId === emp.id && orders.some(o => o.id === a.orderId));
                                                 todayWorkerActuals.forEach(a => {
                                                     const key = `${a.orderId}__${a.procName}`;
                                                     if (!ledgerMap[key]) {

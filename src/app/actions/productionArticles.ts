@@ -20,10 +20,12 @@ export async function getProductionArticles(businessId?: string, source?: 'ADMIN
         });
 
         // Fetch yields for all articles and processes
-        // @ts-ignore
         const yields = await prisma.productionLog.groupBy({
             by: ['articleName', 'procName'],
-            where: businessId ? { businessId } : {},
+            where: {
+                ...(businessId ? { businessId } : {}),
+                isManager: source === 'MANAGER'
+            },
             _sum: {
                 quantity: true
             }

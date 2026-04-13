@@ -353,7 +353,9 @@ model ProductionLog {
   articleName String
   procName    String
   isFinal     Boolean
+  isManager   Boolean  @default(false)
   quantity    Int
+
   boxes       Int?
   date        DateTime @default(now())
   createdAt   DateTime @default(now())

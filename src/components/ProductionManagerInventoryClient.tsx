@@ -440,7 +440,8 @@ export default function ProductionManagerInventoryClient({
                                                             articleName: item.name,
                                                             procName: procFallback,
                                                             isFinal: true,
-                                                            quantity: amountProduced
+                                                            quantity: amountProduced,
+                                                            isManager: true
                                                         });
                                                         
                                                         if (res.success) {

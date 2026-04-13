@@ -13,7 +13,8 @@ export async function logProduction({
     isFinal,
     quantity,
     date,
-    bomDeductions
+    bomDeductions,
+    isManager = false
 }: {
     businessId?: string;
     workerId: string;
@@ -24,9 +25,9 @@ export async function logProduction({
     quantity: number;
     date?: string;
     bomDeductions?: { accessoryId: string, totalNeeded: number }[];
+    isManager?: boolean;
 }) {
     try {
-        // @ts-ignore - Temporary bypass for Prisma generation lock on Windows
         const created = await prisma.productionLog.create({
             data: {
                 businessId: businessId || null,
@@ -35,6 +36,7 @@ export async function logProduction({
                 articleName,
                 procName,
                 isFinal,
+                isManager,
                 quantity,
                 date: date ? new Date(date) : new Date()
             }
@@ -43,7 +45,6 @@ export async function logProduction({
 
         if (bomDeductions && bomDeductions.length > 0) {
             for (const bomItem of bomDeductions) {
-                // @ts-ignore
                 await prisma.productionArticle.update({
                     where: { id: bomItem.accessoryId },
                     data: { stockQuantity: { decrement: bomItem.totalNeeded } }
@@ -61,7 +62,6 @@ export async function logProduction({
 }
 
 export async function getProductionLogs(businessId?: string) {
-    // @ts-ignore - Temporary bypass for Prisma generation lock on Windows
     return await prisma.productionLog.findMany({
         where: businessId ? { businessId } : {},
         orderBy: { date: 'desc' }
@@ -70,9 +70,11 @@ export async function getProductionLogs(businessId?: string) {
 
 export async function clearProductionLogs(businessId?: string) {
     try {
-        // @ts-ignore - Temporary bypass for Prisma generation lock on Windows
         await prisma.productionLog.deleteMany({
-            where: businessId ? { businessId } : {}
+            where: {
+                ...(businessId ? { businessId } : {}),
+                isManager: false
+            }
         });
         revalidatePath('/admin/production/roster');
         return { success: true };
@@ -88,10 +90,10 @@ export async function resetShiftLogs(date: string, businessId?: string) {
         const endOfDay = new Date(date);
         endOfDay.setHours(23, 59, 59, 999);
 
-        // @ts-ignore
         const deleted = await prisma.productionLog.deleteMany({
             where: {
                 ...(businessId ? { businessId } : {}),
+                isManager: false,
                 date: { gte: startOfDay, lte: endOfDay }
             }
         });
@@ -122,13 +124,13 @@ export async function logDailyProduction(data: {
 }) {
     try {
         // 1. Record the Log
-        // @ts-ignore
         const log = await prisma.productionLog.create({
             data: {
                 businessId: data.businessId || null,
                 workerId: data.workerId,
                 articleName: data.articleName,
                 isFinal: true,
+                isManager: true,
                 procName: 'FINISHED_GOODS',
                 orderId: 'MANUAL',
                 quantity: data.quantity,
@@ -147,12 +149,11 @@ export async function logDailyProduction(data: {
         });
 
         // 2. Automate Inventory Deduction (BOM)
-        // @ts-ignore
         const article = await prisma.productionArticle.findFirst({
             where: { 
                 name: data.articleName,
                 businessId: data.businessId || null,
-                isManager: false
+                isManager: true
             },
             include: { bom: true }
         });
@@ -193,7 +194,6 @@ export async function logDailyProduction(data: {
 
 export async function deleteProductionLog(id: string) {
     try {
-        // @ts-ignore
         await prisma.productionLog.delete({
             where: { id }
         });
@@ -224,6 +224,7 @@ export async function getDailyProductionLogs(workerId: string, date: string) {
         return await prisma.productionLog.findMany({
             where: {
                 workerId,
+                isManager: true,
                 date: {
                     gte: startOfDay,
                     lte: endOfDay
@@ -247,6 +248,8 @@ export async function getAdminDailyProductionLogs(businessId: string | undefined
         return await prisma.productionLog.findMany({
             where: {
                 ...(businessId ? { businessId } : {}),
+                isManager: true,
+                orderId: 'MANUAL',  // Only manager-dashboard entries (not Production Planner entries)
                 date: {
                     gte: startOfDay,
                     lte: endOfDay
@@ -261,7 +264,6 @@ export async function getAdminDailyProductionLogs(businessId: string | undefined
 }
 export async function getArticleCumulativeYield(articleName: string, businessId?: string) {
     try {
-        // @ts-ignore
         const aggregations = await prisma.productionLog.aggregate({
             where: { 
                 articleName,
@@ -272,7 +274,6 @@ export async function getArticleCumulativeYield(articleName: string, businessId?
                 quantity: true
             }
         });
-        // @ts-ignore
         return aggregations._sum?.quantity || 0;
     } catch (error) {
         console.error('Failed to fetch cumulative yield:', error);

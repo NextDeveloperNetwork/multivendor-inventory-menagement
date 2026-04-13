@@ -28,7 +28,12 @@ export default function ProductionReadyClient({ businessId }: { businessId?: str
                     results.push(...d.map((x: any) => ({ ...x, businessId: bid })));
                 }
             }
-            return results;
+            // Deduplicate by ID to prevent infinite accumulation
+            const unique = new Map();
+            results.forEach(item => {
+                if (!unique.has(item.id)) unique.set(item.id, item);
+            });
+            return Array.from(unique.values());
         };
 
         if (!businessId) {
@@ -189,8 +194,8 @@ export default function ProductionReadyClient({ businessId }: { businessId?: str
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {readyInventory.map((item) => (
-                                    <tr key={item.id} className="hover:bg-sky-50/30 transition-colors group">
+                                {readyInventory.map((item, index) => (
+                                    <tr key={`${item.id}-${index}`} className="hover:bg-sky-50/30 transition-colors group">
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-slate-50 rounded-xl text-slate-400 group-hover:bg-sky-100 group-hover:text-sky-600 transition-all">
