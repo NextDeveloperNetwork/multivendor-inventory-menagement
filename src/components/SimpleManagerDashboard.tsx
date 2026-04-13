@@ -330,7 +330,7 @@ function ProductionSheet({
                                     <option value="">— ZGJIDH NGA LISTA —</option>
                                     {filtered.map(a => (
                                         <option key={a.id} value={a.id}>
-                                            {a.name} · {a.sku || 'No SKU'} · MJES: {a.stockQuantity - (a.totalYield || 0)} {a.unit} (GOAL: {a.stockQuantity})
+                                            {a.name} · {a.sku || 'NO/NR'} · SASI: {a.stockQuantity - (a.totalYield || 0)} {a.unit} (GOAL: {a.stockQuantity})
                                         </option>
                                     ))}
                                 </select>
