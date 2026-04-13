@@ -173,6 +173,9 @@ export async function logDailyProduction(data: {
             }
 
             // Optionally increase the finished good's own stock if it's tracked
+            // We disabled this to prevent altering the "Initial Qty" target value
+            // in the manager inventory dashboard.
+            /*
             await prisma.productionArticle.update({
                 where: { id: article.id },
                 data: {
@@ -181,6 +184,7 @@ export async function logDailyProduction(data: {
                     }
                 }
             });
+            */
         }
 
         revalidatePath('/production');
