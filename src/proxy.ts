@@ -22,6 +22,10 @@ export default withAuth(
             return NextResponse.redirect(new URL('/shop', req.url));
         }
 
+        if ((token as any)?.role === 'SALES_MANAGER' && req.nextUrl.pathname === '/') {
+            return NextResponse.redirect(new URL('/sales', req.url));
+        }
+
         const allowedPaths = (token as any)?.allowedPaths || [];
         if (allowedPaths.length > 0) {
             const currentPath = req.nextUrl.pathname;
@@ -48,5 +52,5 @@ export default withAuth(
 );
 
 export const config = {
-    matcher: ['/admin/:path*', '/shop/:path*', '/login', '/register'],
+    matcher: ['/', '/sales/:path*', '/admin/:path*', '/shop/:path*', '/login', '/register'],
 };

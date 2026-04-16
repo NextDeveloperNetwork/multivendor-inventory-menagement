@@ -67,6 +67,14 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         if (filter === 'shops') return product.inventory.some((inv: any) => inv.shopId !== null && inv.quantity > 0);
         if (filter === 'specific_shop' && shopId) return product.inventory.some((inv: any) => inv.shopId === shopId && inv.quantity > 0);
         if (filter === 'specific_warehouse' && warehouseId) return product.inventory.some((inv: any) => inv.warehouseId === warehouseId && inv.quantity > 0);
+        if (filter === 'depleted') {
+            const totalQty = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+            return totalQty <= 0;
+        }
+        if (filter === 'in_stock') {
+            const totalQty = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+            return totalQty > 0;
+        }
         return true;
     });
 

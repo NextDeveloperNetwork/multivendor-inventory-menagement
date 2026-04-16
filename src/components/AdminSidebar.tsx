@@ -24,7 +24,8 @@ import {
     Cpu,
     ChevronLeft,
     ChevronRight,
-    ClipboardList
+    ClipboardList,
+    ShoppingCart
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect } from 'react';
@@ -64,6 +65,14 @@ const menuGroups = [
         items: [
             { href: '/admin/production/manager-inventory', label: 'Manager Inventory', icon: Package },
             { href: '/admin/production/tracking', label: 'Managers Output', icon: Activity },
+        ],
+    },
+    {
+        label: 'Sales Manager',
+        items: [
+            { href: '/admin/sales-manager-inputs', label: 'Terminal Dispatches', icon: ShoppingCart },
+            { href: '/admin/sales/requests', label: 'Requested Items', icon: ClipboardList },
+            { href: '/admin/sales/debtors', label: 'Debtors Ledger', icon: Landmark },
         ],
     },
     {

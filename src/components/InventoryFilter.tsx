@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Filter, Store, Warehouse } from 'lucide-react';
+import { Filter, Store, Warehouse, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface InventoryFilterProps {
     currentFilter: string;
@@ -56,9 +56,21 @@ export default function InventoryFilter({
             </button>
             <button
                 onClick={() => updateFilter('shops')}
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${currentFilter === 'shops' ? 'bg-black text-white shadow-xl translate-y-[-1px]' : 'bg-white text-blue-400 border border-blue-100 hover:border-blue-400'}`}
+                className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${currentFilter === 'shops' ? 'bg-black text-white shadow-xl translate-y-[-1px]' : 'bg-white text-blue-400 border border-blue-100 hover:border-blue-400'}`}
             >
                 <Store size={14} /> Shops
+            </button>
+            <button
+                onClick={() => updateFilter('in_stock')}
+                className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${currentFilter === 'in_stock' ? 'bg-emerald-600 text-white shadow-xl translate-y-[-1px]' : 'bg-white text-emerald-400 border border-emerald-100 hover:border-emerald-400'}`}
+            >
+                <CheckCircle2 size={14} /> In Stock
+            </button>
+            <button
+                onClick={() => updateFilter('depleted')}
+                className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${currentFilter === 'depleted' ? 'bg-rose-600 text-white shadow-xl translate-y-[-1px]' : 'bg-white text-rose-400 border border-rose-100 hover:border-rose-400'}`}
+            >
+                <AlertTriangle size={14} /> Depleted
             </button>
 
             <div className="h-4 w-px bg-blue-100 mx-2 self-center hidden md:block" />

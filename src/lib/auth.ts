@@ -105,11 +105,12 @@ export const authOptions: NextAuthOptions = {
             return token;
         },
         async session({ session, token }) {
-            // Check if token was wiped
+            // If token was wiped or is invalid, return a session without user data
             if (!token || !token.id || token.sessionVersion === -1) {
-                return null as any;
+                return { expires: session.expires } as any;
             }
-            if (token) {
+            
+            if (session.user) {
                 (session.user as any).id = token.id;
                 (session.user as any).role = token.role;
                 (session.user as any).shopId = token.shopId;

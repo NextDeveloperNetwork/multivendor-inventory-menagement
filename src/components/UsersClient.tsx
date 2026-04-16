@@ -153,6 +153,7 @@ export default function UsersClient({ initialUsers, shops, transporters }: Users
                                     user.role === 'ADMIN' ? 'bg-amber-50 text-amber-600 border-amber-200' : 
                                     user.role === 'TRANSPORTER' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 
                                     user.role === 'PRODUCTION_MANAGER' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 
+                                    user.role === 'SALES_MANAGER' ? 'bg-rose-50 text-rose-600 border-rose-200' :
                                     'bg-blue-50 text-blue-600 border-blue-200'
                                 }`}>
                                     <Shield size={10} />
@@ -243,6 +244,7 @@ export default function UsersClient({ initialUsers, shops, transporters }: Users
                                         <option value="ADMIN">System Administrator</option>
                                         <option value="TRANSPORTER">Logistics Personnel</option>
                                         <option value="PRODUCTION_MANAGER">Production Manager</option>
+                                        <option value="SALES_MANAGER">Sales Manager</option>
                                     </select>
                                 </div>
                                 <div>

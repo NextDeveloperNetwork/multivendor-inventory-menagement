@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 export default async function Home() {
     const session = await getServerSession(authOptions);
 
-    if (session) {
+    if (session?.user) {
         const user = session.user as any;
         if (user.role === 'ADMIN') {
             redirect('/admin');
@@ -14,6 +14,8 @@ export default async function Home() {
             redirect('/transporter');
         } else if (user.role === 'PRODUCTION_MANAGER') {
             redirect('/production');
+        } else if (user.role === 'SALES_MANAGER') {
+            redirect('/sales');
         } else {
             redirect('/shop');
         }

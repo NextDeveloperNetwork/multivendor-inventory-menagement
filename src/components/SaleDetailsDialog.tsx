@@ -37,8 +37,8 @@ export default function SaleDetailsDialog({ sale, children }: SaleDetailsDialogP
         doc.setFontSize(10);
         doc.setTextColor(100);
         doc.text(`Receipt Ref: #${sale.number || sale.id.slice(-6).toUpperCase()}`, 14, 30);
-        doc.text(`Shop: ${sale.shop.name}`, 14, 35);
-        doc.text(`Cashier: ${sale.user.name}`, 14, 40);
+        doc.text(`Location: ${sale.shop?.name || sale.warehouse?.name || 'Direct Sale'}`, 14, 35);
+        doc.text(`Issuer: ${sale.user.name}`, 14, 40);
         doc.text(`Date: ${formatDateTime(sale.date)}`, 14, 45);
         doc.text(`Printed: ${format(new Date(), 'PPP p')}`, 14, 50);
 
@@ -112,8 +112,12 @@ export default function SaleDetailsDialog({ sale, children }: SaleDetailsDialogP
                                 <Store size={12} className="text-slate-900" /> Node Origin
                             </label>
                             <div className="pl-5 border-l-2 border-slate-200">
-                                <p className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tighter">{sale.shop.name}</p>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest leading-none">Retail Terminal</p>
+                                <p className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tighter">
+                                    {sale.shop?.name || sale.warehouse?.name || 'Central Command'}
+                                </p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest leading-none">
+                                    {sale.shop ? 'Retail Terminal' : 'Warehouse Dispatch'}
+                                </p>
                             </div>
                         </div>
 

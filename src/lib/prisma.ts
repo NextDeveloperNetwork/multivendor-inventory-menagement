@@ -1,3 +1,4 @@
+// Prisma Client Engine - Synchronized with new schema
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
 
