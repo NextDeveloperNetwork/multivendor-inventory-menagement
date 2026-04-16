@@ -58,6 +58,8 @@ export const authOptions: NextAuthOptions = {
                         role: user.role,
                         shopId: user.shopId,
                         transporterId: (user as any).transporterId,
+                        sessionVersion: (user as any).sessionVersion,
+                        allowedPaths: (user as any).allowedPaths,
                     };
                 } catch (error) {
                     console.error('[AUTH] 💥 DATABASE ERROR during login:', error);
@@ -73,15 +75,47 @@ export const authOptions: NextAuthOptions = {
                 token.role = user.role;
                 token.shopId = (user as any).shopId;
                 token.transporterId = (user as any).transporterId;
+                token.sessionVersion = (user as any).sessionVersion;
+                token.allowedPaths = (user as any).allowedPaths || [];
+                return token;
             }
+
+            // Real-time block check & allowedPaths update
+            if (token.id) {
+                try {
+                    // We must fetch raw if standard find doesn't type check
+                    const rawUser = await prisma.user.findUnique({
+                        where: { id: token.id as string }
+                    }) as any;
+                    
+                    if (!rawUser || rawUser.sessionVersion !== token.sessionVersion) {
+                        // Invalidate token stringly
+                        token.id = '';
+                        token.role = 'USER' as any;
+                        token.sessionVersion = -1;
+                    } else {
+                        token.allowedPaths = rawUser.allowedPaths;
+                        token.role = rawUser.role;
+                    }
+                } catch (e) {
+                    // Fallback to token if DB unreachable
+                }
+            }
+
             return token;
         },
         async session({ session, token }) {
+            // Check if token was wiped
+            if (!token || !token.id || token.sessionVersion === -1) {
+                return null as any;
+            }
             if (token) {
                 (session.user as any).id = token.id;
                 (session.user as any).role = token.role;
                 (session.user as any).shopId = token.shopId;
                 (session.user as any).transporterId = token.transporterId;
+                (session.user as any).sessionVersion = token.sessionVersion;
+                (session.user as any).allowedPaths = token.allowedPaths;
             }
             return session;
         },

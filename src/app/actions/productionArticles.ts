@@ -21,7 +21,7 @@ export async function getProductionArticles(businessId?: string, source?: 'ADMIN
 
         // Fetch yields for all articles and processes
         const yields = await prisma.productionLog.groupBy({
-            by: ['articleName', 'procName'],
+            by: ['articleId', 'articleName', 'procName'],
             where: {
                 ...(businessId ? { businessId } : {}),
                 isManager: source === 'MANAGER'
@@ -31,46 +31,59 @@ export async function getProductionArticles(businessId?: string, source?: 'ADMIN
             }
         });
 
-        // Create a fast lookup map: articleName -> { procName -> totalYield }
-        const yieldMap = new Map<string, Map<string, number>>();
+        // Create fast lookup maps
+        const yieldMapById = new Map<string, Map<string, number>>();
+        const yieldMapByNameNullId = new Map<string, Map<string, number>>();
+
         yields.forEach((y: any) => {
-            if (!yieldMap.has(y.articleName)) yieldMap.set(y.articleName, new Map());
-            yieldMap.get(y.articleName)!.set(y.procName, y._sum.quantity || 0);
+            if (y.articleId) {
+                if (!yieldMapById.has(y.articleId)) yieldMapById.set(y.articleId, new Map());
+                const pMap = yieldMapById.get(y.articleId)!;
+                pMap.set(y.procName, (pMap.get(y.procName) || 0) + (y._sum.quantity || 0));
+            } else {
+                if (!yieldMapByNameNullId.has(y.articleName)) yieldMapByNameNullId.set(y.articleName, new Map());
+                const pMap = yieldMapByNameNullId.get(y.articleName)!;
+                pMap.set(y.procName, (pMap.get(y.procName) || 0) + (y._sum.quantity || 0));
+            }
         });
+
+        const getProcYield = (a: any, procName: string) => {
+            const byId = yieldMapById.get(a.id)?.get(procName) || 0;
+            const byNameNull = yieldMapByNameNullId.get(a.name)?.get(procName) || 0;
+            return byId + byNameNull;
+        };
+
         return articles.map(a => {
             let finalYield = 0;
             let startedYield = 0;
             
             if (a.isManager) {
-                const articleYields = yieldMap.get(a.name);
-                if (articleYields) {
-                    let total = 0;
-                    articleYields.forEach(qty => total += qty);
-                    finalYield = total;
-                    startedYield = total;
-                }
+                const procsId = yieldMapById.get(a.id)?.keys() || [];
+                const procsName = yieldMapByNameNullId.get(a.name)?.keys() || [];
+                const allProcs = Array.from(new Set([...Array.from(procsId), ...Array.from(procsName)]));
+                let total = 0;
+                for (const p of allProcs) total += getProcYield(a, p);
+                finalYield = total;
+                startedYield = total;
             } else if (a.processes.length > 0) {
                 const firstProcess = a.processes[0];
                 const lastProcess = a.processes[a.processes.length - 1]; // Already ordered by sequence ascending
-                const articleYields = yieldMap.get(a.name);
                 
-                if (articleYields) {
-                    if (lastProcess) {
-                        finalYield = articleYields.get(lastProcess.processName) || 0;
-                    }
-                    if (firstProcess) {
-                        startedYield = articleYields.get(firstProcess.processName) || 0;
-                    }
-                }
+                if (lastProcess) finalYield = getProcYield(a, lastProcess.processName);
+                if (firstProcess) startedYield = getProcYield(a, firstProcess.processName);
             } else {
                 // Fallback if the article has no processes defined but logs exist
-                const articleYields = yieldMap.get(a.name);
-                if (articleYields) {
-                    let maxOutput = 0;
-                    articleYields.forEach(val => { if (val > maxOutput) maxOutput = val; });
-                    finalYield = maxOutput;
-                    startedYield = maxOutput;
+                const procsId = yieldMapById.get(a.id)?.keys() || [];
+                const procsName = yieldMapByNameNullId.get(a.name)?.keys() || [];
+                const allProcs = Array.from(new Set([...Array.from(procsId), ...Array.from(procsName)]));
+                
+                let maxOutput = 0;
+                for (const p of allProcs) {
+                    const y = getProcYield(a, p);
+                    if (y > maxOutput) maxOutput = y;
                 }
+                finalYield = maxOutput;
+                startedYield = maxOutput;
             }
 
             return {

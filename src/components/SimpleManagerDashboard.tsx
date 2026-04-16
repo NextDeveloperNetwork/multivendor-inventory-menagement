@@ -202,7 +202,7 @@ function ProductionSheet({
     // Load cumulative when article selected
     useEffect(() => {
         if (selectedArticle) {
-            getArticleCumulativeYield(selectedArticle.name, businessId).then(setPrevTotal);
+            getArticleCumulativeYield(selectedArticle.name, businessId, selectedArticle.id).then(setPrevTotal);
         } else {
             setPrevTotal(0);
         }
@@ -233,7 +233,9 @@ function ProductionSheet({
             await logDailyProduction({
                 businessId,
                 workerId: userId,
+                articleId: selectedArticle.id,
                 articleName: selectedArticle.name,
+                sku: selectedArticle.sku || undefined,
                 quantity: calculatedYield,
                 boxes: parseInt(boxes) || 0,
                 date: selectedDate,

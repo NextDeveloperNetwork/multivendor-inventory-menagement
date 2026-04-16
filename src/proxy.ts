@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export default withAuth(
     function proxy(req) {
         const token = req.nextauth.token;
-        const isAuth = !!token;
+        const isAuth = !!token && !!token.id;
         const isAuthPage = req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/register');
 
         if (isAuthPage) {
@@ -22,8 +22,16 @@ export default withAuth(
             return NextResponse.redirect(new URL('/shop', req.url));
         }
 
-        // User is logged in but tries to access shop without being assigned?
-        // Use logic here or in page. For now, allow access, page will handle "No Shop Assigned".
+        const allowedPaths = (token as any)?.allowedPaths || [];
+        if (allowedPaths.length > 0) {
+            const currentPath = req.nextUrl.pathname;
+            // Strict routing: they can only access paths explicitly allowed via their string path prefix
+            const isAllowed = allowedPaths.some((p: string) => currentPath === p || currentPath.startsWith(p + '/'));
+            if (!isAllowed) {
+                const fallback = allowedPaths[0] || '/';
+                return NextResponse.redirect(new URL(fallback, req.url));
+            }
+        }
     },
     {
         callbacks: {
@@ -33,7 +41,7 @@ export default withAuth(
                 if (req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/register')) {
                     return true;
                 }
-                return !!token;
+                return !!token && !!token.id;
             },
         },
     }

@@ -26,13 +26,16 @@ export async function updateUser(id: string, formData: FormData) {
     const shopId = formData.get('shopId') as string;
     const transporterId = formData.get('transporterId') as string;
     const password = formData.get('password') as string;
+    const allowedPathsRaw = formData.get('allowedPaths') as string;
+    const allowedPaths = allowedPathsRaw ? allowedPathsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
 
     const updateData: any = {
         name,
         email,
         role,
         shopId: shopId || null,
-        transporterId: transporterId || null
+        transporterId: transporterId || null,
+        allowedPaths
     };
 
     if (password && password.trim() !== '') {
@@ -79,5 +82,29 @@ export async function deleteUser(id: string) {
         return { success: true };
     } catch (e) {
         return { error: 'Failed to delete user' };
+    }
+}
+
+export async function forceLogoutUser(id: string) {
+    const session = await getServerSession(authOptions);
+    if ((session?.user as any)?.role !== 'ADMIN') return { error: 'Unauthorized' };
+
+    try {
+        await prisma.user.update({
+            where: { id },
+            data: { sessionVersion: { increment: 1 } }
+        });
+
+        await logActivity({
+            action: 'USER_FORCED_LOGOUT',
+            entityType: 'USER',
+            entityId: id,
+            details: `Admin forced session termination for user`
+        });
+
+        revalidatePath('/admin/users');
+        return { success: true };
+    } catch (e) {
+        return { error: 'Failed to force log out' };
     }
 }

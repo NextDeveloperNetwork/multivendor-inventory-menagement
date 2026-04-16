@@ -15,7 +15,7 @@ import {
     ShieldAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { updateUser, deleteUser } from '@/app/actions/users';
+import { updateUser, deleteUser, forceLogoutUser } from '@/app/actions/users';
 import {
     Dialog,
     DialogContent,
@@ -67,6 +67,18 @@ export default function UsersClient({ initialUsers, shops, transporters }: Users
             setUsers(users.filter(u => u.id !== userToDelete.id));
         } else {
             toast.error(res.error || "Deactivation failure");
+        }
+        setLoading(false);
+    };
+
+    const handleForceLogout = async (userId: string) => {
+        if (!confirm("Force terminate this user's session globally?")) return;
+        setLoading(true);
+        const res = await forceLogoutUser(userId);
+        if (res.success) {
+            toast.success("User abruptly disconnected & session cleared!");
+        } else {
+            toast.error(res.error || "Force logout failed");
         }
         setLoading(false);
     };
@@ -152,6 +164,16 @@ export default function UsersClient({ initialUsers, shops, transporters }: Users
                                     {user.shop?.name || 'UNASSIGNED_BRANCH'}
                                 </div>
                             </div>
+                            
+                            {/* FORCE LOGOUT BUTTON */}
+                            <div className="pt-2">
+                                <button 
+                                    onClick={() => handleForceLogout(user.id)}
+                                    className="w-full text-center text-[9px] font-black uppercase tracking-widest border border-rose-200 text-rose-500 bg-rose-50 py-2 rounded-xl transition-all hover:bg-rose-600 hover:text-white"
+                                >
+                                    Force Master Logout
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -198,6 +220,16 @@ export default function UsersClient({ initialUsers, shops, transporters }: Users
                                     placeholder="Leave blank to keep current password"
                                     className="w-full h-12 px-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black focus:border-blue-600 focus:bg-white transition-all outline-none text-xs font-mono placeholder:text-slate-300 placeholder:normal-case placeholder:font-medium placeholder:not-italic"
                                 />
+                            </div>
+                            <div>
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1 italic">Path Strict Enforcements (Comma Separated)</label>
+                                <input
+                                    name="allowedPaths"
+                                    defaultValue={editingUser?.allowedPaths?.join(', ') || ''}
+                                    placeholder="e.g. /production, /admin/inventory"
+                                    className="w-full h-12 px-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black focus:border-blue-600 focus:bg-white transition-all outline-none text-[10px] font-mono uppercase placeholder:normal-case"
+                                />
+                                <p className="text-[8px] text-slate-400 mt-1 uppercase tracking-widest px-2 italic font-black">Leave empty to grant unlimited access to base role</p>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>

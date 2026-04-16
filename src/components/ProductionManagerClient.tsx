@@ -155,8 +155,11 @@ export default function ProductionManagerClient({ user, todaysLogsData, business
         // 4. Submit specifically to the Production Ledger (PostgreSQL) for Admin review.
         try {
             await logDailyProduction({
+                businessId,
                 workerId: user.id || '',
+                articleId: product.id,
                 articleName: product.name,
+                sku: product.sku || undefined,
                 quantity: quantity,
                 boxes: boxes,
             });

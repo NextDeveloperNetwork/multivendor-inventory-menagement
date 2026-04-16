@@ -14,7 +14,9 @@ export async function logProduction({
     quantity,
     date,
     bomDeductions,
-    isManager = false
+    isManager = false,
+    articleId,
+    sku
 }: {
     businessId?: string;
     workerId: string;
@@ -26,6 +28,8 @@ export async function logProduction({
     date?: string;
     bomDeductions?: { accessoryId: string, totalNeeded: number }[];
     isManager?: boolean;
+    articleId?: string;
+    sku?: string;
 }) {
     try {
         const created = await prisma.productionLog.create({
@@ -34,6 +38,8 @@ export async function logProduction({
                 workerId,
                 orderId,
                 articleName,
+                articleId,
+                sku,
                 procName,
                 isFinal,
                 isManager,
@@ -117,7 +123,9 @@ export async function resetShiftLogs(date: string, businessId?: string) {
 export async function logDailyProduction(data: {
     businessId?: string;
     workerId: string;
+    articleId: string;
     articleName: string;
+    sku?: string;
     quantity: number;
     boxes: number;
     date?: string;
@@ -129,6 +137,8 @@ export async function logDailyProduction(data: {
                 businessId: data.businessId || null,
                 workerId: data.workerId,
                 articleName: data.articleName,
+                articleId: data.articleId,
+                sku: data.sku,
                 isFinal: true,
                 isManager: true,
                 procName: 'FINISHED_GOODS',
@@ -151,7 +161,7 @@ export async function logDailyProduction(data: {
         // 2. Automate Inventory Deduction (BOM)
         const article = await prisma.productionArticle.findFirst({
             where: { 
-                name: data.articleName,
+                id: data.articleId,
                 businessId: data.businessId || null,
                 isManager: true
             },
@@ -266,11 +276,11 @@ export async function getAdminDailyProductionLogs(businessId: string | undefined
         return [];
     }
 }
-export async function getArticleCumulativeYield(articleName: string, businessId?: string) {
+export async function getArticleCumulativeYield(articleName: string, businessId?: string, articleId?: string) {
     try {
         const aggregations = await prisma.productionLog.aggregate({
             where: { 
-                articleName,
+                ...(articleId ? { articleId } : { articleName }),
                 isFinal: true,
                 ...(businessId ? { businessId } : {})
             },
