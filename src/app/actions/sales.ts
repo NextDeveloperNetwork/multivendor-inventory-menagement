@@ -177,17 +177,31 @@ export async function deleteSale(id: string) {
         await prisma.$transaction(async (tx) => {
             // 2. Revert Inventory
             for (const item of sale.items) {
-                await tx.inventory.update({
-                    where: {
-                        productId_shopId: {
-                            productId: item.productId,
-                            shopId: sale.shopId
+                if (sale.shopId) {
+                    await tx.inventory.update({
+                        where: {
+                            productId_shopId: {
+                                productId: item.productId,
+                                shopId: sale.shopId
+                            }
+                        },
+                        data: {
+                            quantity: { increment: item.quantity }
                         }
-                    },
-                    data: {
-                        quantity: { increment: item.quantity }
-                    }
-                });
+                    });
+                } else if (sale.warehouseId) {
+                    await tx.inventory.update({
+                        where: {
+                            productId_warehouseId: {
+                                productId: item.productId,
+                                warehouseId: sale.warehouseId
+                            }
+                        },
+                        data: {
+                            quantity: { increment: item.quantity }
+                        }
+                    });
+                }
             }
 
             // 3. Delete Sale Items
