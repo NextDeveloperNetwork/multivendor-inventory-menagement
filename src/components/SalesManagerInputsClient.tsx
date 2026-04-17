@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState } from 'react';
-import { ShoppingCart, Package, User, Clock, Warehouse, Trash2, Pencil, Calendar, ChevronRight, ChevronLeft, X, FileText, Download } from 'lucide-react';
+import { ShoppingCart, Package, User, Clock, Warehouse, Trash2, ChevronRight, ChevronLeft, FileText, Download } from 'lucide-react';
 import SaleDetailsDialog from './SaleDetailsDialog';
+import ArticleReportDialog from './ArticleReportDialog';
 import { deleteSalesManagerSale } from '@/app/actions/salesManager';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -64,46 +66,7 @@ export default function SalesManagerInputsClient({ initialSales, currencySymbol 
         toast.success('PDF Report Generated');
     };
 
-    const generateProductPDF = () => {
-        const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.text('Product Movement Report', 14, 22);
-        doc.setFontSize(11);
-        doc.setTextColor(100);
-        doc.text(`Date: ${dateFilter || 'All Records'}`, 14, 30);
-        
-        // Aggregate by product
-        const productStats: Record<string, { name: string, qty: number, total: number }> = {};
-        filteredSales.forEach(sale => {
-            sale.items.forEach((item: any) => {
-                if (!productStats[item.productId]) {
-                    productStats[item.productId] = { name: item.product.name, qty: 0, total: 0 };
-                }
-                productStats[item.productId].qty += item.quantity;
-                productStats[item.productId].total += (item.quantity * Number(item.price));
-            });
-        });
 
-        const tableData = Object.values(productStats)
-            .sort((a, b) => b.qty - a.qty)
-            .map(p => [
-                p.name,
-                p.qty.toString(),
-                `${currencySymbol}${(p.total / p.qty).toFixed(2)}`,
-                `${currencySymbol}${p.total.toLocaleString()}`
-            ]);
-
-        autoTable(doc, {
-            startY: 40,
-            head: [['Product Name', 'Total Qty', 'Avg Price', 'Total Sales']],
-            body: tableData,
-            theme: 'grid',
-            headStyles: { fillColor: [37, 99, 235] } // Blue-600
-        });
-
-        doc.save(`Product_Report_${dateFilter || 'Export'}.pdf`);
-        toast.success('Product Report Generated');
-    };
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this sale? This will restore the stock to the warehouse.')) return;
@@ -167,12 +130,11 @@ export default function SalesManagerInputsClient({ initialSales, currencySymbol 
                         <FileText size={14} /> Trx Report
                     </button>
 
-                    <button 
-                        onClick={generateProductPDF}
-                        className="flex items-center justify-center gap-2 px-5 h-12 md:h-11 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-200"
-                    >
-                        <Package size={14} /> Article Report
-                    </button>
+                    <ArticleReportDialog sales={sales} currencySymbol={currencySymbol}>
+                        <button className="flex items-center justify-center gap-2 px-5 h-12 md:h-11 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-200">
+                            <Package size={14} /> Article Report
+                        </button>
+                    </ArticleReportDialog>
                 </div>
             </div>
 

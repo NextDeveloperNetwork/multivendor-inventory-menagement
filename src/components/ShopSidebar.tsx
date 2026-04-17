@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, ShoppingCart, Package, ArrowLeftRight, History, LogOut, Store, X, Wallet } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect } from 'react';
+import { useSidebarManager } from '@/hooks/useSidebarManager';
+import { SidebarPageManager } from './SidebarPageManager';
 
 const menuGroups = [
     {
@@ -38,6 +40,7 @@ interface ShopSidebarProps {
 export function ShopSidebar({ isOpen, setIsOpen }: ShopSidebarProps) {
     const pathname = usePathname();
     const { data: session } = useSession();
+    const { hiddenPages, togglePageVisibility, isHidden, isMounted } = useSidebarManager();
 
     useEffect(() => {
         setIsOpen(false);
@@ -80,40 +83,53 @@ export function ShopSidebar({ isOpen, setIsOpen }: ShopSidebarProps) {
 
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto px-4 pb-4 custom-scrollbar">
-                    {menuGroups.map((group, idx) => (
-                        <div key={group.label}>
-                            <div className={`flex items-center gap-2 ${idx === 0 ? 'mt-2 mb-2' : 'mt-5 mb-2'}`}>
-                                {idx > 0 && <div className="h-px flex-1 bg-slate-100" />}
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1 whitespace-nowrap">
-                                    {group.label}
-                                </span>
-                                <div className="h-px flex-1 bg-slate-100" />
+                    <div className="mb-2 mt-4">
+                        <SidebarPageManager
+                            menuGroups={menuGroups}
+                            hiddenPages={hiddenPages}
+                            togglePageVisibility={togglePageVisibility}
+                        />
+                    </div>
+
+                    {menuGroups.map((group, idx) => {
+                        const visibleItems = group.items.filter(item => isMounted ? !isHidden(item.href) : true);
+                        if (visibleItems.length === 0 && isMounted) return null;
+
+                        return (
+                            <div key={group.label}>
+                                <div className={`flex items-center gap-2 ${idx === 0 ? 'mt-4 mb-2' : 'mt-5 mb-2'}`}>
+                                    {idx > 0 && <div className="h-px flex-1 bg-slate-100" />}
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1 whitespace-nowrap">
+                                        {group.label}
+                                    </span>
+                                    <div className="h-px flex-1 bg-slate-100" />
+                                </div>
+                                <div className="space-y-0.5">
+                                    {visibleItems.map(({ href, label, icon: Icon }) => {
+                                        const active = pathname === href;
+                                        return (
+                                            <Link
+                                                key={href}
+                                                href={href}
+                                                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all group ${
+                                                    active
+                                                        ? 'bg-slate-100 text-slate-900'
+                                                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                                                }`}
+                                            >
+                                                <Icon
+                                                    size={18}
+                                                    strokeWidth={active ? 2.5 : 2}
+                                                    className={active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-600'}
+                                                />
+                                                {label}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                            <div className="space-y-0.5">
-                                {group.items.map(({ href, label, icon: Icon }) => {
-                                    const active = pathname === href;
-                                    return (
-                                        <Link
-                                            key={href}
-                                            href={href}
-                                            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all group ${
-                                                active
-                                                    ? 'bg-slate-100 text-slate-900'
-                                                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                                            }`}
-                                        >
-                                            <Icon
-                                                size={18}
-                                                strokeWidth={active ? 2.5 : 2}
-                                                className={active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-600'}
-                                            />
-                                            {label}
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </nav>
 
                 {/* User Footer */}

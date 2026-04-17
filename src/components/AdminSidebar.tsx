@@ -23,13 +23,14 @@ import {
     PackagePlus,
     Cpu,
     ChevronLeft,
-    ChevronRight,
     ClipboardList,
     ShoppingCart
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect } from 'react';
 import { BusinessSelector } from './BusinessSelector';
+import { useSidebarManager } from '@/hooks/useSidebarManager';
+import { SidebarPageManager } from './SidebarPageManager';
 
 const menuGroups = [
     {
@@ -112,6 +113,7 @@ interface AdminSidebarProps {
 export function AdminSidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }: AdminSidebarProps) {
     const pathname = usePathname();
     const { data: session } = useSession();
+    const { hiddenPages, togglePageVisibility, isHidden, isMounted } = useSidebarManager();
 
     useEffect(() => {
         setIsOpen(false);
@@ -166,10 +168,28 @@ export function AdminSidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }:
 
                 {/* Navigation */}
                 <nav className={`flex-1 overflow-y-auto pb-4 custom-scrollbar ${isCollapsed ? 'px-2' : 'px-4'}`}>
+                    <div className="mb-2 mt-4 px-1">
+                        <SidebarPageManager
+                            menuGroups={menuGroups}
+                            hiddenPages={hiddenPages}
+                            togglePageVisibility={togglePageVisibility}
+                            isCollapsed={isCollapsed}
+                        />
+                    </div>
+
                     {menuGroups.map((group, groupIndex) => {
                         const isFirstGroup = groupIndex === 0;
+                        
+                        // Filter out hidden items
+                        const visibleItems = group.items.filter(item => !isHidden(item.href));
+                        
+                        // Don't render the section if all items are hidden
+                        if (visibleItems.length === 0 && isMounted) {
+                            return null;
+                        }
+
                         return (
-                            <div key={group.label}>
+                            <div key={group.label} className="animate-in fade-in duration-300">
                                 {/* Divider + Section Label */}
                                 <div className={`flex items-center gap-3 ${isFirstGroup ? 'mt-4 mb-3' : 'mt-6 mb-3'} ${isCollapsed ? 'justify-center mx-2' : ''}`}>
                                     {!isCollapsed && (
@@ -182,7 +202,7 @@ export function AdminSidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }:
 
                                 {/* Group Items */}
                                 <div className="space-y-1">
-                                    {group.items.map((item) => {
+                                    {visibleItems.map((item) => {
                                         const Icon = item.icon;
                                         const isActive = pathname === item.href;
 

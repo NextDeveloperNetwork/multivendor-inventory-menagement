@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
+import { useSidebarManager } from '@/hooks/useSidebarManager';
+import { SidebarPageManager } from './SidebarPageManager';
 
 const menuItems = [
     { title: 'Sales Terminal',  href: '/sales',          icon: ShoppingCart,  description: 'Direct warehouse dispatches' },
@@ -19,6 +21,18 @@ const menuItems = [
 export default function SalesManagerSidebar() {
     const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const { hiddenPages, togglePageVisibility, isHidden, isMounted } = useSidebarManager();
+
+    const pageManagerGroups = [
+        {
+            label: 'Sales Menu',
+            items: menuItems.map(item => ({
+                href: item.href,
+                label: item.title,
+                icon: item.icon
+            }))
+        }
+    ];
 
     return (
         <>
@@ -42,7 +56,16 @@ export default function SalesManagerSidebar() {
                     <div className="px-4 py-3">
                         <p className="text-[8px] font-black text-slate-600 uppercase tracking-[0.4em]">OPERATIONAL NODES</p>
                     </div>
-                    {menuItems.map((item) => {
+                    
+                    <div className="px-1 mb-2 mt-2">
+                        <SidebarPageManager
+                            menuGroups={pageManagerGroups}
+                            hiddenPages={hiddenPages}
+                            togglePageVisibility={togglePageVisibility}
+                        />
+                    </div>
+                    
+                    {menuItems.filter(item => isMounted ? !isHidden(item.href) : true).map((item) => {
                         const isActive = pathname === item.href;
                         return (
                             <Link key={item.href} href={item.href} className={cn(
@@ -124,7 +147,16 @@ export default function SalesManagerSidebar() {
                         {/* Nav items */}
                         <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar">
                             <p className="text-[8px] font-black text-slate-700 uppercase tracking-[0.4em] px-4 mb-4">SYSTEM NODES</p>
-                            {menuItems.map((item) => {
+                            
+                            <div className="px-2 mb-4">
+                                <SidebarPageManager
+                                    menuGroups={pageManagerGroups}
+                                    hiddenPages={hiddenPages}
+                                    togglePageVisibility={togglePageVisibility}
+                                />
+                            </div>
+
+                            {menuItems.filter(item => isMounted ? !isHidden(item.href) : true).map((item) => {
                                 const isActive = pathname === item.href;
                                 return (
                                     <Link

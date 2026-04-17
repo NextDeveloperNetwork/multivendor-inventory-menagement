@@ -1,0 +1,17 @@
+﻿
+C:\Users\donate\Documents\PROJECTS\busines menagement\inventory-system\src\components\AdminSidebar.tsx
+  26:5  error  'ChevronRight' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\donate\Documents\PROJECTS\busines menagement\inventory-system\src\components\SidebarPageManager.tsx
+    4:21  error  'Eye' is defined but never used                                  @typescript-eslint/no-unused-vars
+    4:26  error  'EyeOff' is defined but never used                               @typescript-eslint/no-unused-vars
+   13:15  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+   59:47  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  128:80  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  128:94  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\donate\Documents\PROJECTS\busines menagement\inventory-system\src\hooks\useSidebarManager.ts
+  31:22  error  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 8 problems (8 errors, 0 warnings)
+
