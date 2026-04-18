@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings2, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,6 +28,11 @@ export function SidebarPageManager({
     isCollapsed
 }: SidebarPageManagerProps) {
     const [searchQuery, setSearchQuery] = useState('');
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const filteredGroups = menuGroups.map(group => ({
         ...group,
@@ -35,6 +40,20 @@ export function SidebarPageManager({
             item.label.toLowerCase().includes(searchQuery.toLowerCase())
         )
     })).filter(group => group.items.length > 0);
+
+    if (!mounted) {
+        return (
+            <button
+                className={`flex items-center gap-3 rounded-xl text-sm font-semibold transition-all w-full
+                    ${isCollapsed ? 'px-0 py-2.5 justify-center' : 'px-3 py-2.5'} 
+                    text-slate-600 border border-transparent opacity-60`}
+                disabled
+            >
+                <Settings2 size={18} strokeWidth={2} className="text-slate-400 shrink-0" />
+                {!isCollapsed && <span className="truncate">Manage Menu Pages</span>}
+            </button>
+        );
+    }
 
     return (
         <Dialog>

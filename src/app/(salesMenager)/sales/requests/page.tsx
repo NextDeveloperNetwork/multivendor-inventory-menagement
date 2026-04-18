@@ -87,12 +87,12 @@ export default async function SalesRequestsPage() {
                                     </span>
                                     <span className="text-[8px] text-slate-300 font-bold">#{req.id.slice(-6)}</span>
                                 </div>
-                                <p className="text-sm font-black text-slate-900 uppercase italic tracking-tight truncate">{req.product?.name}</p>
+                                <p className="text-sm font-black text-slate-900 uppercase italic tracking-tight truncate">{req.product?.name || req.productName || 'Unnamed Item'}</p>
                                 <div className="flex items-center gap-3 mt-2">
                                     <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">×{req.quantity}</span>
                                     <div className="flex items-center gap-1">
                                         <Clock size={10} className="text-slate-300" />
-                                        <span className="text-[9px] text-slate-400">{new Date(req.createdAt).toLocaleDateString()}</span>
+                                        <span className="text-[9px] text-slate-400" suppressHydrationWarning>{new Date(req.createdAt).toLocaleDateString()}</span>
                                     </div>
                                 </div>
                                 {req.notes && (

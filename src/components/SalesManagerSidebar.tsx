@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
     ShoppingCart, ClipboardList, UserMinus, LogOut,
-    TrendingUp, ChevronRight, X, Menu
+    TrendingUp, ChevronRight, X, Menu, ShoppingBag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
@@ -15,6 +15,7 @@ import { SidebarPageManager } from './SidebarPageManager';
 const menuItems = [
     { title: 'Sales Terminal',  href: '/sales',          icon: ShoppingCart,  description: 'Direct warehouse dispatches' },
     { title: 'Request Items',   href: '/sales/requests', icon: ClipboardList, description: 'Inventory restock requests' },
+    { title: 'Free Sales',      href: '/sales/free-sales',icon: ShoppingBag,   description: 'Manual external sales' },
     { title: 'Debtors Ledger',  href: '/sales/debtors',  icon: UserMinus,     description: 'Outstanding payments' },
 ];
 

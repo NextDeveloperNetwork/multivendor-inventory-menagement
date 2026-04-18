@@ -1,4 +1,4 @@
-// Prisma Client Engine - Synchronized with new schema
+// Prisma Client Engine - Synchronized with new schema v1.1.1 - 2026-04-18
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
 

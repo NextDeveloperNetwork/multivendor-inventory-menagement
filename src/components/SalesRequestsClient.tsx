@@ -27,7 +27,7 @@ export default function SalesRequestsClient({ initialRequests }: SalesRequestsCl
     const filteredRequests = requests.filter((req: any) => {
         const matchesDate = !dateFilter || new Date(req.createdAt).toISOString().split('T')[0] === dateFilter;
         const matchesSearch = !searchQuery || 
-            req.product?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (req.product?.name || req.productName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             req.requestedBy?.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesDate && matchesSearch;
     });
@@ -44,7 +44,7 @@ export default function SalesRequestsClient({ initialRequests }: SalesRequestsCl
         doc.text(`Total Requests: ${filteredRequests.length}`, 14, 36);
 
         const tableData = filteredRequests.map(r => [
-            r.product?.name || 'N/A',
+            r.product?.name || r.productName || 'N/A',
             r.quantity.toString(),
             r.status,
             r.requestedBy || 'N/A',
@@ -171,7 +171,7 @@ export default function SalesRequestsClient({ initialRequests }: SalesRequestsCl
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                                                <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">{req.product?.name}</h4>
+                                                <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">{req.product?.name || req.productName || 'Unnamed Item'}</h4>
                                                 <span className={cn(
                                                     "text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
                                                     req.status === 'PENDING' ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600 shadow-sm shadow-emerald-100"
@@ -181,7 +181,7 @@ export default function SalesRequestsClient({ initialRequests }: SalesRequestsCl
                                             </div>
                                             <div className="flex items-center gap-4 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                                                 <div className="flex items-center gap-1.5"><User size={10} className="text-blue-400" /> {req.requestedBy || 'Manager'}</div>
-                                                <div className="flex items-center gap-1.5"><Clock size={10} className="text-slate-300" /> {new Date(req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                <div className="flex items-center gap-1.5" suppressHydrationWarning><Clock size={10} className="text-slate-300" /> {new Date(req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                             </div>
                                         </div>
                                     </div>

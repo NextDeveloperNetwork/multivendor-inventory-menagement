@@ -8,12 +8,12 @@ import { Package, Send, Plus, Minus, ClipboardList, Loader2, X, ChevronDown } fr
 export default function CreateInventoryRequestForm({ products, userName }: { products: any[], userName: string }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [formData, setFormData] = useState({ productId: '', quantity: 1, notes: '' });
+    const [formData, setFormData] = useState({ productId: '', productName: '', quantity: 1, notes: '' });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.productId || formData.quantity <= 0) {
-            toast.error('Select a product and enter a valid quantity');
+        if (!formData.productName.trim() || formData.quantity <= 0) {
+            toast.error('Enter an item name and valid quantity');
             return;
         }
         setIsLoading(true);
@@ -21,7 +21,7 @@ export default function CreateInventoryRequestForm({ products, userName }: { pro
         setIsLoading(false);
         if (res.success) {
             toast.success('Request submitted to admin');
-            setFormData({ productId: '', quantity: 1, notes: '' });
+            setFormData({ productId: '', productName: '', quantity: 1, notes: '' });
             setIsOpen(false);
             window.location.reload();
         } else {
@@ -70,20 +70,17 @@ export default function CreateInventoryRequestForm({ products, userName }: { pro
                         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
                             {/* Product */}
                             <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Article Selection</label>
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Item Name</label>
                                 <div className="relative">
-                                    <select
-                                        value={formData.productId}
-                                        onChange={e => setFormData({ ...formData, productId: e.target.value })}
+                                    <input
+                                        type="text"
+                                        placeholder="Enter article name..."
+                                        value={formData.productName}
+                                        onChange={e => setFormData({ ...formData, productName: e.target.value })}
                                         required
-                                        className="w-full h-12 bg-slate-50 border border-slate-200 rounded-2xl px-4 pr-10 text-sm font-bold text-slate-900 outline-none focus:border-blue-400 appearance-none uppercase"
-                                    >
-                                        <option value="">Select item...</option>
-                                        {products.map(p => (
-                                            <option key={p.id} value={p.id}>{p.name}{p.sku ? ` (${p.sku})` : ''}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                        className="w-full h-12 bg-slate-50 border border-slate-200 rounded-2xl px-4 text-sm font-bold text-slate-900 outline-none focus:border-blue-400 uppercase"
+                                    />
+                                    <Package size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                 </div>
                             </div>
 

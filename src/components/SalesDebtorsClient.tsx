@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Landmark, Search, Filter, Download, UserMinus, Phone, Calendar, Clock, ArrowUpRight, ChevronLeft, ChevronRight, FileText, X, Trash2, Activity, Rocket, Zap, CheckCircle2 } from 'lucide-react';
+import { Landmark, Search, Filter, Download, UserMinus, Phone, Calendar, Clock, ArrowUpRight, ChevronLeft, ChevronRight, FileText, X, Trash2, Activity, Rocket, Zap, CheckCircle2, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -400,19 +400,41 @@ export default function SalesDebtorsClient({ initialDebtors, currencySymbol = 'A
                         </div>
 
                         {/* Administrative Notes */}
-                        <div>
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600 shadow-sm">
-                                    <FileText size={16} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600 shadow-sm">
+                                        <FileText size={16} />
+                                    </div>
+                                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.3em] italic">GOVERNANCE_NOTES</h4>
                                 </div>
-                                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.3em] italic">GOVERNANCE_NOTES</h4>
+                                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 min-h-[140px] shadow-inner text-sm font-bold text-slate-600 italic leading-relaxed">
+                                    {viewingDebtor?.notes || "NO_RECORDS_FOUND_IN_NODE_METADATA"}
+                                </div>
                             </div>
-                            <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 min-h-[120px] shadow-inner">
-                                {viewingDebtor?.notes ? (
-                                    <p className="text-sm font-bold text-slate-600 italic leading-relaxed">{viewingDebtor.notes}</p>
-                                ) : (
-                                    <p className="text-[10px] font-black text-slate-300 uppercase italic">NO_RECORDS_FOUND_IN_NODE_METADATA</p>
-                                )}
+
+                            <div>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600 shadow-sm">
+                                        <Package size={16} />
+                                    </div>
+                                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.3em] italic">CREDIT_BREAKDOWN</h4>
+                                </div>
+                                <div className="p-4 bg-white rounded-3xl border border-slate-100 shadow-sm max-h-[200px] overflow-y-auto space-y-2">
+                                    {viewingDebtor?.items?.length > 0 ? viewingDebtor.items.map((item: any, i: number) => (
+                                        <div key={i} className="flex items-center justify-between p-3 bg-slate-50/50 rounded-xl border border-slate-50 hover:border-emerald-100 transition-all">
+                                            <div className="min-w-0">
+                                                <p className="text-[11px] font-black text-slate-900 uppercase italic truncate">{item.productName}</p>
+                                                <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">{item.quantity} x {currencySymbol}{Number(item.price).toLocaleString()}</p>
+                                            </div>
+                                            <p className="text-xs font-black text-slate-900 tabular-nums">{currencySymbol}{Number(item.total).toLocaleString()}</p>
+                                        </div>
+                                    )) : (
+                                        <div className="py-8 text-center bg-slate-50/30 rounded-2xl">
+                                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">NO_MANIFEST_DATA</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

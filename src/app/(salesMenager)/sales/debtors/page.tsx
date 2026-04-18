@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { UserMinus, Wallet, AlertTriangle, Phone, Clock, CheckCircle2, TrendingDown } from 'lucide-react';
+import { UserMinus, Wallet, AlertTriangle, Phone, Clock, CheckCircle2, TrendingDown, Package } from 'lucide-react';
 import CreateDebtorForm from '@/components/CreateDebtorForm';
 import { getDebtors } from '@/app/actions/salesOps';
 import { cn, sanitizeData } from '@/lib/utils';
@@ -161,15 +161,34 @@ export default async function SalesDebtorsPage() {
                                     </div>
                                 )}
 
+                                {/* Articles on Credit */}
+                                {debtor.items?.length > 0 && (
+                                    <div className="mt-4 pt-4 border-t border-slate-50 space-y-2">
+                                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5 italic">
+                                            <Package size={10} className="text-emerald-500" /> Articles on Credit
+                                        </p>
+                                        <div className="grid grid-cols-1 gap-1.5">
+                                            {debtor.items.map((item: any, i: number) => (
+                                                <div key={i} className="flex items-center justify-between text-[10px] font-black uppercase italic tracking-tight text-slate-600 bg-slate-50/50 px-3 py-2 rounded-xl">
+                                                    <span className="truncate">{item.productName} <span className="text-emerald-500 not-italic">×{item.quantity}</span></span>
+                                                    <span className="tabular-nums text-slate-400 font-bold ml-2">{currencySymbol}{Number(item.total).toLocaleString()}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Notes + date */}
                                 {debtor.notes && (
-                                    <p className="text-[9px] text-slate-400 italic mt-3 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100 line-clamp-2 leading-relaxed">
+                                    <p className="text-[9px] text-slate-400 italic mt-3 bg-slate-50/30 px-3 py-2 rounded-xl border border-slate-100/50 line-clamp-2 leading-relaxed">
                                         "{debtor.notes}"
                                     </p>
                                 )}
-                                <div className="flex items-center gap-1.5 mt-2">
+                                <div className="flex items-center gap-1.5 mt-3">
                                     <Clock size={9} className="text-slate-300" />
-                                    <span className="text-[8px] text-slate-400">{new Date(debtor.createdAt).toLocaleDateString()}</span>
+                                    <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest" suppressHydrationWarning>
+                                        {new Date(debtor.createdAt).toLocaleDateString()} @ {new Date(debtor.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
                                 </div>
                             </div>
                         </div>
