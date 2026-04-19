@@ -21,9 +21,10 @@ interface BarcodePrintDialogProps {
     product: any;
     isOpen: boolean;
     onClose: () => void;
+    currencySymbol?: string;
 }
 
-export default function BarcodePrintDialog({ product, isOpen, onClose }: BarcodePrintDialogProps) {
+export default function BarcodePrintDialog({ product, isOpen, onClose, currencySymbol = "$" }: BarcodePrintDialogProps) {
     const [labelSize, setLabelSize] = useState({ width: 50, height: 40 });
     const [showQR, setShowQR] = useState(true);
     const [isRotated, setIsRotated] = useState(true);
@@ -70,7 +71,7 @@ export default function BarcodePrintDialog({ product, isOpen, onClose }: Barcode
                             }}>
                                 <div
                                     ref={printRef}
-                                    className="bg-white flex flex-col items-center justify-center overflow-hidden print-content"
+                                    className="bg-white flex items-center gap-1 overflow-hidden print-content"
                                     style={{
                                         width: `${labelSize.width}mm`,
                                         height: `${labelSize.height}mm`,
@@ -78,35 +79,53 @@ export default function BarcodePrintDialog({ product, isOpen, onClose }: Barcode
                                         boxSizing: 'border-box',
                                     }}
                                 >
-                                    <div className="title" style={{ width: '100%', textAlign: 'center', fontWeight: 'bold', fontSize: '8pt', whiteSpace: 'nowrap', overflow: 'hidden', marginBottom: '0.5mm' }}>{product.name}</div>
-                                    <div className="graphic-container" style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                    <div className="graphic-container" style={{ width: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                         {showQR ? (
                                             <QRCodeSVG
                                                 value={product.barcode || product.sku}
-                                                size={graphicSize * MM_TO_PX}
+                                                size={Math.min(labelSize.width * 0.48, labelSize.height - 2) * MM_TO_PX}
                                                 level="M"
                                             />
                                         ) : (
                                             <BarcodeGenerator
                                                 value={product.barcode || product.sku}
                                                 format="CODE128"
-                                                width={1.8}
-                                                height={labelSize.height * 0.4 * MM_TO_PX}
-                                                displayValue={true}
-                                                fontSize={8}
+                                                width={1.6}
+                                                height={(labelSize.height - 2) * MM_TO_PX}
+                                                displayValue={false}
                                                 margin={0}
                                                 background="transparent"
                                                 lineColor="#000000"
-                                                textAlign="center"
-                                                textPosition="bottom"
-                                                textMargin={2}
                                             />
                                         )}
                                     </div>
-                                    <div className="sku" style={{ width: '100%', textAlign: 'center', fontFamily: 'monospace', fontSize: '6pt', marginTop: '0.5mm' }}>SKU: {product.sku}</div>
-                                    {product.price && (
-                                        <div className="price" style={{ width: '100%', textAlign: 'center', fontWeight: '900', fontSize: '8pt', marginTop: '0.5mm' }}>{product.price}</div>
-                                    )}
+                                    <div className="details-container" style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                        <div style={{
+                                            transform: 'rotate(90deg)',
+                                            transformOrigin: 'center',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'center',
+                                            width: `${labelSize.height - 1}mm`,
+                                            maxHeight: `${labelSize.width * 0.48}mm`,
+                                            textAlign: 'center'
+                                        }}>
+                                            <div className="title" style={{ width: '100%', fontWeight: '800', fontSize: '8pt', lineHeight: '1', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', marginBottom: '1.5mm', color: '#333', textTransform: 'uppercase' }}>{product.name?.substring(0, 12)}</div>
+                                            
+                                            {product.cost !== undefined && product.cost !== null && (
+                                                <div className="cost" style={{ width: '100%', fontWeight: '1000', fontSize: '15pt', color: '#000', lineHeight: '1', marginBottom: '1mm', letterSpacing: '-0.05em' }}>
+                                                    C:{currencySymbol}{product.cost}
+                                                </div>
+                                            )}
+
+                                            {product.price !== undefined && product.price !== null && (
+                                                <div className="price" style={{ width: '100%', fontWeight: '1000', fontSize: '15pt', color: '#000', lineHeight: '1', letterSpacing: '-0.05em' }}>
+                                                    S:{currencySymbol}{product.price}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>

@@ -858,6 +858,7 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                 product={printProduct}
                 isOpen={!!printProduct}
                 onClose={() => setPrintProduct(null)}
+                currencySymbol={symbol}
             />
 
             <ProductHistoryDialog

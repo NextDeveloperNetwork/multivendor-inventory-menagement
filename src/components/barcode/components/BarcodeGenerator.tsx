@@ -5,32 +5,32 @@ import Barcode from "react-barcode";
 
 interface BarcodeGeneratorProps {
     value: string;
-    format: string;
-    width: number;
-    height: number;
-    displayValue: boolean;
-    fontSize: number;
-    margin: number;
-    background: string;
-    lineColor: string;
-    textAlign: string;
-    textPosition: string;
-    textMargin: number;
+    format?: string;
+    width?: number;
+    height?: number;
+    displayValue?: boolean;
+    fontSize?: number;
+    margin?: number;
+    background?: string;
+    lineColor?: string;
+    textAlign?: string;
+    textPosition?: string;
+    textMargin?: number;
 }
 
 export const BarcodeGenerator = ({
     value,
-    format,
-    width,
-    height,
-    displayValue,
-    fontSize,
-    margin,
-    background,
-    lineColor,
-    textAlign,
-    textPosition,
-    textMargin,
+    format = "CODE128",
+    width = 2,
+    height = 100,
+    displayValue = true,
+    fontSize = 20,
+    margin = 10,
+    background = "#ffffff",
+    lineColor = "#000000",
+    textAlign = "center",
+    textPosition = "bottom",
+    textMargin = 2,
 }: BarcodeGeneratorProps) => {
     // Basic validation to prevent crash on empty value if library doesn't handle it
     if (!value) {
