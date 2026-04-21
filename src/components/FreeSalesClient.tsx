@@ -1,483 +1,458 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { Banknote, Package, Clock, User, ChevronLeft, ChevronRight, FileText, Search, Trash2, ShoppingBag, Filter, LayoutList, ListOrdered, Edit3, X, Plus, Minus, Send, Loader2, Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+    Package, Clock, Trash2, Edit3, X, Plus, Minus,
+    FileText, Send, Loader2, Search, SlidersHorizontal,
+    TrendingUp, ShoppingBag, Sparkles, ChevronDown, Check
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 import { deleteFreeSale, updateFreeSale } from '@/app/actions/salesOps';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import CreateFreeSaleForm from './CreateFreeSaleForm';
+
+interface SaleItem {
+    id?: string;
+    productName: string;
+    quantity: number;
+    price: number;
+    total: number;
+}
+
+interface Sale {
+    id: string;
+    totalAmount: number;
+    soldBy: string;
+    notes: string | null;
+    createdAt: string | Date;
+    items: SaleItem[];
+}
 
 interface FreeSalesClientProps {
     initialSales: any[];
+    userName: string;
+    currencySymbol?: string;
 }
 
-type Period = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
+const PERIODS = [
+    { label: 'Today', getDates: () => { const t = new Date().toISOString().split('T')[0]; return [t, t]; } },
+    { label: 'Week', getDates: () => { const now = new Date(); const start = new Date(now); start.setDate(now.getDate() - 6); return [start.toISOString().split('T')[0], now.toISOString().split('T')[0]]; } },
+    { label: 'Month', getDates: () => { const now = new Date(); return [new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0], new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]]; } },
+    { label: 'All', getDates: () => ['', ''] },
+];
 
-export default function FreeSalesClient({ initialSales }: FreeSalesClientProps) {
-    const [sales, setSales] = useState<any[]>(initialSales);
-    const [viewType, setViewType] = useState<'invoice' | 'article'>('article');
-    const [period, setPeriod] = useState<Period>('today');
-    const [customRange, setCustomRange] = useState({ start: '', end: '' });
+export default function FreeSalesClient({ initialSales, userName, currencySymbol = '$' }: FreeSalesClientProps) {
+    const [sales, setSales] = useState<Sale[]>(initialSales);
+    const [isProcessing, setIsProcessing] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [isDeleting, setIsDeleting] = useState<string | null>(null);
-    
-    // Editing state
-    const [editingSale, setEditingSale] = useState<any | null>(null);
-    const [editItems, setEditItems] = useState<any[]>([]);
+    const [showFilters, setShowFilters] = useState(false);
+    const [activePeriod, setActivePeriod] = useState('Month');
+
+    // Date Filtering
+    const now = new Date();
+    const [startDate, setStartDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
+    const [endDate, setEndDate] = useState(new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]);
+
+    // Edit sheet state
+    const [editingSale, setEditingSale] = useState<Sale | null>(null);
+    const [editItems, setEditItems] = useState<SaleItem[]>([]);
     const [editNotes, setEditNotes] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
+    const [newItem, setNewItem] = useState<SaleItem>({ productName: '', quantity: 1, price: 0, total: 0 });
 
-    // Period Logic - using getTime() for stable comparisons
-    const dateRange = useMemo(() => {
-        const now = new Date();
-        const start = new Date(now);
-        const end = new Date(now);
+    const filteredSales = sales.filter((sale) => {
+        const dDate = new Date(sale.createdAt).toISOString().split('T')[0];
+        const matchesDate = (!startDate || dDate >= startDate) && (!endDate || dDate <= endDate);
+        const matchesSearch = !searchQuery ||
+            sale.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            sale.items.some(item => item.productName.toLowerCase().includes(searchQuery.toLowerCase()));
+        return matchesDate && matchesSearch;
+    });
 
-        if (period === 'today') {
-            start.setHours(0, 0, 0, 0);
-            end.setHours(23, 59, 59, 999);
-        } else if (period === 'yesterday') {
-            start.setDate(now.getDate() - 1);
-            start.setHours(0, 0, 0, 0);
-            end.setDate(now.getDate() - 1);
-            end.setHours(23, 59, 59, 999);
-        } else if (period === 'week') {
-            start.setDate(now.getDate() - 7);
-            start.setHours(0, 0, 0, 0);
-            end.setHours(23, 59, 59, 999);
-        } else if (period === 'month') {
-            start.setMonth(now.getMonth() - 1);
-            start.setHours(0, 0, 0, 0);
-            end.setHours(23, 59, 59, 999);
-        } else if (period === 'custom' && customRange.start && customRange.end) {
-            const cStart = new Date(customRange.start);
-            const cEnd = new Date(customRange.end);
-            cStart.setHours(0, 0, 0, 0);
-            cEnd.setHours(23, 59, 59, 999);
-            return {
-                start: cStart.getTime(),
-                end: cEnd.getTime()
-            };
-        }
+    const totalRevenue = filteredSales.reduce((acc, s) => acc + Number(s.totalAmount), 0);
+    const totalQty = filteredSales.reduce((acc, s) => acc + s.items.reduce((sum, i) => sum + i.quantity, 0), 0);
 
-        return { start: start.getTime(), end: end.getTime() };
-    }, [period, customRange]);
-
-    // Filtered Content
-    const filteredSales = useMemo(() => {
-        return sales.filter((sale: any) => {
-            const saleTime = new Date(sale.createdAt).getTime();
-            const matchesPeriod = saleTime >= dateRange.start && saleTime <= dateRange.end;
-            const matchesSearch = !searchQuery || 
-                sale.items.some((i: any) => i.productName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                sale.soldBy.toLowerCase().includes(searchQuery.toLowerCase());
-            return matchesPeriod && matchesSearch;
-        });
-    }, [sales, dateRange, searchQuery]);
-
-    const filteredItems = useMemo(() => {
-        return filteredSales.flatMap(sale => 
-            sale.items.map((item: any) => ({
-                ...item,
-                saleId: sale.id,
-                soldBy: sale.soldBy,
-                createdAt: sale.createdAt,
-                notes: sale.notes
-            }))
-        ).filter(item => !searchQuery || item.productName.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [filteredSales, searchQuery]);
-
-    const totalRevenue = filteredSales.reduce((acc, sale) => acc + Number(sale.totalAmount), 0);
-    const totalQty = filteredItems.reduce((acc, item) => acc + item.quantity, 0);
-
-    const generatePDF = () => {
-        const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.text(`Free Sales Report (${period.toUpperCase()})`, 14, 22);
-        
-        autoTable(doc, {
-            startY: 40,
-            head: [['Article', 'Qty', 'Unit Price', 'Total', 'Sold By', 'Date']],
-            body: filteredItems.map(i => [
-                i.productName, 
-                i.quantity, 
-                `$${Number(i.price).toLocaleString()}`, 
-                `$${Number(i.total).toLocaleString()}`, 
-                i.soldBy, 
-                new Date(i.createdAt).toLocaleDateString()
-            ]),
-            theme: 'grid',
-            headStyles: { fillColor: [16, 185, 129] }
-        });
-        doc.save(`FreeSales_${period}_Export.pdf`);
+    const applyPeriod = (label: string) => {
+        const period = PERIODS.find(p => p.label === label);
+        if (!period) return;
+        const [s, e] = period.getDates();
+        setStartDate(s);
+        setEndDate(e);
+        setActivePeriod(label);
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Permanently delete this entire transaction?')) return;
-        setIsDeleting(id);
+        if (!confirm('Delete this sale permanently?')) return;
+        setIsProcessing(id);
         const res = await deleteFreeSale(id);
-        setIsDeleting(null);
+        setIsProcessing(null);
         if (res.success) {
             toast.success('Sale deleted');
             setSales(sales.filter(s => s.id !== id));
+        } else {
+            toast.error(res.error || 'Failed to delete');
         }
     };
 
-    const startEditing = (sale: any) => {
+    const handleEditInitiate = (sale: Sale) => {
         setEditingSale(sale);
         setEditItems([...sale.items]);
         setEditNotes(sale.notes || '');
+        setNewItem({ productName: '', quantity: 1, price: 0, total: 0 });
+    };
+
+    const addEditItem = () => {
+        if (!newItem.productName.trim() || newItem.quantity <= 0 || newItem.price <= 0) {
+            toast.error('Fill in all item fields');
+            return;
+        }
+        setEditItems([...editItems, { ...newItem, total: newItem.quantity * newItem.price }]);
+        setNewItem({ productName: '', quantity: 1, price: 0, total: 0 });
+    };
+
+    const removeEditItem = (index: number) => {
+        setEditItems(editItems.filter((_, i) => i !== index));
     };
 
     const handleUpdate = async () => {
-        if (editItems.length === 0) return toast.error('Add at least one item');
+        if (!editingSale || editItems.length === 0) { toast.error('Add at least one item'); return; }
         setIsUpdating(true);
-        const total = editItems.reduce((sum, i) => sum + Number(i.total), 0);
-        const res = await updateFreeSale(editingSale.id, {
-            items: editItems,
-            totalAmount: total,
-            notes: editNotes
-        });
+        const totalAmount = editItems.reduce((sum, i) => sum + i.total, 0);
+        const res = await updateFreeSale(editingSale.id, { items: editItems, totalAmount, notes: editNotes });
         setIsUpdating(false);
         if (res.success) {
             toast.success('Sale updated');
+            setSales(sales.map(s => s.id === editingSale.id ? { ...s, items: editItems, totalAmount, notes: editNotes } : s));
             setEditingSale(null);
-            window.location.reload();
+        } else {
+            toast.error(res.error || 'Update failed');
         }
     };
 
     return (
-        <div className="space-y-6 pb-20">
-            {/* Header Area */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-10 flex flex-col xl:flex-row xl:items-center justify-between gap-8">
-                <div className="flex items-center gap-6">
-                    <div className="w-14 h-14 md:w-20 md:h-20 bg-emerald-600 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-emerald-200 shrink-0">
-                        <ShoppingBag size={32} className="md:w-10 md:h-10" />
+        <div className="flex flex-col min-h-full bg-slate-950">
+
+            {/* ── DARK HERO HEADER ── */}
+            <div className="relative overflow-hidden px-5 pt-6 pb-8">
+                {/* Background glows */}
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900" />
+                <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl -mr-36 -mt-36 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/8 rounded-full blur-3xl -ml-24 -mb-24 pointer-events-none" />
+
+                <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <p className="text-[10px] font-bold text-emerald-400/70 uppercase tracking-[0.3em] mb-1">Sales Hub</p>
+                            <h1 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">
+                                Free <span className="text-emerald-400">Sales</span>
+                            </h1>
+                        </div>
+                        <CreateFreeSaleForm userName={userName} currencySymbol={currencySymbol} />
                     </div>
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight italic uppercase tracking-tighter">Sales Performance</h1>
-                        <p className="text-[10px] md:text-sm text-slate-400 font-bold tracking-widest uppercase mt-1 opacity-70">Strategic Audit Consolidation</p>
+
+                    {/* Stat pills */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                                    <TrendingUp size={12} className="text-emerald-400" />
+                                </div>
+                                <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Revenue</span>
+                            </div>
+                            <p className="text-2xl font-black text-white tabular-nums tracking-tight leading-none">
+                                {currencySymbol}<span className="text-emerald-400">{totalRevenue.toLocaleString()}</span>
+                            </p>
+                        </div>
+                        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-6 h-6 rounded-lg bg-sky-500/20 flex items-center justify-center">
+                                    <ShoppingBag size={12} className="text-sky-400" />
+                                </div>
+                                <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Units</span>
+                            </div>
+                            <p className="text-2xl font-black text-white tabular-nums tracking-tight leading-none">
+                                <span className="text-sky-400">{totalQty}</span> <span className="text-sm text-white/30 font-bold">sold</span>
+                            </p>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="bg-slate-50 p-1.5 rounded-2xl border border-slate-200 flex items-center shadow-inner">
-                        {(['today', 'yesterday', 'week', 'month', 'custom'] as Period[]).map((p) => (
-                            <button 
-                                key={p}
-                                onClick={() => setPeriod(p)}
-                                className={cn(
-                                    "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
-                                    period === p ? "bg-white border border-slate-200 text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"
-                                )}
-                            >
-                                {p}
-                            </button>
-                        ))}
-                    </div>
+            {/* ── FILTER BAR ── */}
+            <div className="bg-slate-950 px-5 pb-4 space-y-3">
+                {/* Period chips */}
+                <div className="flex gap-2">
+                    {PERIODS.map(p => (
+                        <button
+                            key={p.label}
+                            onClick={() => applyPeriod(p.label)}
+                            className={cn(
+                                "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
+                                activePeriod === p.label
+                                    ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
+                                    : "bg-white/5 text-white/50 border border-white/10"
+                            )}
+                        >
+                            {p.label}
+                        </button>
+                    ))}
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={cn(
+                            "w-11 rounded-xl flex items-center justify-center transition-all active:scale-95 border",
+                            showFilters ? "bg-emerald-500 text-white border-emerald-500" : "bg-white/5 text-white/50 border-white/10"
+                        )}
+                    >
+                        <SlidersHorizontal size={14} />
+                    </button>
+                </div>
 
-                    {period === 'custom' && (
-                        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 animate-in slide-in-from-top-2 duration-300">
-                            <input 
-                                type="date" 
-                                value={customRange.start}
-                                onChange={e => setCustomRange({ ...customRange, start: e.target.value })}
-                                className="bg-transparent border-none text-[10px] font-black text-slate-900 outline-none w-28 uppercase p-0"
-                            />
-                            <span className="text-slate-300 font-bold">→</span>
-                            <input 
-                                type="date" 
-                                value={customRange.end}
-                                onChange={e => setCustomRange({ ...customRange, end: e.target.value })}
-                                className="bg-transparent border-none text-[10px] font-black text-slate-900 outline-none w-28 uppercase p-0"
+                {/* Extended filters */}
+                {showFilters && (
+                    <div className="bg-white/5 rounded-2xl p-4 border border-white/10 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-white/30 uppercase tracking-widest">From</label>
+                                <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setActivePeriod(''); }}
+                                    className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[11px] font-bold text-white outline-none focus:border-emerald-500 transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-white/30 uppercase tracking-widest">To</label>
+                                <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setActivePeriod(''); }}
+                                    className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[11px] font-bold text-white outline-none focus:border-emerald-500 transition-all" />
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20" size={14} />
+                            <input
+                                type="text"
+                                placeholder="Search products or notes..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="w-full h-10 pl-10 pr-4 bg-white/5 border border-white/10 rounded-xl text-[11px] font-medium text-white outline-none focus:border-emerald-500 transition-all placeholder:text-white/20"
                             />
                         </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ── SALES LIST ── */}
+            <div className="flex-1 bg-slate-100 rounded-t-[2rem] px-4 pt-5 pb-36 space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{filteredSales.length} records</span>
+                    {searchQuery && (
+                        <button onClick={() => setSearchQuery('')} className="text-[9px] font-bold text-emerald-600 flex items-center gap-1">
+                            <X size={10} /> Clear
+                        </button>
                     )}
-
-                    <button onClick={generatePDF} className="h-12 px-8 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center gap-2">
-                        <FileText size={18} /> Export Data
-                    </button>
-                </div>
-            </div>
-
-            {/* View Switcher & Search Bar */}
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="bg-white p-1 rounded-2xl border border-slate-200 flex items-center w-fit shadow-sm">
-                    <button 
-                        onClick={() => setViewType('invoice')}
-                        className={cn(
-                            "flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                            viewType === 'invoice' ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
-                        )}
-                    >
-                        <LayoutList size={14} /> Transactions
-                    </button>
-                    <button 
-                        onClick={() => setViewType('article')}
-                        className={cn(
-                            "flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                            viewType === 'article' ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
-                        )}
-                    >
-                        <ListOrdered size={14} /> Line Items
-                    </button>
                 </div>
 
-                <div className="flex-1 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm relative flex items-center">
-                    <Search className="absolute left-6 text-slate-300" size={20} />
-                    <input 
-                        type="text"
-                        placeholder="Scan entries by article name or salesperson..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-12 pr-6 py-3 bg-transparent text-[11px] font-bold uppercase tracking-widest outline-none text-slate-900 placeholder:text-slate-300"
-                    />
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-8">
-                {/* Scorecards */}
-                <div className="lg:col-span-1 space-y-4">
-                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden group">
-                        <div className="relative z-10">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Period Revenue</p>
-                            <p className="text-4xl font-black italic tabular-nums text-slate-900 tracking-tighter">${totalRevenue.toLocaleString()}</p>
-                            <div className="mt-6 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Live Auditor View</p>
-                            </div>
+                {filteredSales.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-24 text-center">
+                        <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-5 shadow-sm">
+                            <Sparkles size={28} className="text-slate-200" />
                         </div>
+                        <h3 className="text-base font-black text-slate-800 uppercase italic tracking-tight">No Records Found</h3>
+                        <p className="text-[10px] text-slate-400 font-medium mt-1.5 max-w-[200px] leading-relaxed">
+                            Adjust the period filter or register a new sale.
+                        </p>
                     </div>
+                ) : filteredSales.map((sale) => (
+                    <div key={sale.id} className="bg-white rounded-[1.5rem] overflow-hidden shadow-sm border border-slate-100/80 active:scale-[0.99] transition-transform">
+                        {/* Top accent bar */}
+                        <div className="h-1 bg-gradient-to-r from-emerald-400 to-teal-500" />
 
-                    <div className="bg-emerald-600 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
-                        <div className="relative z-10">
-                            <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-2 italic">Volume Dispensed</p>
-                            <p className="text-4xl font-black italic tabular-nums tracking-tighter">{totalQty.toLocaleString()}</p>
-                            <p className="text-[9px] text-emerald-100 font-bold uppercase tracking-widest mt-6 opacity-60">Total units across all items</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Main Content Area */}
-                <div className="lg:col-span-3">
-                    {viewType === 'article' ? (
-                        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden min-h-[600px]">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="bg-slate-50/50 border-b border-slate-100">
-                                            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Article / Description</th>
-                                            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Batch Qty</th>
-                                            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Value</th>
-                                            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Timestamp</th>
-                                            <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-50">
-                                        {filteredItems.map((item, idx) => (
-                                            <tr key={`${item.saleId}-${idx}`} className="group hover:bg-slate-50/50 transition-all font-medium">
-                                                <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center shrink-0 border border-slate-100 group-hover:bg-emerald-50 group-hover:text-emerald-500 transition-colors">
-                                                            <Package size={20} />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-black text-slate-900 uppercase italic tracking-tight">{item.productName}</p>
-                                                            <div className="flex items-center gap-2 mt-1 text-[9px] font-bold text-slate-400 uppercase">
-                                                                <User size={10} className="text-emerald-400" /> {item.soldBy}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6 text-center">
-                                                    <span className="inline-flex h-8 px-3 rounded-lg bg-slate-900 text-white text-[11px] font-black items-center tabular-nums">{item.quantity}</span>
-                                                </td>
-                                                <td className="px-8 py-6 text-right">
-                                                    <p className="text-lg font-black text-slate-900 tabular-nums italic">${Number(item.total).toLocaleString()}</p>
-                                                    <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">@ ${Number(item.price).toLocaleString()}</p>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase" suppressHydrationWarning>
-                                                        <Calendar size={12} className="text-slate-300" /> {new Date(item.createdAt).toLocaleDateString()}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-[9px] font-bold text-slate-400 uppercase mt-1" suppressHydrationWarning>
-                                                        <Clock size={12} className="text-slate-200" /> {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6 text-right">
-                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                                        <button 
-                                                            onClick={() => startEditing(sales.find(s => s.id === item.saleId))}
-                                                            className="p-3 bg-white border border-slate-100 text-slate-400 hover:text-emerald-600 hover:shadow-lg rounded-xl transition-all"
-                                                        >
-                                                            <Edit3 size={16} />
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleDelete(item.saleId)}
-                                                            className="p-3 bg-white border border-slate-100 text-slate-400 hover:text-rose-600 hover:shadow-lg rounded-xl transition-all"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {filteredSales.map((sale: any) => (
-                                <div key={sale.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-8 hover:shadow-2xl hover:border-emerald-100 transition-all group">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 uppercase tracking-widest">ORD-{sale.id.slice(-6).toUpperCase()}</span>
-                                            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 uppercase tracking-widest">Verified Log</span>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {sale.items.map((i: any, idx: number) => (
-                                                <div key={idx} className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
-                                                    <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 shadow-sm"><Package size={14} /></div>
-                                                    <p className="text-[11px] font-black text-slate-800 uppercase italic truncate">{i.productName} <span className="text-emerald-500">×{i.quantity}</span></p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        {/* Metadata for Invoice View */}
-                                        <div className="flex items-center gap-5 mt-8 pt-6 border-t border-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            <span className="flex items-center gap-2"><User size={12} className="text-emerald-500" /> {sale.soldBy || 'Manager'}</span>
-                                            <span className="flex items-center gap-2" suppressHydrationWarning>
-                                                <Calendar size={12} className="text-slate-300" /> {new Date(sale.createdAt).toLocaleDateString()}
-                                            </span>
-                                            <span className="flex items-center gap-2" suppressHydrationWarning>
-                                                <Clock size={12} className="text-slate-300" /> {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
+                        <div className="p-4">
+                            {/* Row 1: id + date + amount */}
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                                        <Package size={16} className="text-emerald-600" />
                                     </div>
-                                    <div className="flex flex-col items-end shrink-0 xl:pl-8 xl:border-l xl:border-slate-50">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 opacity-60">Total Disbursement</p>
-                                        <p className="text-4xl font-black text-slate-900 italic tabular-nums leading-none tracking-tighter mb-8">${Number(sale.totalAmount).toLocaleString()}</p>
-                                        <div className="flex items-center gap-2">
-                                            <button 
-                                                onClick={() => startEditing(sale)}
-                                                className="h-12 px-6 bg-slate-50 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl font-black text-[10px] uppercase tracking-widest border border-slate-100 transition-all flex items-center gap-2"
-                                            >
-                                                <Edit3 size={16} /> Manage
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(sale.id)}
-                                                className="w-12 h-12 flex items-center justify-center bg-rose-50 text-rose-400 hover:text-rose-600 rounded-xl border border-rose-100 transition-all shadow-sm"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
+                                    <div>
+                                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">#{sale.id.slice(-6).toUpperCase()}</p>
+                                        <div className="flex items-center gap-1">
+                                            <Clock size={9} className="text-slate-400" />
+                                            <span className="text-[10px] font-bold text-slate-500">
+                                                {new Date(sale.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                                <div className="text-right">
+                                    <p className="text-xl font-black text-slate-900 tabular-nums tracking-tight leading-none">
+                                        {currencySymbol}{Number(sale.totalAmount).toLocaleString()}
+                                    </p>
+                                    <p className="text-[9px] font-bold text-emerald-600 mt-0.5">{sale.items.length} item{sale.items.length !== 1 ? 's' : ''}</p>
+                                </div>
+                            </div>
+
+                            {/* Item chips */}
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                                {sale.items.map((item, idx) => (
+                                    <span key={idx} className="text-[9px] font-black text-slate-600 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-lg uppercase tracking-wide">
+                                        {item.quantity}× {item.productName}
+                                    </span>
+                                ))}
+                            </div>
+
+                            {/* Notes (if any) */}
+                            {sale.notes && (
+                                <div className="flex items-start gap-2 bg-slate-50 rounded-xl px-3 py-2 mb-3 border border-slate-100">
+                                    <FileText size={11} className="text-slate-400 mt-0.5 shrink-0" />
+                                    <p className="text-[10px] text-slate-500 leading-relaxed italic">{sale.notes}</p>
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => handleEditInitiate(sale)}
+                                    className="flex-1 h-11 bg-slate-50 border border-slate-100 text-slate-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-100"
+                                >
+                                    <Edit3 size={14} /> Edit
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(sale.id)}
+                                    disabled={isProcessing === sale.id}
+                                    className="w-11 h-11 bg-slate-50 border border-slate-100 text-slate-400 rounded-xl flex items-center justify-center active:scale-95 transition-all hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 disabled:opacity-40"
+                                >
+                                    {isProcessing === sale.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                                </button>
+                            </div>
                         </div>
-                    )}
-                </div>
+                    </div>
+                ))}
             </div>
 
-            {/* Edit Modal (Same as before but refined) */}
-            {editingSale && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={() => setEditingSale(null)} />
-                    <div className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl flex flex-col max-h-[90vh]">
-                        <div className="p-10 border-b border-slate-50 flex items-center justify-between shrink-0">
+            {/* ─────── EDIT BOTTOM SHEET ─────── */}
+            <Dialog open={!!editingSale} onOpenChange={(open) => !open && setEditingSale(null)}>
+                <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-none w-full m-0 fixed bottom-0 top-auto translate-y-0 rounded-none data-[state=open]:animate-none">
+                    <div className="bg-slate-100 rounded-t-[2.5rem] max-h-[92dvh] flex flex-col overflow-hidden shadow-[0_-20px_60px_rgba(0,0,0,0.25)]">
+                        <DialogHeader className="sr-only">
+                            <DialogTitle>Edit Sale Record</DialogTitle>
+                            <DialogDescription>Modify items and notes for this sale.</DialogDescription>
+                        </DialogHeader>
+
+                        {/* Sheet handle */}
+                        <div className="flex justify-center pt-3 pb-1 shrink-0">
+                            <div className="w-10 h-1 bg-slate-300 rounded-full" />
+                        </div>
+
+                        {/* Sheet header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200/60 shrink-0">
                             <div>
-                                <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900">Adjust Order Log</h3>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Live Revision Mode</p>
+                                <h2 className="text-base font-black text-slate-900 uppercase italic tracking-tight leading-none">Edit Sale</h2>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">#{editingSale?.id.slice(-8).toUpperCase()}</p>
                             </div>
-                            <button onClick={() => setEditingSale(null)} className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors">
-                                <X size={24} />
+                            <button
+                                onClick={() => setEditingSale(null)}
+                                className="w-9 h-9 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 active:scale-95"
+                            >
+                                <X size={16} />
                             </button>
                         </div>
-                        
-                        <div className="flex-1 overflow-y-auto p-10 space-y-6">
-                            {editItems.map((item, idx) => (
-                                <div key={idx} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4 relative group">
-                                    <button 
-                                        onClick={() => setEditItems(editItems.filter((_, i) => i !== idx))}
-                                        className="absolute -top-3 -right-3 w-10 h-10 bg-white border border-slate-200 text-rose-500 rounded-2xl flex items-center justify-center shadow-2xl opacity-0 group-hover:opacity-100 transition-all active:scale-95"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Item Description</label>
-                                        <input 
-                                            type="text"
-                                            value={item.productName}
-                                            onChange={e => {
-                                                const newItems = [...editItems];
-                                                newItems[idx].productName = e.target.value;
-                                                setEditItems(newItems);
-                                            }}
-                                            className="w-full h-14 bg-white border border-slate-200 rounded-2xl px-5 text-xs font-black text-slate-900 outline-none uppercase italic focus:border-emerald-400 transition-colors"
-                                        />
+
+                        {/* Scrollable body */}
+                        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+
+                            {/* Add item section */}
+                            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 space-y-3 shadow-sm">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em]">Add Item</p>
+                                <input
+                                    type="text"
+                                    placeholder="Product name..."
+                                    value={newItem.productName}
+                                    onChange={e => setNewItem({ ...newItem, productName: e.target.value })}
+                                    className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold text-slate-900 outline-none focus:border-emerald-500 transition-all"
+                                />
+                                <div className="grid grid-cols-2 gap-3">
+                                    {/* Qty */}
+                                    <div className="flex items-center h-12 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                                        <button type="button" onClick={() => setNewItem({ ...newItem, quantity: Math.max(1, newItem.quantity - 1) })}
+                                            className="w-12 h-full flex items-center justify-center text-slate-500 active:bg-slate-100">
+                                            <Minus size={14} />
+                                        </button>
+                                        <input type="number" value={newItem.quantity}
+                                            onChange={e => setNewItem({ ...newItem, quantity: parseInt(e.target.value) || 1 })}
+                                            className="flex-1 bg-transparent text-center text-sm font-black text-slate-900 outline-none" />
+                                        <button type="button" onClick={() => setNewItem({ ...newItem, quantity: newItem.quantity + 1 })}
+                                            className="w-12 h-full flex items-center justify-center text-slate-500 active:bg-slate-100">
+                                            <Plus size={14} />
+                                        </button>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantity</label>
-                                            <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm">
-                                                <button onClick={() => {
-                                                    const newItems = [...editItems];
-                                                    newItems[idx].quantity = Math.max(1, newItems[idx].quantity - 1);
-                                                    newItems[idx].total = newItems[idx].quantity * newItems[idx].price;
-                                                    setEditItems(newItems);
-                                                }} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"><Minus size={16} /></button>
-                                                <input readOnly value={item.quantity} className="flex-1 text-center font-black text-base text-slate-900" />
-                                                <button onClick={() => {
-                                                    const newItems = [...editItems];
-                                                    newItems[idx].quantity += 1;
-                                                    newItems[idx].total = newItems[idx].quantity * newItems[idx].price;
-                                                    setEditItems(newItems);
-                                                }} className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"><Plus size={16} /></button>
+                                    {/* Price */}
+                                    <div className="relative flex items-center h-12 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                                        <span className="pl-4 text-sm font-black text-slate-400">{currencySymbol}</span>
+                                        <input type="number" placeholder="0" value={newItem.price || ''}
+                                            onChange={e => setNewItem({ ...newItem, price: parseFloat(e.target.value) || 0 })}
+                                            className="flex-1 pl-2 pr-4 bg-transparent text-sm font-black text-slate-900 outline-none" />
+                                    </div>
+                                </div>
+                                <button type="button" onClick={addEditItem}
+                                    className="w-full h-12 bg-emerald-500 text-white rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-emerald-500/25 hover:bg-emerald-600">
+                                    <Plus size={16} /> Add to Sale
+                                </button>
+                            </div>
+
+                            {/* Current items */}
+                            {editItems.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] px-1">Items ({editItems.length})</p>
+                                    {editItems.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-sm">
+                                            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                                                <Package size={14} className="text-emerald-600" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[12px] font-black text-slate-900 uppercase tracking-tight truncate">{item.productName}</p>
+                                                <p className="text-[10px] text-slate-400 font-bold">{item.quantity} × {currencySymbol}{Number(item.price).toLocaleString()}</p>
+                                            </div>
+                                            <div className="flex items-center gap-3 shrink-0">
+                                                <p className="text-sm font-black text-slate-900">{currencySymbol}{item.total.toLocaleString()}</p>
+                                                <button onClick={() => removeEditItem(idx)} className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500 active:scale-90">
+                                                    <Trash2 size={13} />
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Retail Price</label>
-                                            <input 
-                                                type="number"
-                                                value={item.price}
-                                                onChange={e => {
-                                                    const newItems = [...editItems];
-                                                    newItems[idx].price = Number(e.target.value);
-                                                    newItems[idx].total = newItems[idx].quantity * newItems[idx].price;
-                                                    setEditItems(newItems);
-                                                }}
-                                                className="w-full h-14 bg-white border border-slate-200 rounded-2xl px-5 text-sm font-black text-slate-900 outline-none focus:border-emerald-400 shadow-sm transition-colors"
-                                            />
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
-                            
-                            <button 
-                                onClick={() => setEditItems([...editItems, { productName: 'New Item', quantity: 1, price: 0, total: 0 }])}
-                                className="w-full py-6 border-2 border-dashed border-slate-200 rounded-[2rem] text-[11px] font-black uppercase text-slate-400 hover:border-emerald-300 hover:text-emerald-500 hover:bg-emerald-50/30 transition-all flex items-center justify-center gap-3"
-                            >
-                                <Plus size={20} /> Append New Article
-                            </button>
+                            )}
+
+                            {/* Notes */}
+                            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3">Notes</p>
+                                <textarea
+                                    placeholder="Optional notes or context..."
+                                    value={editNotes}
+                                    onChange={e => setEditNotes(e.target.value)}
+                                    className="w-full h-20 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-medium text-slate-700 outline-none focus:border-emerald-500 resize-none transition-all"
+                                />
+                            </div>
                         </div>
 
-                        <div className="p-10 bg-slate-900 rounded-b-[3rem] shrink-0 shadow-[0_-20px_50px_rgba(0,0,0,0.1)]">
-                            <div className="flex items-center justify-between mb-8">
-                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Updated Transaction Total</p>
-                                <p className="text-4xl font-black italic tabular-nums text-white tracking-tighter">${editItems.reduce((sum, i) => sum + Number(i.total), 0).toLocaleString()}</p>
+                        {/* Footer */}
+                        <div className="px-5 pt-3 pb-8 border-t border-slate-200/60 bg-slate-100 shrink-0">
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total</span>
+                                <span className="text-xl font-black text-slate-900 tabular-nums">
+                                    {currencySymbol}{editItems.reduce((s, i) => s + i.total, 0).toLocaleString()}
+                                </span>
                             </div>
-                            <button 
+                            <button
                                 onClick={handleUpdate}
-                                disabled={isUpdating}
-                                className="w-full h-16 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-2xl shadow-emerald-500/20 disabled:opacity-50 active:scale-[0.98] transition-all"
+                                disabled={isUpdating || editItems.length === 0}
+                                className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-xl shadow-emerald-500/30 disabled:opacity-40 hover:bg-emerald-600"
                             >
-                                {isUpdating ? <Loader2 size={24} className="animate-spin" /> : <><Send size={20} /> Finalize Updates</>}
+                                {isUpdating ? <Loader2 size={20} className="animate-spin" /> : <><Check size={18} /> Save Changes</>}
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
