@@ -102,6 +102,7 @@ export async function updateDebtor(id: string, data: {
     phone?: string;
     amount: number;
     notes?: string;
+    debtDate?: string;
     items: { productName: string; quantity: number; price: number; total: number }[];
 }) {
     try {
@@ -116,6 +117,7 @@ export async function updateDebtor(id: string, data: {
                     phone: data.phone,
                     amount: data.amount,
                     notes: data.notes,
+                    debtDate: data.debtDate ? new Date(data.debtDate) : undefined,
                     items: {
                         create: data.items.map(item => ({
                             productName: item.productName,

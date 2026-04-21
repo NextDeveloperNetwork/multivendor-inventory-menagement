@@ -32,6 +32,14 @@ export default function DebtorsClient({ initialDebtors, currencySymbol = '$' }: 
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [showFilters, setShowFilters] = useState(false);
+    
+    // Dates defaults to current month
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const [startDate, setStartDate] = useState<string>(firstDay);
+    const [endDate, setEndDate] = useState<string>(lastDay);
+
     const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
     // Settlement sheet
@@ -43,6 +51,7 @@ export default function DebtorsClient({ initialDebtors, currencySymbol = '$' }: 
     const [editing, setEditing] = useState<Debtor | null>(null);
     const [editName, setEditName] = useState('');
     const [editPhone, setEditPhone] = useState('');
+    const [editDebtDate, setEditDebtDate] = useState('');
     const [editNotes, setEditNotes] = useState('');
     const [editItems, setEditItems] = useState<DebtorItem[]>([]);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -50,11 +59,14 @@ export default function DebtorsClient({ initialDebtors, currencySymbol = '$' }: 
 
     // Filtering
     const filtered = debtors.filter(d => {
+        const effectiveDate = d.debtDate || d.createdAt;
+        const dDate = new Date(effectiveDate).toISOString().split('T')[0];
+        const matchesDate = (!startDate || dDate >= startDate) && (!endDate || dDate <= endDate);
         const matchSearch = !search ||
             d.name.toLowerCase().includes(search.toLowerCase()) ||
             d.phone?.toLowerCase().includes(search.toLowerCase());
         const matchStatus = statusFilter === 'ALL' || d.status === statusFilter;
-        return matchSearch && matchStatus;
+        return matchesDate && matchSearch && matchStatus;
     });
 
     const totalOwed = filtered.reduce((s, d) => s + (Number(d.amount) - Number(d.paidAmount)), 0);
@@ -98,6 +110,7 @@ export default function DebtorsClient({ initialDebtors, currencySymbol = '$' }: 
         setEditing(d);
         setEditName(d.name);
         setEditPhone(d.phone || '');
+        setEditDebtDate(d.debtDate ? new Date(d.debtDate).toISOString().split('T')[0] : new Date(d.createdAt).toISOString().split('T')[0]);
         setEditNotes(d.notes || '');
         setEditItems([...d.items]);
         setNewItem({ productName: '', quantity: 1, price: 0, total: 0 });
@@ -112,12 +125,12 @@ export default function DebtorsClient({ initialDebtors, currencySymbol = '$' }: 
         if (editItems.length === 0) { toast.error('Add at least one item'); return; }
         setIsUpdating(true);
         const amount = editItems.reduce((s, i) => s + i.total, 0);
-        const res = await updateDebtor(editing.id, { name: editName, phone: editPhone, amount, notes: editNotes, items: editItems });
+        const res = await updateDebtor(editing.id, { name: editName, phone: editPhone, amount, notes: editNotes, debtDate: editDebtDate, items: editItems });
         setIsUpdating(false);
         if (res.success) {
             toast.success('Debtor updated');
             setDebtors(prev => prev.map(d => d.id === editing.id
-                ? { ...d, name: editName, phone: editPhone, notes: editNotes, amount, items: editItems }
+                ? { ...d, name: editName, phone: editPhone, notes: editNotes, amount, debtDate: editDebtDate, items: editItems }
                 : d
             ));
             setEditing(null);
@@ -209,7 +222,7 @@ export default function DebtorsClient({ initialDebtors, currencySymbol = '$' }: 
                 </div>
 
                 {showFilters && (
-                    <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                    <div className="bg-white/5 rounded-2xl p-4 border border-white/10 space-y-3">
                         <div className="relative">
                             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20" size={14} />
                             <input
@@ -219,6 +232,27 @@ export default function DebtorsClient({ initialDebtors, currencySymbol = '$' }: 
                                 onChange={e => setSearch(e.target.value)}
                                 className="w-full h-11 pl-10 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-white outline-none focus:border-violet-500 transition-all placeholder:text-white/20"
                             />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 relative">
+                                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20" size={14} />
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="w-full h-11 pl-10 pr-2 bg-white/5 border border-white/10 rounded-xl text-[11px] font-medium text-white outline-none focus:border-violet-500 transition-all [color-scheme:dark]"
+                                />
+                            </div>
+                            <span className="text-white/20 text-sm">-</span>
+                            <div className="flex-1 relative">
+                                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20" size={14} />
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="w-full h-11 pl-10 pr-2 bg-white/5 border border-white/10 rounded-xl text-[11px] font-medium text-white outline-none focus:border-violet-500 transition-all [color-scheme:dark]"
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -452,6 +486,11 @@ export default function DebtorsClient({ initialDebtors, currencySymbol = '$' }: 
                                     <div className="pl-4 pr-2 shrink-0"><Phone size={15} className="text-slate-400" /></div>
                                     <input type="tel" placeholder="Phone number..." value={editPhone} onChange={e => setEditPhone(e.target.value)}
                                         className="flex-1 pr-4 bg-transparent text-sm font-medium text-slate-900 outline-none" />
+                                </div>
+                                <div className="flex items-center h-12 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                                    <div className="pl-4 pr-2 shrink-0"><Calendar size={15} className="text-slate-400" /></div>
+                                    <input type="date" value={editDebtDate} onChange={e => setEditDebtDate(e.target.value)}
+                                        className="flex-1 pr-4 bg-transparent text-sm font-medium text-slate-900 outline-none cursor-pointer" />
                                 </div>
                             </div>
 
