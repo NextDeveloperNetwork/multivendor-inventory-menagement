@@ -251,12 +251,19 @@ export async function getDailyProductionLogs(workerId: string, date: string) {
         return [];
     }
 }
-export async function getAdminDailyProductionLogs(businessId: string | undefined, date: string) {
+export async function getAdminDailyProductionLogs(businessId: string | undefined, date: string, endDate?: string) {
     try {
         const startOfDay = new Date(date);
         startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
+        
+        let endRange: Date;
+        if (endDate) {
+            endRange = new Date(endDate);
+            endRange.setHours(23, 59, 59, 999);
+        } else {
+            endRange = new Date(date);
+            endRange.setHours(23, 59, 59, 999);
+        }
 
         // @ts-ignore
         return await prisma.productionLog.findMany({
@@ -266,7 +273,7 @@ export async function getAdminDailyProductionLogs(businessId: string | undefined
                 orderId: 'MANUAL',  // Only manager-dashboard entries (not Production Planner entries)
                 date: {
                     gte: startOfDay,
-                    lte: endOfDay
+                    lte: endRange
                 }
             },
             orderBy: { createdAt: 'desc' }

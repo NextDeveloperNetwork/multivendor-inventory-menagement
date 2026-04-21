@@ -190,6 +190,9 @@ function ProductionSheet({
     const selectedArticle = articles.find(a => a.id === selectedId) || null;
 
     const filtered = articles.filter(a => {
+        const remaining = a.stockQuantity - (a.totalYield || 0);
+        if (remaining <= 0) return false;
+
         const q = searchQuery.toLowerCase().trim();
         if (!q) return true;
         return (
@@ -221,11 +224,16 @@ function ProductionSheet({
 
     const qty = parseInt(counterValue) || 0;
     const calculatedYield = qty > 0 ? Math.max(0, qty - prevTotal) : 0;
+    const isExceeding = selectedArticle ? qty > selectedArticle.stockQuantity : false;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedArticle || calculatedYield <= 0) {
             toast.error(`Fut një vlerë mbi totalin aktual (${prevTotal})`);
+            return;
+        }
+        if (isExceeding) {
+            toast.error(`Sasia kalon targetin prej ${selectedArticle.stockQuantity} copë!`);
             return;
         }
         setSubmitting(true);
@@ -368,13 +376,17 @@ function ProductionSheet({
                                         <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#94a3b8' }}>Prodhimi i Ri</p>
                                         <p
                                             className="text-4xl font-black tabular-nums leading-none mt-1"
-                                            style={{ color: calculatedYield > 0 ? '#16a34a' : '#cbd5e1', fontVariantNumeric: 'tabular-nums' }}
+                                            style={{ color: isExceeding ? '#ef4444' : (calculatedYield > 0 ? '#16a34a' : '#cbd5e1'), fontVariantNumeric: 'tabular-nums' }}
                                         >
                                             +{calculatedYield.toLocaleString()}
                                             <span className="text-sm font-bold ml-1" style={{ color: '#94a3b8' }}>pcs</span>
                                         </p>
+                                        {isExceeding && (
+                                            <p className="text-xs font-bold text-red-500 mt-1">Kalon targetin me {qty - selectedArticle.stockQuantity} pcs!</p>
+                                        )}
                                     </div>
-                                    {calculatedYield > 0 && <CheckCircle2 size={32} style={{ color: '#4ade80' }} />}
+                                    {calculatedYield > 0 && !isExceeding && <CheckCircle2 size={32} style={{ color: '#4ade80' }} />}
+                                    {isExceeding && <X size={32} style={{ color: '#ef4444' }} />}
                                 </div>
 
                                 {/* Counter + Boxes row */}
@@ -427,18 +439,19 @@ function ProductionSheet({
                                 {/* Submit */}
                                 <button
                                     type="submit"
-                                    disabled={submitting || calculatedYield <= 0}
+                                    disabled={submitting || calculatedYield <= 0 || isExceeding}
                                     className="w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                                     style={{
-                                        background: calculatedYield > 0
+                                        background: isExceeding ? '#fee2e2' : (calculatedYield > 0
                                             ? 'linear-gradient(135deg,#1e1b4b,#4f46e5)'
-                                            : '#f1f5f9',
-                                        color: calculatedYield > 0 ? '#fff' : '#94a3b8',
-                                        boxShadow: calculatedYield > 0 ? '0 6px 24px rgba(79,70,229,0.35)' : 'none',
+                                            : '#f1f5f9'),
+                                        color: isExceeding ? '#ef4444' : (calculatedYield > 0 ? '#fff' : '#94a3b8'),
+                                        boxShadow: calculatedYield > 0 && !isExceeding ? '0 6px 24px rgba(79,70,229,0.35)' : 'none',
                                         opacity: submitting ? 0.75 : 1,
+                                        border: isExceeding ? '2px solid #ef4444' : 'none'
                                     }}
                                 >
-                                    {submitting ? 'Duke Ruajtur…' : `Konfirmo +${calculatedYield.toLocaleString()} pcs`}
+                                    {submitting ? 'Duke Ruajtur…' : (isExceeding ? 'Kalon Limit' : `Konfirmo +${calculatedYield.toLocaleString()} pcs`)}
                                 </button>
                             </>
                         )}
