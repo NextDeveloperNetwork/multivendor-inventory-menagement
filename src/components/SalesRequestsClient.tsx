@@ -1,12 +1,30 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ClipboardList, Package, Clock, User, ChevronLeft, ChevronRight, FileText, Download, CheckCircle2, Search, X, Trash2 } from 'lucide-react';
+import { ClipboardList, Package, Clock, User, ChevronLeft, ChevronRight, FileText, Download, CheckCircle2, Search, X, Trash2, Edit3, SlidersHorizontal, Plus, Minus, Undo2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
-import { deleteRequest, updateRequestStatus } from '@/app/actions/salesOps';
+import { deleteRequest, updateRequestStatus, updateRequest } from '@/app/actions/salesOps';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+
+const PERIODS = [
+    { label: 'Today', getDates: () => { const t = new Date().toISOString().split('T')[0]; return [t, t]; } },
+    { label: 'Week', getDates: () => { const now = new Date(); const start = new Date(now); start.setDate(now.getDate() - 6); return [start.toISOString().split('T')[0], now.toISOString().split('T')[0]]; } },
+    { label: 'Month', getDates: () => { const now = new Date(); return [new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0], new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]]; } },
+    { label: 'All', getDates: () => ['', ''] },
+];
 
 interface SalesRequestsClientProps {
     initialRequests: any[];
@@ -14,22 +32,36 @@ interface SalesRequestsClientProps {
 
 export default function SalesRequestsClient({ initialRequests }: SalesRequestsClientProps) {
     const [requests, setRequests] = useState<any[]>(initialRequests);
-    const [dateFilter, setDateFilter] = useState<string>(new Date().toISOString().split('T')[0]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
-    const shiftDate = (days: number) => {
-        const current = dateFilter ? new Date(dateFilter) : new Date();
-        current.setDate(current.getDate() + days);
-        setDateFilter(current.toISOString().split('T')[0]);
+    const now = new Date();
+    const [startDate, setStartDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
+    const [endDate, setEndDate] = useState(new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]);
+    const [activePeriod, setActivePeriod] = useState('Month');
+    const [showFilters, setShowFilters] = useState(false);
+    const [statusFilter, setStatusFilter] = useState('ALL');
+
+    const [editingReq, setEditingReq] = useState<any>(null);
+    const [editParams, setEditParams] = useState({ quantity: 1, productName: '', notes: '' });
+
+    const applyPeriod = (label: string) => {
+        const period = PERIODS.find(p => p.label === label);
+        if (!period) return;
+        const [s, e] = period.getDates();
+        setStartDate(s);
+        setEndDate(e);
+        setActivePeriod(label);
     };
 
     const filteredRequests = requests.filter((req: any) => {
-        const matchesDate = !dateFilter || new Date(req.createdAt).toISOString().split('T')[0] === dateFilter;
+        const dDate = new Date(req.createdAt).toISOString().split('T')[0];
+        const matchesDate = (!startDate || dDate >= startDate) && (!endDate || dDate <= endDate);
+        const matchesStatus = statusFilter === 'ALL' || req.status === statusFilter;
         const matchesSearch = !searchQuery || 
             (req.product?.name || req.productName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             req.requestedBy?.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesDate && matchesSearch;
+        return matchesDate && matchesStatus && matchesSearch;
     });
 
     const pendingCount = filteredRequests.filter(r => r.status === 'PENDING').length;
@@ -40,7 +72,7 @@ export default function SalesRequestsClient({ initialRequests }: SalesRequestsCl
         doc.text('Inventory Requisitions Report', 14, 22);
         doc.setFontSize(11);
         doc.setTextColor(100);
-        doc.text(`Report Date: ${dateFilter || 'All'}`, 14, 30);
+        doc.text(`Period: ${startDate || 'Start'} to ${endDate || 'End'}`, 14, 30);
         doc.text(`Total Requests: ${filteredRequests.length}`, 14, 36);
 
         const tableData = filteredRequests.map(r => [
@@ -59,8 +91,31 @@ export default function SalesRequestsClient({ initialRequests }: SalesRequestsCl
             headStyles: { fillColor: [37, 99, 235] }
         });
 
-        doc.save(`Requisitions_${dateFilter || 'Export'}.pdf`);
+        doc.save(`Requisitions_${startDate}_to_${endDate}.pdf`);
         toast.success('Report Exported Successfully');
+    };
+
+    const handleEditStart = (req: any) => {
+        setEditingReq(req);
+        setEditParams({
+            quantity: req.quantity || 1,
+            productName: req.product?.name || req.productName || '',
+            notes: req.notes || ''
+        });
+    };
+
+    const handleEditSave = async () => {
+        if (!editingReq) return;
+        setIsProcessing(editingReq.id);
+        const res = await updateRequest(editingReq.id, editParams);
+        setIsProcessing(null);
+        if (res.success) {
+            toast.success('Requisition updated');
+            setRequests(requests.map(r => r.id === editingReq.id ? { ...r, quantity: editParams.quantity, productName: editParams.productName, notes: editParams.notes } : r));
+            setEditingReq(null);
+        } else {
+            toast.error(res.error || 'Update failed');
+        }
     };
 
     const handleDelete = async (id: string) => {
@@ -102,30 +157,51 @@ export default function SalesRequestsClient({ initialRequests }: SalesRequestsCl
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-200">
-                        <button onClick={() => shiftDate(-1)} className="p-2 hover:bg-white rounded-lg transition-all text-slate-400 hover:text-blue-600">
-                            <ChevronLeft size={18} />
+                <div className="flex flex-wrap items-center gap-2">
+                    {PERIODS.map(p => (
+                        <button
+                            key={p.label}
+                            onClick={() => applyPeriod(p.label)}
+                            className={cn(
+                                "py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                activePeriod === p.label ? "bg-blue-600 text-white shadow-xl shadow-blue-200" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                            )}
+                        >
+                            {p.label}
                         </button>
-                        <input 
-                            type="date" 
-                            value={dateFilter}
-                            onChange={(e) => setDateFilter(e.target.value)}
-                            className="bg-transparent border-none text-xs font-black text-slate-900 outline-none cursor-pointer w-32 uppercase italic p-0"
-                        />
-                        <button onClick={() => shiftDate(1)} className="p-2 hover:bg-white rounded-lg transition-all text-slate-400 hover:text-blue-600">
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
-
+                    ))}
+                    <button onClick={() => setShowFilters(!showFilters)} className={cn("w-10 h-10 flex items-center justify-center rounded-xl transition-all", showFilters ? "bg-blue-600 text-white shadow-xl shadow-blue-200" : "bg-slate-50 text-slate-500 hover:bg-slate-100")}>
+                        <SlidersHorizontal size={14} />
+                    </button>
                     <button 
                         onClick={generatePDF}
-                        className="flex items-center justify-center gap-2 px-6 h-12 lg:h-11 bg-black text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+                        className="flex items-center gap-2 px-4 h-10 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm"
                     >
-                        <FileText size={14} /> Export Report
+                        <FileText size={14} /> Export
                     </button>
                 </div>
             </div>
+
+            {showFilters && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap gap-4 items-center">
+                    <div className="flex flex-col gap-1 w-full sm:w-auto">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">From</label>
+                        <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setActivePeriod(''); }} className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-blue-500" />
+                    </div>
+                    <div className="flex flex-col gap-1 w-full sm:w-auto">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">To</label>
+                        <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setActivePeriod(''); }} className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-blue-500" />
+                    </div>
+                    <div className="flex flex-col gap-1 sm:ml-auto w-full sm:w-auto min-w-[150px]">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Status</label>
+                        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:border-blue-500">
+                            <option value="ALL">All Requisitions</option>
+                            <option value="PENDING">In Process</option>
+                            <option value="APPROVED">Approved</option>
+                        </select>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <div className="lg:col-span-1 space-y-4">
@@ -162,60 +238,151 @@ export default function SalesRequestsClient({ initialRequests }: SalesRequestsCl
                             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-2">No requisitions detected for this timeframe</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 gap-3">
-                            {filteredRequests.map((req: any) => (
-                                <div key={req.id} className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:border-blue-300 transition-all group gap-4">
-                                    <div className="flex items-center gap-4 md:gap-6 w-full sm:w-auto">
-                                        <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all border border-slate-100 shrink-0">
-                                            <Package size={20} />
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                                                <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight italic leading-none truncate">{req.product?.name || req.productName || 'Unnamed Item'}</h4>
+                        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                            <Table>
+                                <TableHeader className="bg-slate-50/80">
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableHead className="font-bold text-slate-600 uppercase text-[10px] tracking-wider w-[240px]">Time & Item</TableHead>
+                                        <TableHead className="font-bold text-slate-600 uppercase text-[10px] tracking-wider hidden sm:table-cell">Requested By</TableHead>
+                                        <TableHead className="font-bold text-slate-600 uppercase text-[10px] tracking-wider">Status</TableHead>
+                                        <TableHead className="font-bold text-slate-600 uppercase text-[10px] tracking-wider text-right w-[100px]">Qty</TableHead>
+                                        <TableHead className="w-[160px] text-center font-bold text-slate-600 uppercase text-[10px] tracking-wider">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredRequests.map((req: any) => (
+                                        <TableRow key={req.id} className="group hover:bg-slate-50 transition-colors">
+                                            <TableCell className="align-top py-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-1.5 text-slate-500">
+                                                        <Clock size={12} />
+                                                        <span className="text-[10px] font-bold uppercase tracking-widest">{new Date(req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    </div>
+                                                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight truncate">{req.product?.name || req.productName || 'Unnamed Item'}</h4>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="align-top py-4 hidden sm:table-cell">
+                                                <div className="flex items-center gap-1.5">
+                                                    <User size={12} className="text-blue-400" />
+                                                    <span className="text-xs font-bold text-slate-700 uppercase">{req.requestedBy || 'Manager'}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="align-top py-4">
                                                 <span className={cn(
-                                                    "text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
-                                                    req.status === 'PENDING' ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600 shadow-sm shadow-emerald-100"
+                                                    "text-[9px] font-black px-2.5 py-1 rounded-md border uppercase tracking-widest whitespace-nowrap inline-block",
+                                                    req.status === 'PENDING' ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm shadow-emerald-100"
                                                 )}>
                                                     {req.status}
                                                 </span>
-                                            </div>
-                                            <div className="flex items-center gap-4 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                                <div className="flex items-center gap-1.5"><User size={10} className="text-blue-400" /> {req.requestedBy || 'Manager'}</div>
-                                                <div className="flex items-center gap-1.5" suppressHydrationWarning><Clock size={10} className="text-slate-300" /> {new Date(req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between sm:justify-end gap-8 w-full sm:w-auto border-t sm:border-t-0 pt-4 sm:pt-0 border-slate-50">
-                                        <div className="text-left sm:text-right">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 opacity-60 italic">Quantity Reqd</p>
-                                            <p className="text-2xl font-black text-slate-900 leading-none italic">x{req.quantity}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {req.status === 'PENDING' && (
-                                                <button 
-                                                    onClick={() => handleStatusUpdate(req.id, 'APPROVED')}
-                                                    disabled={isProcessing === req.id}
-                                                    className="h-11 px-4 flex items-center justify-center bg-blue-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all shadow-sm hover:shadow-lg disabled:opacity-50"
-                                                >
-                                                    {isProcessing === req.id ? '...' : 'Process'}
-                                                </button>
-                                            )}
-                                            <button 
-                                                onClick={() => handleDelete(req.id)}
-                                                disabled={isProcessing === req.id}
-                                                className="h-11 w-11 flex items-center justify-center bg-white text-slate-400 rounded-xl hover:text-rose-600 hover:bg-rose-50 transition-all shadow-sm hover:shadow-lg border border-slate-100 disabled:opacity-50"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                            </TableCell>
+                                            <TableCell className="align-top py-4 text-right">
+                                                <span className="text-base font-black text-slate-900 tabular-nums bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 italic shadow-sm">
+                                                    x{req.quantity}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="align-top py-4">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {req.status === 'PENDING' ? (
+                                                        <button 
+                                                            onClick={() => handleStatusUpdate(req.id, 'APPROVED')}
+                                                            disabled={isProcessing === req.id}
+                                                            className="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-600 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-200 disabled:opacity-50"
+                                                            title="Process"
+                                                        >
+                                                            {isProcessing === req.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                                                        </button>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => handleStatusUpdate(req.id, 'PENDING')}
+                                                            disabled={isProcessing === req.id}
+                                                            className="w-8 h-8 flex items-center justify-center bg-amber-50 text-amber-600 rounded-lg font-bold hover:bg-amber-500 hover:text-white transition-all shadow-sm border border-amber-200 disabled:opacity-50"
+                                                            title="Revert Process"
+                                                        >
+                                                            {isProcessing === req.id ? <Loader2 size={14} className="animate-spin" /> : <Undo2 size={14} />}
+                                                        </button>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => handleEditStart(req)}
+                                                        disabled={isProcessing === req.id}
+                                                        className="w-8 h-8 flex items-center justify-center bg-white text-slate-500 rounded-lg hover:text-blue-600 hover:bg-blue-50 transition-all border border-slate-200 shadow-sm disabled:opacity-50"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit3 size={14} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDelete(req.id)}
+                                                        disabled={isProcessing === req.id}
+                                                        className="w-8 h-8 flex items-center justify-center bg-white text-slate-500 rounded-lg hover:text-rose-600 hover:bg-rose-50 transition-all border border-slate-200 shadow-sm disabled:opacity-50"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* EDIT DIALOG */}
+            <Dialog open={!!editingReq} onOpenChange={(open) => !open && setEditingReq(null)}>
+                <DialogContent className="sm:max-w-md rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl">
+                    <div className="p-6 bg-slate-50 border-b border-slate-200 flex justify-between items-start">
+                        <div>
+                            <DialogTitle className="text-xl font-black text-slate-900 uppercase italic">Edit Requisition</DialogTitle>
+                            <DialogDescription className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Modify request details</DialogDescription>
+                        </div>
+                        <button onClick={() => setEditingReq(null)} className="p-2 bg-white rounded-full text-slate-400 hover:text-slate-700 active:scale-95 transition-all shadow-sm">
+                            <X size={16} />
+                        </button>
+                    </div>
+                    <div className="p-6 space-y-5 bg-white">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Product Name</label>
+                            <input 
+                                type="text"
+                                value={editParams.productName}
+                                onChange={(e) => setEditParams({...editParams, productName: e.target.value})}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-500 transition-all"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantity</label>
+                            <div className="flex items-center h-12 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden w-32">
+                                <button type="button" onClick={() => setEditParams({...editParams, quantity: Math.max(1, editParams.quantity - 1)})} className="w-10 h-full flex items-center justify-center text-slate-500 active:bg-slate-200">
+                                    <Minus size={14} />
+                                </button>
+                                <input type="number" value={editParams.quantity} onChange={(e) => setEditParams({...editParams, quantity: parseInt(e.target.value) || 1})} className="flex-1 bg-transparent text-center text-sm font-black text-slate-900 outline-none w-full" />
+                                <button type="button" onClick={() => setEditParams({...editParams, quantity: editParams.quantity + 1})} className="w-10 h-full flex items-center justify-center text-slate-500 active:bg-slate-200">
+                                    <Plus size={14} />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notes</label>
+                            <textarea 
+                                value={editParams.notes}
+                                onChange={(e) => setEditParams({...editParams, notes: e.target.value})}
+                                rows={3}
+                                placeholder="Additional context..."
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 transition-all resize-none"
+                            />
+                        </div>
+                        
+                        <button 
+                            onClick={handleEditSave}
+                            disabled={isProcessing === editingReq?.id}
+                            className="w-full h-12 bg-blue-600 text-white rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-blue-700 active:scale-95 transition-all shadow-xl shadow-blue-200 flex items-center justify-center gap-2 mt-4"
+                        >
+                            {isProcessing === editingReq?.id ? 'Saving...' : 'Save Changes'}
+                        </button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

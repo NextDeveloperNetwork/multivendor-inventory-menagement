@@ -4,14 +4,25 @@ import React, { useState } from 'react';
 import {
     Package, Clock, Trash2, Edit3, X, Plus, Minus,
     FileText, Send, Loader2, Search, SlidersHorizontal,
-    TrendingUp, ShoppingBag, Sparkles, ChevronDown, Check
+    TrendingUp, ShoppingBag, Sparkles, ChevronDown, Check, FileDown, Table as TableIcon
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { deleteFreeSale, updateFreeSale } from '@/app/actions/salesOps';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 import CreateFreeSaleForm from './CreateFreeSaleForm';
 
 interface SaleItem {
@@ -75,6 +86,27 @@ export default function FreeSalesClient({ initialSales, userName, currencySymbol
     const totalRevenue = filteredSales.reduce((acc, s) => acc + Number(s.totalAmount), 0);
     const totalQty = filteredSales.reduce((acc, s) => acc + s.items.reduce((sum, i) => sum + i.quantity, 0), 0);
 
+    // Data aggregation for Reports
+    const dailyMap: Record<string, { revenue: number, count: number }> = {};
+    const itemMap: Record<string, { qty: number, revenue: number }> = {};
+
+    filteredSales.forEach(s => {
+        const d = new Date(s.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        if (!dailyMap[d]) dailyMap[d] = { revenue: 0, count: 0 };
+        dailyMap[d].revenue += Number(s.totalAmount);
+        dailyMap[d].count += 1;
+
+        s.items.forEach(i => {
+            const key = i.productName;
+            if (!itemMap[key]) itemMap[key] = { qty: 0, revenue: 0 };
+            itemMap[key].qty += i.quantity;
+            itemMap[key].revenue += Number(i.total);
+        });
+    });
+
+    const dailySummary = Object.entries(dailyMap).map(([date, data]) => ({ date, ...data })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const itemSummary = Object.entries(itemMap).map(([name, data]) => ({ name, ...data })).sort((a, b) => b.qty - a.qty);
+
     const applyPeriod = (label: string) => {
         const period = PERIODS.find(p => p.label === label);
         if (!period) return;
@@ -82,6 +114,84 @@ export default function FreeSalesClient({ initialSales, userName, currencySymbol
         setStartDate(s);
         setEndDate(e);
         setActivePeriod(label);
+    };
+
+    const generatePDF = () => {
+        const doc = new jsPDF();
+        
+        // Header
+        doc.setFontSize(22);
+        doc.text('Free Sales Report', 14, 22);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(`Period: ${startDate || 'Start'} to ${endDate || 'End'} ${activePeriod && activePeriod !== 'All' ? '(' + activePeriod + ')' : ''}`, 14, 30);
+        
+        // Stats
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text(`Total Revenue: ${currencySymbol}${totalRevenue.toLocaleString()}`, 14, 42);
+        doc.text(`Units Sold: ${totalQty}`, 80, 42);
+        
+        // Day Sales Table
+        doc.setFontSize(14);
+        doc.text('Performance by Day', 14, 55);
+        
+        const dayRows = dailySummary.map(d => [d.date, d.count.toString(), `${currencySymbol}${d.revenue.toLocaleString()}`]);
+        if (dayRows.length === 0) dayRows.push(['No sales recorded', '-', '-']);
+        
+        autoTable(doc, {
+            startY: 60,
+            head: [['Date', 'Transactions', 'Revenue']],
+            body: dayRows,
+            theme: 'grid',
+            headStyles: { fillColor: [15, 23, 42] }
+        });
+        
+        // Article Sales Table
+        const finalY = (doc as any).lastAutoTable.finalY + 15;
+        doc.setFontSize(14);
+        doc.text('Performance by Article', 14, finalY);
+        
+        const articleRows = itemSummary.map(i => [i.name, i.qty.toString(), `${currencySymbol}${i.revenue.toLocaleString()}`]);
+        if (articleRows.length === 0) articleRows.push(['No items sold', '-', '-']);
+        
+        autoTable(doc, {
+            startY: finalY + 5,
+            head: [['Product Name', 'Qty Sold', 'Generated Revenue']],
+            body: articleRows,
+            theme: 'grid',
+            headStyles: { fillColor: [15, 23, 42] }
+        });
+        
+        doc.save(`Free_Sales_Report_${startDate}_to_${endDate}.pdf`);
+    };
+
+    const generateExcel = () => {
+        const dayRows = dailySummary.map(d => ({
+            Date: d.date,
+            Transactions: d.count,
+            Revenue: Number(d.revenue.toFixed(2))
+        }));
+        
+        const articleRows = itemSummary.map(i => ({
+            'Product Name': i.name,
+            'Qty Sold': i.qty,
+            'Generated Revenue': Number(i.revenue.toFixed(2))
+        }));
+
+        if (dayRows.length === 0) dayRows.push({ Date: 'No sales recorded', Transactions: 0, Revenue: 0 });
+        if (articleRows.length === 0) articleRows.push({ 'Product Name': 'No items sold', 'Qty Sold': 0, 'Generated Revenue': 0 });
+
+        const wb = XLSX.utils.book_new();
+        
+        const wsDaily = XLSX.utils.json_to_sheet(dayRows);
+        XLSX.utils.book_append_sheet(wb, wsDaily, 'Daily Sales');
+        
+        const wsArticles = XLSX.utils.json_to_sheet(articleRows);
+        XLSX.utils.book_append_sheet(wb, wsArticles, 'Article Sales');
+        
+        XLSX.writeFile(wb, `Free_Sales_Report_${startDate}_to_${endDate}.xlsx`);
     };
 
     const handleDelete = async (id: string) => {
@@ -208,6 +318,20 @@ export default function FreeSalesClient({ initialSales, userName, currencySymbol
                     >
                         <SlidersHorizontal size={14} />
                     </button>
+                    <button
+                        onClick={generatePDF}
+                        className="flex items-center gap-2 px-4 rounded-xl transition-all active:scale-95 border bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20"
+                    >
+                        <FileDown size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">PDF</span>
+                    </button>
+                    <button
+                        onClick={generateExcel}
+                        className="flex items-center gap-2 px-4 rounded-xl transition-all active:scale-95 border bg-white/5 text-emerald-500/80 border-emerald-500/20 hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500/40"
+                    >
+                        <TableIcon size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Excel</span>
+                    </button>
                 </div>
 
                 {/* Extended filters */}
@@ -240,92 +364,100 @@ export default function FreeSalesClient({ initialSales, userName, currencySymbol
             </div>
 
             {/* ── SALES LIST ── */}
-            <div className="flex-1 bg-slate-100 rounded-t-[2rem] px-4 pt-5 pb-36 space-y-3">
-                <div className="flex items-center justify-between mb-1">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{filteredSales.length} records</span>
+            <div className="flex-1 bg-white rounded-t-[2rem] p-5 pb-36 shadow-sm border-t border-slate-200">
+                <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{filteredSales.length} records</span>
                     {searchQuery && (
-                        <button onClick={() => setSearchQuery('')} className="text-[9px] font-bold text-emerald-600 flex items-center gap-1">
-                            <X size={10} /> Clear
+                        <button onClick={() => setSearchQuery('')} className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 hover:text-emerald-700">
+                            <X size={12} /> Clear Filter
                         </button>
                     )}
                 </div>
 
                 {filteredSales.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 text-center">
-                        <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-5 shadow-sm">
-                            <Sparkles size={28} className="text-slate-200" />
+                        <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-5 shadow-sm border border-slate-100">
+                            <Sparkles size={28} className="text-slate-300" />
                         </div>
                         <h3 className="text-base font-black text-slate-800 uppercase italic tracking-tight">No Records Found</h3>
                         <p className="text-[10px] text-slate-400 font-medium mt-1.5 max-w-[200px] leading-relaxed">
                             Adjust the period filter or register a new sale.
                         </p>
                     </div>
-                ) : filteredSales.map((sale) => (
-                    <div key={sale.id} className="bg-white rounded-[1.5rem] overflow-hidden shadow-sm border border-slate-100/80 active:scale-[0.99] transition-transform">
-                        {/* Top accent bar */}
-                        <div className="h-1 bg-gradient-to-r from-emerald-400 to-teal-500" />
-
-                        <div className="p-4">
-                            {/* Row 1: id + date + amount */}
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-                                        <Package size={16} className="text-emerald-600" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">#{sale.id.slice(-6).toUpperCase()}</p>
-                                        <div className="flex items-center gap-1">
-                                            <Clock size={9} className="text-slate-400" />
-                                            <span className="text-[10px] font-bold text-slate-500">
-                                                {new Date(sale.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-xl font-black text-slate-900 tabular-nums tracking-tight leading-none">
-                                        {currencySymbol}{Number(sale.totalAmount).toLocaleString()}
-                                    </p>
-                                    <p className="text-[9px] font-bold text-emerald-600 mt-0.5">{sale.items.length} item{sale.items.length !== 1 ? 's' : ''}</p>
-                                </div>
-                            </div>
-
-                            {/* Item chips */}
-                            <div className="flex flex-wrap gap-1.5 mb-3">
-                                {sale.items.map((item, idx) => (
-                                    <span key={idx} className="text-[9px] font-black text-slate-600 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-lg uppercase tracking-wide">
-                                        {item.quantity}× {item.productName}
-                                    </span>
+                ) : (
+                    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                        <Table>
+                            <TableHeader className="bg-slate-50/80">
+                                <TableRow className="hover:bg-transparent">
+                                    <TableHead className="font-bold text-slate-600 uppercase text-[10px] tracking-wider w-[140px]">Date & ID</TableHead>
+                                    <TableHead className="font-bold text-slate-600 uppercase text-[10px] tracking-wider">Items</TableHead>
+                                    <TableHead className="font-bold text-slate-600 uppercase text-[10px] tracking-wider hidden sm:table-cell">Notes</TableHead>
+                                    <TableHead className="font-bold text-slate-600 uppercase text-[10px] tracking-wider text-right w-[120px]">Total</TableHead>
+                                    <TableHead className="w-[100px] text-center font-bold text-slate-600 uppercase text-[10px] tracking-wider">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredSales.map((sale) => (
+                                    <TableRow key={sale.id} className="group hover:bg-slate-50 transition-colors">
+                                        <TableCell className="align-top py-4">
+                                            <div className="flex items-center gap-1 text-slate-700 font-medium">
+                                                <Clock size={12} className="text-slate-400" />
+                                                <span className="text-sm font-bold">
+                                                    {new Date(sale.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest pl-4">#{sale.id.slice(-6).toUpperCase()}</p>
+                                        </TableCell>
+                                        <TableCell className="align-top py-4">
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {sale.items.map((item, idx) => (
+                                                    <span key={idx} className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 uppercase whitespace-nowrap inline-block tracking-wide">
+                                                        {item.quantity}× {item.productName}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="align-top py-4 hidden sm:table-cell">
+                                            {sale.notes ? (
+                                                <div className="flex items-start gap-1.5 max-w-xs">
+                                                    <FileText size={12} className="text-slate-400 mt-0.5 shrink-0" />
+                                                    <p className="text-xs text-slate-600 italic line-clamp-2 leading-relaxed">{sale.notes}</p>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-slate-300 italic">No notes attached</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="align-top py-4 text-right">
+                                            <p className="text-base font-black text-slate-900 tabular-nums tracking-tight">
+                                                {currencySymbol} {Number(sale.totalAmount).toLocaleString()}
+                                            </p>
+                                            <p className="text-[10px] font-bold text-emerald-600 mt-0.5">{sale.items.length} item{sale.items.length !== 1 ? 's' : ''}</p>
+                                        </TableCell>
+                                        <TableCell className="align-top py-4">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    onClick={() => handleEditInitiate(sale)}
+                                                    className="w-8 h-8 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 flex items-center justify-center transition-all bg-white border border-slate-200 shadow-sm active:scale-95"
+                                                    title="Edit"
+                                                >
+                                                    <Edit3 size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(sale.id)}
+                                                    disabled={isProcessing === sale.id}
+                                                    className="w-8 h-8 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-all bg-white border border-slate-200 shadow-sm active:scale-95 disabled:opacity-50"
+                                                    title="Delete"
+                                                >
+                                                    {isProcessing === sale.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                                </button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
                                 ))}
-                            </div>
-
-                            {/* Notes (if any) */}
-                            {sale.notes && (
-                                <div className="flex items-start gap-2 bg-slate-50 rounded-xl px-3 py-2 mb-3 border border-slate-100">
-                                    <FileText size={11} className="text-slate-400 mt-0.5 shrink-0" />
-                                    <p className="text-[10px] text-slate-500 leading-relaxed italic">{sale.notes}</p>
-                                </div>
-                            )}
-
-                            {/* Actions */}
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleEditInitiate(sale)}
-                                    className="flex-1 h-11 bg-slate-50 border border-slate-100 text-slate-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-100"
-                                >
-                                    <Edit3 size={14} /> Edit
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(sale.id)}
-                                    disabled={isProcessing === sale.id}
-                                    className="w-11 h-11 bg-slate-50 border border-slate-100 text-slate-400 rounded-xl flex items-center justify-center active:scale-95 transition-all hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 disabled:opacity-40"
-                                >
-                                    {isProcessing === sale.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
-                                </button>
-                            </div>
-                        </div>
+                            </TableBody>
+                        </Table>
                     </div>
-                ))}
+                )}
             </div>
 
             {/* ─────── EDIT BOTTOM SHEET ─────── */}

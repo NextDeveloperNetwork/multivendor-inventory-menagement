@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Landmark, Search, Filter, Download, UserMinus, Phone, Calendar, Clock, ArrowUpRight, ChevronLeft, ChevronRight, FileText, X, Trash2, Activity, Rocket, Zap, CheckCircle2, Package } from 'lucide-react';
+import { Landmark, Search, Filter, Download, UserMinus, Phone, Calendar, Clock, ArrowUpRight, ChevronLeft, ChevronRight, FileText, X, Trash2, Activity, Rocket, Zap, CheckCircle2, Package, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -48,6 +48,16 @@ export default function SalesDebtorsClient({ initialDebtors, currencySymbol = 'A
     const [viewingDebtor, setViewingDebtor] = useState<any | null>(null);
     const [paymentAmount, setPaymentAmount] = useState<string>('');
 
+    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
     const filteredDebtors = debtors.filter((debtor: any) => {
         // Use debtDate if set, fall back to createdAt for legacy records
         const effectiveDate = debtor.debtDate || debtor.createdAt;
@@ -58,6 +68,31 @@ export default function SalesDebtorsClient({ initialDebtors, currencySymbol = 'A
             debtor.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             debtor.phone?.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesDate && matchesStatus && matchesSearch;
+    });
+
+    const sortedDebtors = [...filteredDebtors].sort((a, b) => {
+        if (!sortConfig) return 0;
+        
+        let aVal: any = a[sortConfig.key];
+        let bVal: any = b[sortConfig.key];
+        
+        if (sortConfig.key === 'balance') {
+            aVal = Number(a.amount) - Number(a.paidAmount);
+            bVal = Number(b.amount) - Number(b.paidAmount);
+        } else if (sortConfig.key === 'date') {
+            aVal = new Date(a.debtDate || a.createdAt).getTime();
+            bVal = new Date(b.debtDate || b.createdAt).getTime();
+        } else if (['amount', 'paidAmount'].includes(sortConfig.key)) {
+            aVal = Number(aVal);
+            bVal = Number(bVal);
+        } else if (typeof aVal === 'string') {
+            aVal = aVal.toLowerCase();
+            bVal = bVal.toLowerCase();
+        }
+
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
     });
 
     const totalAmount = filteredDebtors.reduce((sum, d) => sum + Number(d.amount), 0);
@@ -158,11 +193,11 @@ export default function SalesDebtorsClient({ initialDebtors, currencySymbol = 'A
     return (
         <div className="space-y-6">
             {/* ── HEADER PANEL: VIBRANT LIGHT PRODUCTION EASE */}
-            <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-white shadow-xl shadow-indigo-100/30 p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
+            <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-white shadow-xl shadow-indigo-100/30 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
                 <div className="absolute -top-16 -left-16 w-32 h-32 bg-indigo-100/50 rounded-full blur-[60px] opacity-50" />
                 
                 <div className="flex items-center gap-5 relative z-10">
-                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-200">
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-200 shrink-0">
                         <Landmark size={24} strokeWidth={2.5} />
                     </div>
                     <div>
@@ -177,169 +212,214 @@ export default function SalesDebtorsClient({ initialDebtors, currencySymbol = 'A
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 relative z-10">
-                    <div className="flex items-center gap-3 bg-slate-50/50 px-4 py-2 rounded-xl border border-slate-100 shadow-inner">
-                        <div className="flex items-center gap-3">
-                            <input 
-                                type="date" 
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="bg-transparent border-none text-[10px] font-black text-slate-900 outline-none cursor-pointer uppercase italic p-0"
-                            />
-                            <div className="w-px h-4 bg-slate-200" />
-                            <input 
-                                type="date" 
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="bg-transparent border-none text-[10px] font-black text-slate-900 outline-none cursor-pointer uppercase italic p-0"
-                            />
-                        </div>
+                <div className="flex items-center gap-6 relative z-10 bg-white/50 px-6 py-4 rounded-2xl border border-white">
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1 italic">AGGREGATE BALANCE</p>
+                        <p className="text-2xl font-black italic text-slate-900 tracking-tighter leading-none">
+                            {currencySymbol} {balance.toLocaleString()}
+                        </p>
+                    </div>
+                    <div className="w-px h-8 bg-slate-200 hidden sm:block" />
+                    <div className="hidden sm:block">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1 italic">TOTAL INITIATED</p>
+                        <p className="text-xl font-black italic text-indigo-600 tracking-tighter leading-none">
+                            {currencySymbol} {totalAmount.toLocaleString()}
+                        </p>                        
+                    </div>
+                </div>
+            </div>
+
+            {/* ── UNIFIED FILTER BAR */}
+            <div className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} strokeWidth={3} />
+                    <input 
+                        type="text"
+                        placeholder="SEARCH DEBTOR OR PHONE..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-12 pr-4 h-12 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black text-slate-900 outline-none focus:border-indigo-600 transition-all uppercase placeholder:text-slate-300 italic"
+                    />
+                </div>
+
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
+                    {['ALL', 'UNPAID', 'PARTIAL', 'PAID'].map((s) => (
+                        <button
+                            key={s}
+                            onClick={() => setStatusFilter(s)}
+                            className={cn(
+                                "h-12 px-5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all italic whitespace-nowrap shrink-0 border",
+                                statusFilter === s 
+                                    ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200" 
+                                    : "bg-slate-50 text-slate-400 border-slate-100 hover:text-indigo-600 hover:bg-indigo-50"
+                            )}
+                        >
+                            {s}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-3 bg-slate-50 px-4 h-12 rounded-xl border border-slate-100 shrink-0">
+                        <input 
+                            type="date" 
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="bg-transparent border-none text-[10px] font-black text-slate-900 outline-none cursor-pointer uppercase italic p-0"
+                        />
+                        <div className="w-px h-4 bg-slate-200" />
+                        <input 
+                            type="date" 
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="bg-transparent border-none text-[10px] font-black text-slate-900 outline-none cursor-pointer uppercase italic p-0"
+                        />
                     </div>
 
                     <button 
                         onClick={generatePDF}
-                        className="h-12 px-6 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                        className="h-12 w-full sm:w-auto px-6 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 shrink-0"
                     >
                         <Download size={14} strokeWidth={3} /> EXPORT
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* ── ANALYTICS CORE */}
-                <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-indigo-100/10">
-                        <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mb-4 flex items-center gap-2 italic">
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" /> AGGREGATE
-                        </h3>
-                        <div className="space-y-3">
-                            <p className="text-3xl font-black italic text-slate-900 tracking-tighter leading-none">
-                                {currencySymbol} {balance.toLocaleString()}
-                            </p>
-                            <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                                <div 
-                                    className="h-full bg-indigo-500" 
-                                    style={{ width: `${totalAmount > 0 ? (totalPaid/totalAmount)*100 : 0}%` }} 
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white/60 p-6 rounded-[2rem] border border-white shadow-lg space-y-4">
-                        <div className="relative group">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} strokeWidth={3} />
-                            <input 
-                                type="text"
-                                placeholder="QUERY..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 bg-white border border-slate-100 rounded-xl text-[10px] font-black text-slate-900 outline-none focus:border-indigo-600 transition-all uppercase placeholder:text-slate-200 italic"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                            {['ALL', 'UNPAID', 'PARTIAL', 'PAID'].map((s) => (
-                                <button
-                                    key={s}
-                                    onClick={() => setStatusFilter(s)}
-                                    className={cn(
-                                        "py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all italic border",
-                                        statusFilter === s 
-                                            ? "bg-indigo-600 text-white border-transparent" 
-                                            : "bg-white text-slate-400 border-slate-100 hover:text-indigo-600"
-                                    )}
-                                >
-                                    {s}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* ── HIGH DENSITY REGISTRY */}
-                <div className="lg:col-span-3">
-                    {filteredDebtors.length === 0 ? (
-                        <div className="bg-white rounded-[2rem] border border-white shadow-xl h-[400px] flex flex-col items-center justify-center text-center p-8">
+            {/* ── HIGH DENSITY REGISTRY */}
+            <div className="w-full">
+                {filteredDebtors.length === 0 ? (
+                        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm h-[400px] flex flex-col items-center justify-center text-center p-8">
                             <UserMinus size={32} className="text-slate-200 mb-4" />
                             <h2 className="text-lg font-black text-slate-900 italic uppercase">NULL_RECORDS</h2>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden">
+                        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
                             <Table>
-                                <TableHeader className="bg-slate-50/50">
-                                    <TableRow>
-                                        <TableHead className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest italic">ENTITY_NODE</TableHead>
-                                        <TableHead className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest italic text-right">VALUATION</TableHead>
-                                        <TableHead className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest italic text-right">CMDS</TableHead>
+                                <TableHeader className="bg-slate-50/80">
+                                    <TableRow className="hover:bg-transparent">
+                                        {[
+                                            { key: 'date', label: 'Date', width: 'w-[120px]', align: 'left' },
+                                            { key: 'name', label: 'Entity', width: 'w-[220px]', align: 'left' },
+                                            { key: 'notes', label: 'Description', width: 'max-w-[200px]', align: 'left', hiddenOnMobile: true },
+                                            { key: 'status', label: 'Status', align: 'left' },
+                                            { key: 'amount', label: 'Total Debt', align: 'right' },
+                                            { key: 'paidAmount', label: 'Paid', align: 'right' },
+                                            { key: 'balance', label: 'Balance', align: 'right' }
+                                        ].map((col) => (
+                                            <TableHead 
+                                                key={col.key}
+                                                onClick={() => handleSort(col.key)}
+                                                className={cn(
+                                                    "font-bold text-slate-600 uppercase text-[10px] tracking-wider cursor-pointer hover:bg-slate-100 transition-colors select-none",
+                                                    col.width,
+                                                    col.align === 'right' ? 'text-right' : 'text-left',
+                                                    col.hiddenOnMobile ? 'hidden md:table-cell' : ''
+                                                )}
+                                            >
+                                                <div className={cn("flex items-center group", col.align === 'right' ? 'justify-end' : 'justify-start')}>
+                                                    {col.label}
+                                                    {sortConfig?.key === col.key ? (
+                                                        sortConfig.direction === 'asc' 
+                                                            ? <ArrowUp size={12} className="ml-1 text-indigo-600" />
+                                                            : <ArrowDown size={12} className="ml-1 text-indigo-600" />
+                                                    ) : (
+                                                        <ArrowUpDown size={12} className="ml-1 opacity-0 group-hover:opacity-40 transition-opacity" />
+                                                    )}
+                                                </div>
+                                            </TableHead>
+                                        ))}
+                                        <TableHead className="w-[180px] text-center font-bold text-slate-600 uppercase text-[10px] tracking-wider">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredDebtors.map((debtor: any) => (
-                                        <TableRow 
-                                            key={debtor.id} 
-                                            onClick={() => setViewingDebtor(debtor)}
-                                            className="group hover:bg-slate-50/50 transition-colors cursor-pointer"
-                                        >
-                                            <TableCell className="px-6 py-3">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 font-black italic shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all">
-                                                        {debtor.name.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-black text-slate-900 uppercase italic text-xs tracking-tight leading-none group-hover:text-indigo-600 transition-colors">
-                                                            {debtor.name}
-                                                        </div>
-                                                        <div className="flex items-center gap-3 mt-1.5">
-                                                            <div className="flex items-center gap-1.5 text-[8px] text-slate-400 font-bold uppercase tracking-widest leading-none">
-                                                                <Phone size={10} className="text-indigo-500" /> {debtor.phone}
-                                                            </div>
-                                                            <div className="flex items-center gap-1 text-[8px] text-slate-300 font-bold uppercase tracking-widest leading-none">
-                                                                <Calendar size={9} className="text-indigo-300" />
-                                                                {new Date(debtor.debtDate || debtor.createdAt).toLocaleDateString()}
-                                                            </div>
-                                                        </div>
+                                    {sortedDebtors.map((debtor: any) => {
+                                        const balance = Number(debtor.amount) - Number(debtor.paidAmount);
+                                        const dt = new Date(debtor.debtDate || debtor.createdAt);
+                                        const dateStr = dt.toLocaleDateString('en-GB');
+                                        return (
+                                        <TableRow key={debtor.id} className="group hover:bg-slate-50 transition-colors">
+                                            <TableCell className="align-top py-4">
+                                                <div className="flex items-center gap-1.5 text-slate-600 font-bold text-[10px] uppercase tracking-widest whitespace-nowrap">
+                                                    <Calendar size={12} className="text-slate-400" />
+                                                    {dateStr}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="align-top py-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight truncate group-hover:text-indigo-600 transition-colors">{debtor.name}</h4>
+                                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                                        <Phone size={10} className="text-indigo-400" /> {debtor.phone || 'N/A'}
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="px-6 py-3 text-right">
-                                                <div className="font-black text-slate-950 tabular-nums text-sm italic tracking-tighter leading-none mb-1">
-                                                    {currencySymbol} {(Number(debtor.amount) - Number(debtor.paidAmount)).toLocaleString()}
-                                                </div>
-                                                <div className={cn(
-                                                    "text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full inline-block border",
-                                                    debtor.status === 'UNPAID' ? "bg-rose-50 text-rose-600 border-rose-100" : 
-                                                    debtor.status === 'PARTIAL' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                            <TableCell className="align-top py-4 hidden md:table-cell">
+                                                <p className="text-[10px] font-bold text-slate-500 italic line-clamp-2 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">
+                                                    {debtor.notes || "No description provided."}
+                                                </p>
+                                            </TableCell>
+                                            <TableCell className="align-top py-4">
+                                                <span className={cn(
+                                                    "text-[9px] font-black px-2.5 py-1 rounded-md border uppercase tracking-widest whitespace-nowrap inline-block",
+                                                    debtor.status === 'UNPAID' ? "bg-rose-50 text-rose-600 border-rose-200" : 
+                                                    debtor.status === 'PARTIAL' ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-emerald-50 text-emerald-600 border-emerald-200 shadow-sm shadow-emerald-100"
                                                 )}>
                                                     {debtor.status}
-                                                </div>
+                                                </span>
                                             </TableCell>
-                                            <TableCell className="px-6 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                            <TableCell className="align-top py-4 text-right">
+                                                <span className="text-sm font-black text-slate-600 tabular-nums">
+                                                    {currencySymbol} {Number(debtor.amount).toLocaleString()}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="align-top py-4 text-right">
+                                                <span className="text-sm font-black text-emerald-600 tabular-nums">
+                                                    {currencySymbol} {Number(debtor.paidAmount).toLocaleString()}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="align-top py-4 text-right">
+                                                <span className="text-sm font-black text-rose-600 tabular-nums bg-rose-50 px-2 py-1 rounded-lg border border-rose-100">
+                                                    {currencySymbol} {balance.toLocaleString()}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="align-top py-4">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button 
                                                         onClick={() => {
                                                             setSettlingDebtor(debtor);
-                                                            setPaymentAmount((Number(debtor.amount) - Number(debtor.paidAmount)).toString());
+                                                            setPaymentAmount(balance.toString());
                                                         }}
-                                                        className="h-9 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-all font-black text-[9px] uppercase tracking-widest shadow-lg shadow-indigo-100"
+                                                        disabled={isProcessing === debtor.id || balance <= 0}
+                                                        className="h-8 px-3 flex items-center justify-center bg-indigo-600 text-white rounded-lg font-bold text-[9px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm border border-indigo-700 disabled:opacity-50"
+                                                        title="Settle"
                                                     >
-                                                        SETTLE
+                                                        Settle
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setViewingDebtor(debtor)}
+                                                        disabled={isProcessing === debtor.id}
+                                                        className="w-8 h-8 flex items-center justify-center bg-white text-slate-500 rounded-lg hover:text-blue-600 hover:bg-blue-50 transition-all border border-slate-200 shadow-sm disabled:opacity-50"
+                                                        title="View Details"
+                                                    >
+                                                        <FileText size={14} />
                                                     </button>
                                                     <button 
                                                         onClick={() => handleDelete(debtor.id)}
-                                                        className="h-9 w-9 flex items-center justify-center bg-white text-slate-200 border border-slate-100 rounded-lg hover:text-rose-600 hover:border-rose-100 transition-all"
+                                                        disabled={isProcessing === debtor.id}
+                                                        className="w-8 h-8 flex items-center justify-center bg-white text-slate-500 rounded-lg hover:text-rose-600 hover:bg-rose-50 transition-all border border-slate-200 shadow-sm disabled:opacity-50"
+                                                        title="Delete"
                                                     >
                                                         <Trash2 size={14} />
                                                     </button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </div>
                     )}
                 </div>
-            </div>
 
             {/* ── DEBTOR DETAIL DIALOG */}
             <Dialog open={!!viewingDebtor} onOpenChange={(open) => !open && setViewingDebtor(null)}>

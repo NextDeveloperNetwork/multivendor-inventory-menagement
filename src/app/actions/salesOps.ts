@@ -162,6 +162,24 @@ export async function deleteRequest(id: string) {
     }
 }
 
+export async function updateRequest(id: string, data: {
+    quantity?: number;
+    productName?: string;
+    notes?: string;
+}) {
+    try {
+        await (prisma as any).inventoryRequest.update({
+            where: { id },
+            data
+        });
+        revalidatePath('/admin/sales/requests');
+        revalidatePath('/sales/requests');
+        return { success: true };
+    } catch (e: any) {
+        return { error: e.message };
+    }
+}
+
 export async function recordPayment(id: string, amount: number) {
     try {
         const debtor = await (prisma as any).debtor.findUnique({ where: { id } });
