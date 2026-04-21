@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { createDebtor } from '@/app/actions/salesOps';
 import { toast } from 'sonner';
-import { UserMinus, Wallet, Send, Plus, Loader2, Phone, X, Package, Trash2, Minus } from 'lucide-react';
+import { Wallet, Send, Plus, Loader2, Phone, X, Package, Trash2, Minus, Calendar } from 'lucide-react';
 
 interface DebtorItem {
     productName: string;
@@ -18,6 +18,7 @@ export default function CreateDebtorForm({ currencySymbol = '$' }: { currencySym
     
     const [clientName, setClientName] = useState('');
     const [clientPhone, setClientPhone] = useState('');
+    const [debtDate, setDebtDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [items, setItems] = useState<DebtorItem[]>([]);
     const [currentItem, setCurrentItem] = useState<DebtorItem>({ productName: '', quantity: 1, price: 0, total: 0 });
     const [notes, setNotes] = useState('');
@@ -54,6 +55,7 @@ export default function CreateDebtorForm({ currencySymbol = '$' }: { currencySym
             phone: clientPhone,
             amount: totalAmount,
             notes,
+            debtDate,
             items
         });
         setIsLoading(false);
@@ -62,6 +64,7 @@ export default function CreateDebtorForm({ currencySymbol = '$' }: { currencySym
             toast.success('Credit dispatch registered in ledger');
             setClientName('');
             setClientPhone('');
+            setDebtDate(new Date().toISOString().split('T')[0]);
             setItems([]);
             setNotes('');
             setIsOpen(false);
@@ -139,6 +142,19 @@ export default function CreateDebtorForm({ currencySymbol = '$' }: { currencySym
                                     </div>
                                 </div>
                             </div>
+
+                                <div className="space-y-2.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Debt Date</label>
+                                    <div className="relative">
+                                        <Calendar size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
+                                        <input
+                                            type="date"
+                                            value={debtDate}
+                                            onChange={e => setDebtDate(e.target.value)}
+                                            className="w-full h-14 bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-5 text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 focus:shadow-xl focus:shadow-emerald-50 transition-all cursor-pointer"
+                                        />
+                                    </div>
+                                </div>
 
                             {/* Cart Constructor */}
                             <div className="bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100 space-y-6">

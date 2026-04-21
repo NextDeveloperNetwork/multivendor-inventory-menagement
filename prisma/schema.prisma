@@ -476,11 +476,13 @@ model Debtor {
   paidAmount  Decimal      @default(0) @db.Decimal(10, 2)
   status      String       @default("UNPAID") // UNPAID, PARTIAL, PAID
   notes       String?
+  debtDate    DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   items       DebtorItem[]
 
   @@index([businessId])
+  @@index([debtDate])
 }
 
 model DebtorItem {

@@ -19,6 +19,7 @@ export default async function SalesDebtorsPage() {
         ...d,
         amount: Number(d.amount),
         paidAmount: Number(d.paidAmount),
+        debtDate: d.debtDate ? new Date(d.debtDate).toISOString() : null,
         items: (d.items || []).map((item: any) => ({
             ...item,
             price: Number(item.price),

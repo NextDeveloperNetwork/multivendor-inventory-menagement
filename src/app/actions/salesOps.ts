@@ -43,6 +43,7 @@ export async function createDebtor(data: {
     phone?: string;
     amount: number;
     notes?: string;
+    debtDate?: string;
     items: { productName: string; quantity: number; price: number; total: number }[];
 }) {
     const businessId = await getSelectedBusinessId();
@@ -54,6 +55,7 @@ export async function createDebtor(data: {
                 phone: data.phone,
                 amount: data.amount,
                 notes: data.notes,
+                debtDate: data.debtDate ? new Date(data.debtDate) : new Date(),
                 businessId,
                 status: 'UNPAID',
                 paidAmount: 0,

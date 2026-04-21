@@ -49,7 +49,7 @@ export default function FreeSalesClient({ initialSales, userName, currencySymbol
     const [isProcessing, setIsProcessing] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
-    const [activePeriod, setActivePeriod] = useState('Month');
+    const [activePeriod, setActivePeriod] = useState('Today');
 
     // Date Filtering
     const now = new Date();

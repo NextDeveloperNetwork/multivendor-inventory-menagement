@@ -5,7 +5,7 @@ import {
     Phone, Clock, Trash2, Edit3, X, Plus, Minus,
     Package, Loader2, Search, SlidersHorizontal,
     UserMinus, CheckCircle2, AlertTriangle, TrendingDown,
-    FileText, Check, Wallet, Send
+    FileText, Check, Wallet, Send, Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ interface Debtor {
     id: string; name: string; phone?: string | null;
     amount: number; paidAmount: number; status: string;
     notes?: string | null; createdAt: string | Date;
+    debtDate?: string | Date | null;
     items: DebtorItem[];
 }
 
@@ -320,9 +321,9 @@ export default function DebtorsClient({ initialDebtors, currencySymbol = '$' }: 
 
                                 {/* Timestamp */}
                                 <div className="flex items-center gap-1.5 mt-3">
-                                    <Clock size={9} className="text-slate-300" />
+                                    <Calendar size={9} className="text-slate-300" />
                                     <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest" suppressHydrationWarning>
-                                        {new Date(debtor.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        {new Date(debtor.debtDate || debtor.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                                     </span>
                                 </div>
 
@@ -530,6 +531,7 @@ function CreateDebtorInline({ currencySymbol }: { currencySymbol: string }) {
     const [isLoading, setIsLoading] = useState(false);
     const [clientName, setClientName] = useState('');
     const [clientPhone, setClientPhone] = useState('');
+    const [debtDate, setDebtDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [items, setItems] = useState<DebtorItem[]>([]);
     const [currentItem, setCurrentItem] = useState<DebtorItem>({ productName: '', quantity: 1, price: 0, total: 0 });
     const [notes, setNotes] = useState('');
@@ -546,11 +548,11 @@ function CreateDebtorInline({ currencySymbol }: { currencySymbol: string }) {
         if (!clientName.trim()) { toast.error('Client name required'); return; }
         if (items.length === 0) { toast.error('Add at least one item'); return; }
         setIsLoading(true);
-        const res = await createDebtor({ name: clientName, phone: clientPhone, amount: totalAmount, notes, items });
+        const res = await createDebtor({ name: clientName, phone: clientPhone, amount: totalAmount, notes, debtDate, items });
         setIsLoading(false);
         if (res.success) {
             toast.success('Credit registered');
-            setClientName(''); setClientPhone(''); setItems([]); setNotes('');
+            setClientName(''); setClientPhone(''); setDebtDate(new Date().toISOString().split('T')[0]); setItems([]); setNotes('');
             setCurrentItem({ productName: '', quantity: 1, price: 0, total: 0 });
             setOpen(false);
             window.location.reload();
@@ -592,6 +594,11 @@ function CreateDebtorInline({ currencySymbol }: { currencySymbol: string }) {
                                     <div className="pl-4 pr-2"><Phone size={15} className="text-slate-400" /></div>
                                     <input type="tel" placeholder="Phone (optional)..." value={clientPhone} onChange={e => setClientPhone(e.target.value)}
                                         className="flex-1 pr-4 bg-transparent text-sm font-medium text-slate-900 outline-none" />
+                                </div>
+                                <div className="flex items-center h-12 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                                    <div className="pl-4 pr-2"><Calendar size={15} className="text-slate-400" /></div>
+                                    <input type="date" value={debtDate} onChange={e => setDebtDate(e.target.value)}
+                                        className="flex-1 pr-4 bg-transparent text-sm font-medium text-slate-900 outline-none cursor-pointer" />
                                 </div>
                             </div>
 

@@ -49,7 +49,9 @@ export default function SalesDebtorsClient({ initialDebtors, currencySymbol = 'A
     const [paymentAmount, setPaymentAmount] = useState<string>('');
 
     const filteredDebtors = debtors.filter((debtor: any) => {
-        const dDate = new Date(debtor.createdAt).toISOString().split('T')[0];
+        // Use debtDate if set, fall back to createdAt for legacy records
+        const effectiveDate = debtor.debtDate || debtor.createdAt;
+        const dDate = new Date(effectiveDate).toISOString().split('T')[0];
         const matchesDate = (!startDate || dDate >= startDate) && (!endDate || dDate <= endDate);
         const matchesStatus = statusFilter === 'ALL' || debtor.status === statusFilter;
         const matchesSearch = !searchQuery || 
@@ -291,8 +293,9 @@ export default function SalesDebtorsClient({ initialDebtors, currencySymbol = 'A
                                                             <div className="flex items-center gap-1.5 text-[8px] text-slate-400 font-bold uppercase tracking-widest leading-none">
                                                                 <Phone size={10} className="text-indigo-500" /> {debtor.phone}
                                                             </div>
-                                                            <div className="text-[8px] text-slate-300 font-bold uppercase tracking-widest leading-none">
-                                                                {new Date(debtor.createdAt).toLocaleDateString()}
+                                                            <div className="flex items-center gap-1 text-[8px] text-slate-300 font-bold uppercase tracking-widest leading-none">
+                                                                <Calendar size={9} className="text-indigo-300" />
+                                                                {new Date(debtor.debtDate || debtor.createdAt).toLocaleDateString()}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -355,15 +358,16 @@ export default function SalesDebtorsClient({ initialDebtors, currencySymbol = 'A
                                 </div>
                                 <div>
                                     <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none mb-2">{viewingDebtor?.name}</h2>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                            <Phone size={12} className="text-indigo-400" /> {viewingDebtor?.phone || 'NO_CHN'}
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                                <Phone size={12} className="text-indigo-400" /> {viewingDebtor?.phone || 'NO_CHN'}
+                                            </div>
+                                            <div className="w-1 h-1 rounded-full bg-slate-700" />
+                                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                                <Calendar size={12} className="text-indigo-400" />
+                                                DEBT_{new Date(viewingDebtor?.debtDate || viewingDebtor?.createdAt).toLocaleDateString()}
+                                            </div>
                                         </div>
-                                        <div className="w-1 h-1 rounded-full bg-slate-700" />
-                                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                            JOINED_{new Date(viewingDebtor?.createdAt).toLocaleDateString()}
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                             <div className={cn(
