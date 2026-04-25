@@ -8,11 +8,25 @@ import { logActivity } from './intelligence';
 import bcrypt from 'bcryptjs';
 
 export async function getUsers() {
-    return prisma.user.findMany({
+    const users = await prisma.user.findMany({
+        where: {
+            role: {
+                notIn: ['POSTAL_MANAGER', 'POSTAL_CLIENT']
+            }
+        },
         include: {
             shop: true
         },
         orderBy: { createdAt: 'desc' }
+    });
+
+    return users.map(u => {
+        const user = u as any;
+        return {
+            ...u,
+            postalBaseFee: user.postalBaseFee ? Number(user.postalBaseFee) : 0,
+            postalManagerCut: user.postalManagerCut ? Number(user.postalManagerCut) : 0
+        };
     });
 }
 

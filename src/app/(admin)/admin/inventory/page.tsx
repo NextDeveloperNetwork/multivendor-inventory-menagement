@@ -1,13 +1,12 @@
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
-import { Plus, Search, List, Package } from 'lucide-react';
-import { Prisma } from '@prisma/client';
+import { Plus, List, Package, Layers } from 'lucide-react';
 import InventoryFilter from '@/components/InventoryFilter';
 import { sanitizeData } from '@/lib/utils';
 import InventoryClient from '@/components/InventoryClient';
 import BulkUploadDialog from '@/components/BulkUploadDialog';
-
 import { getBusinessFilter, getSelectedBusinessId } from '@/app/actions/business';
+import { InventoryMetaButtons } from '@/components/InventoryMetaButtons';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +17,7 @@ interface InventoryPageProps {
         warehouseId?: string;
         q?: string;
         categoryId?: string;
-    }>
+    }>;
 }
 
 export default async function InventoryPage({ searchParams }: InventoryPageProps) {
@@ -42,9 +41,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             },
             orderBy: { name: 'asc' },
             include: {
-                inventory: {
-                    include: { shop: true, warehouse: true }
-                },
+                inventory: { include: { shop: true, warehouse: true } },
                 category: true,
                 unit: true
             }
@@ -67,75 +64,67 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         if (filter === 'shops') return product.inventory.some((inv: any) => inv.shopId !== null && inv.quantity > 0);
         if (filter === 'specific_shop' && shopId) return product.inventory.some((inv: any) => inv.shopId === shopId && inv.quantity > 0);
         if (filter === 'specific_warehouse' && warehouseId) return product.inventory.some((inv: any) => inv.warehouseId === warehouseId && inv.quantity > 0);
-        if (filter === 'depleted') {
-            const totalQty = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-            return totalQty <= 0;
-        }
-        if (filter === 'in_stock') {
-            const totalQty = product.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
-            return totalQty > 0;
-        }
+        if (filter === 'depleted') return product.inventory.reduce((s: number, i: any) => s + i.quantity, 0) <= 0;
+        if (filter === 'in_stock') return product.inventory.reduce((s: number, i: any) => s + i.quantity, 0) > 0;
         return true;
     });
 
     return (
-        <div className="space-y-6 fade-in max-w-[1600px] mx-auto">
-            {/* Header section */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
-                        <Package size={24} />
+        <div className="space-y-4 max-w-[1600px] mx-auto">
+
+            {/* ── Header ── */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-blue-600 to-violet-600 shadow-xl shadow-blue-500/20 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Decorative circles */}
+                <div className="pointer-events-none absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5" />
+                <div className="pointer-events-none absolute -bottom-8 right-24 w-32 h-32 rounded-full bg-white/5" />
+
+                <div className="flex items-center gap-4 relative">
+                    <div className="w-14 h-14 bg-white/15 backdrop-blur rounded-2xl flex items-center justify-center text-white shadow-lg border border-white/20">
+                        <Package size={26} />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-slate-900">Asset Inventory</h1>
-                        <p className="text-sm text-slate-400 font-medium">Manage products, stock levels, and locations</p>
+                        <h1 className="text-2xl font-black text-white tracking-tight">Asset Inventory</h1>
+                        <p className="text-sm text-blue-100 font-medium mt-0.5">Products · Stock · Locations</p>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 relative">
+                    <InventoryMetaButtons />
                     <BulkUploadDialog selectedBusinessId={selectedBusinessId} />
-                    <Link href="/admin/inventory/bulk" className="h-10 px-4 bg-white text-slate-700 border border-slate-200 rounded-xl font-semibold text-sm hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm">
-                        <List size={16} className="text-blue-600" /> Batch Add
+                    <Link
+                        href="/admin/inventory/bulk"
+                        className="h-10 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl font-semibold text-sm flex items-center gap-2 transition-colors backdrop-blur"
+                    >
+                        <Layers size={15} /> Batch Add
                     </Link>
-                    <Link href="/admin/inventory/new" className="h-10 px-5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold text-sm flex items-center gap-2 shadow-sm transition-colors">
+                    <Link
+                        href="/admin/inventory/new"
+                        className="h-10 px-5 bg-white text-blue-700 hover:bg-blue-50 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg transition-colors"
+                    >
                         <Plus size={16} /> Add Asset
                     </Link>
                 </div>
             </div>
 
-            {/* Filter & Search Bar */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-4 flex flex-col lg:flex-row items-center justify-between gap-4">
-                <div className="w-full lg:w-auto">
-                    <InventoryFilter
-                        currentFilter={filter}
-                        currentShopId={shopId}
-                        currentWarehouseId={warehouseId}
-                        shops={shops}
-                        warehouses={warehouses}
-                    />
-                </div>
-                <div className="relative w-full lg:w-96">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Search assets by name or SKU..."
-                        className="w-full pl-11 pr-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all outline-none"
-                    />
-                </div>
-            </div>
+            {/* ── Filter bar (no search — search lives in client toolbar) ── */}
+            <InventoryFilter
+                currentFilter={filter}
+                currentShopId={shopId}
+                currentWarehouseId={warehouseId}
+                shops={shops}
+                warehouses={warehouses}
+            />
 
-            {/* Main Content */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6">
-                <InventoryClient
-                    products={products}
-                    filter={filter}
-                    shopId={shopId}
-                    warehouseId={warehouseId}
-                    currency={currency}
-                    categories={categories}
-                    activeCategoryId={categoryId}
-                />
-            </div>
+            {/* ── Main Content ── */}
+            <InventoryClient
+                products={products}
+                filter={filter}
+                shopId={shopId}
+                warehouseId={warehouseId}
+                currency={currency}
+                categories={categories}
+                activeCategoryId={categoryId}
+            />
         </div>
     );
 }

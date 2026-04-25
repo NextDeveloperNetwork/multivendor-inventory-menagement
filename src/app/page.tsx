@@ -16,6 +16,10 @@ export default async function Home() {
             redirect('/production');
         } else if (user.role === 'SALES_MANAGER') {
             redirect('/sales');
+        } else if (user.role === 'POSTAL_MANAGER') {
+            redirect('/postal-manager');
+        } else if (user.role === 'POSTAL_CLIENT') {
+            redirect('/postal-client');
         } else {
             redirect('/shop');
         }

@@ -15,6 +15,7 @@ export async function registerUser(formData: FormData) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const name = formData.get('name') as string;
+    const requestedRole = formData.get('requestedRole') as string;
 
     const result = registerSchema.safeParse({ email, password, name });
 
@@ -33,23 +34,22 @@ export async function registerUser(formData: FormData) {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        /*
-          Logic explained:
-          First user created will be ADMIN?
-          User requested: "new user logs in its automatically a user".
-          But we need at least one ADMIN.
-          I will make the FIRST user an ADMIN for bootstrapping, 
-          otherwise everyone is USER.
-        */
         const userCount = await prisma.user.count();
-        const role = userCount === 0 ? 'ADMIN' : 'USER';
+        let role: any = userCount === 0 ? 'ADMIN' : 'USER';
+        let isApproved = true;
 
-        const user = await prisma.user.create({
+        if (requestedRole === 'POSTAL_MANAGER') {
+            role = 'POSTAL_MANAGER';
+            isApproved = false;
+        }
+
+        const user = await (prisma.user as any).create({
             data: {
                 email,
                 password: hashedPassword,
                 name,
                 role,
+                isApproved
             },
         });
 

@@ -12,12 +12,13 @@ interface InvoicesPageProps {
         startDate?: string;
         endDate?: string;
         q?: string;
+        supplierId?: string;
     }>
 }
 
 export default async function InvoicesPage({ searchParams }: InvoicesPageProps) {
     const params = await searchParams;
-    const { startDate, endDate, q } = params;
+    const { startDate, endDate, q, supplierId } = params;
 
     const businessFilter = await getBusinessFilter();
     const selectedBusinessId = await getSelectedBusinessId();
@@ -47,6 +48,10 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
 
     if (q) {
         where.number = { contains: q, mode: 'insensitive' };
+    }
+    
+    if (supplierId) {
+        where.supplierId = supplierId;
     }
 
     const [rawInvoices, rawProducts, rawSuppliers, rawWarehouses, rawShops, baseCurrency] = await Promise.all([
@@ -85,32 +90,37 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
 
     return (
         <div className="space-y-6 fade-in max-w-[1600px] mx-auto">
-            {/* Header Section */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200 shrink-0">
-                        <Package size={24} />
+            {/* ── Header ── */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 shadow-xl shadow-blue-500/20 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                {/* Decorative circles */}
+                <div className="pointer-events-none absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/10" />
+                <div className="pointer-events-none absolute -bottom-8 right-24 w-32 h-32 rounded-full bg-white/5" />
+
+                <div className="flex items-center gap-4 relative z-10">
+                    <div className="w-14 h-14 bg-white/15 backdrop-blur rounded-2xl flex items-center justify-center text-white shadow-lg border border-white/20">
+                        <Package size={26} />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-slate-900">Inbound Logistics</h1>
-                        <p className="text-sm text-slate-400 font-medium">Resource acquisition & manifest management</p>
+                        <h1 className="text-2xl font-black text-white tracking-tight">Inbound Logistics</h1>
+                        <p className="text-sm text-blue-100 font-medium mt-0.5">Resource acquisition & manifests</p>
                     </div>
                 </div>
-            </div>
 
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {stats.map(s => (
-                    <div key={s.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
-                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center border shrink-0 ${s.color}`}>
-                            <s.icon size={20} />
-                        </div>
-                        <div>
-                            <p className="text-xl font-black text-slate-900">{s.value}</p>
-                            <p className="text-xs text-slate-400 font-medium">{s.label}</p>
-                        </div>
+                {/* Integrated Stats */}
+                <div className="flex gap-4 relative z-10 bg-white/10 backdrop-blur border border-white/10 rounded-2xl p-2 px-4 shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)]">
+                    <div className="px-3 py-2 border-r border-white/10 flex flex-col justify-center">
+                        <p className="text-[10px] text-blue-200 font-bold uppercase tracking-widest drop-shadow-sm">Total Manifests</p>
+                        <p className="text-lg font-black text-white">{invoices.length}</p>
                     </div>
-                ))}
+                    <div className="px-3 py-2 border-r border-white/10 flex flex-col justify-center">
+                        <p className="text-[10px] text-blue-200 font-bold uppercase tracking-widest drop-shadow-sm">Today</p>
+                        <p className="text-lg font-black text-white">{todayInvoices}</p>
+                    </div>
+                    <div className="px-3 py-2 flex flex-col justify-center">
+                        <p className="text-[10px] text-emerald-200 font-bold uppercase tracking-widest drop-shadow-sm">Valuation</p>
+                        <p className="text-lg font-black text-emerald-50 tracking-tighter">{currency.symbol} {valuation.toLocaleString()}</p>
+                    </div>
+                </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col flex-1 p-6">

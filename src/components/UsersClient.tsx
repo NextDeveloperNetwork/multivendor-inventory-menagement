@@ -151,13 +151,16 @@ export default function UsersClient({ initialUsers, shops, transporters }: Users
                             <div className="pt-2 flex flex-wrap gap-2">
                                 <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border font-mono italic ${
                                     user.role === 'ADMIN' ? 'bg-amber-50 text-amber-600 border-amber-200' : 
-                                    user.role === 'TRANSPORTER' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 
+                                    user.role === 'POSTAL_MANAGER' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 
+                                    user.role === 'POSTAL_TRANSPORTER' ? 'bg-violet-50 text-violet-600 border-violet-200' :
+                                    user.role === 'POSTAL_CLIENT' ? 'bg-sky-50 text-sky-600 border-sky-200' :
+                                    user.role === 'TRANSPORTER' ? 'bg-slate-50 text-slate-600 border-slate-200' : 
                                     user.role === 'PRODUCTION_MANAGER' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 
                                     user.role === 'SALES_MANAGER' ? 'bg-rose-50 text-rose-600 border-rose-200' :
                                     'bg-blue-50 text-blue-600 border-blue-200'
                                 }`}>
                                     <Shield size={10} />
-                                    {user.role}
+                                    {user.role?.replace(/_/g, ' ')}
                                 </div>
 
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-900 text-white border border-slate-900 text-[8px] font-black uppercase tracking-widest font-mono italic">
@@ -242,7 +245,10 @@ export default function UsersClient({ initialUsers, shops, transporters }: Users
                                     >
                                         <option value="USER">Standard Staff</option>
                                         <option value="ADMIN">System Administrator</option>
-                                        <option value="TRANSPORTER">Logistics Personnel</option>
+                                        <option value="POSTAL_MANAGER">Postal Hub Manager</option>
+                                        <option value="POSTAL_TRANSPORTER">Postal Transporter (Fleet)</option>
+                                        <option value="POSTAL_CLIENT">Postal Client (Merchant)</option>
+                                        <option value="TRANSPORTER">Standard Logistics</option>
                                         <option value="PRODUCTION_MANAGER">Production Manager</option>
                                         <option value="SALES_MANAGER">Sales Manager</option>
                                     </select>

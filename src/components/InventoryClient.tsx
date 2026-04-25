@@ -218,52 +218,35 @@ export default function InventoryClient({ products: initialProducts, filter, sho
     };
 
     return (
-        <div className="flex flex-col gap-6">
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+        <div className="flex flex-col gap-4">
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                    {/* View toggle */}
+                    <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-0.5">
                         <button
                             onClick={() => setViewMode('catalog')}
-                            className={`px-4 h-8 rounded-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'catalog' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                            className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                viewMode === 'catalog' ? 'bg-white text-blue-600 shadow' : 'text-slate-500 hover:text-slate-800'
+                            }`}
                         >
-                            <LayoutGrid size={14} />
-                            <span>Catalog</span>
+                            <LayoutGrid size={13} /> Catalog
                         </button>
                         <button
                             onClick={() => setViewMode('table')}
-                            className={`px-4 h-8 rounded-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                            className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                viewMode === 'table' ? 'bg-white text-blue-600 shadow' : 'text-slate-500 hover:text-slate-800'
+                            }`}
                         >
-                            <List size={14} />
-                            <span>List View</span>
+                            <List size={13} /> List
                         </button>
                     </div>
 
-                    <div className="h-4 w-[1px] bg-slate-300 mx-1 hidden sm:block" />
+                    <div className="h-5 w-px bg-slate-200" />
 
-                    <button
-                        onClick={() => setShowScanner(true)}
-                        className="h-10 px-4 bg-slate-50 text-slate-700 border border-slate-300 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-white hover:text-blue-600 transition-all flex items-center gap-2 active:scale-95 shadow-sm"
-                    >
-                        <Camera size={14} className="text-blue-600" />
-                        Scan Barcode
-                    </button>
-
-                    {selectedProducts.size > 0 && (
-                        <button
-                            onClick={() => {
-                                setProductToDelete({ isBulk: true, count: selectedProducts.size });
-                                setIsDeleteDialogOpen(true);
-                            }}
-                            className="h-10 px-4 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all flex items-center gap-2 active:scale-95 shadow-sm"
-                        >
-                            <Trash2 size={14} />
-                            Delete ({selectedProducts.size})
-                        </button>
-                    )}
-
-                    {/* Category Filter Dropdown */}
-                    <div className="relative group min-w-[160px]">
-                        <label className="absolute -top-2 left-3 bg-white px-1.5 text-[8px] font-black text-slate-400 uppercase tracking-widest z-10 font-mono italic">FILTER_BY_CATEGORY</label>
+                    {/* Category select */}
+                    <div className="relative">
+                        <Settings2 size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                         <select
                             value={activeCategoryId || ''}
                             onChange={(e) => {
@@ -273,26 +256,57 @@ export default function InventoryClient({ products: initialProducts, filter, sho
                                 else url.searchParams.delete('categoryId');
                                 router.push(url.toString());
                             }}
-                            className="w-full h-10 pl-4 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-900 appearance-none focus:border-blue-600 hover:border-slate-300 transition-all outline-none cursor-pointer italic"
+                            className="h-9 pl-8 pr-7 bg-white border border-slate-200 rounded-xl text-[10px] font-semibold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer max-w-[180px]"
                         >
-                            <option value="">ALL_DEPARTMENTS</option>
+                            <option value="">All Categories</option>
                             {categories.map(cat => (
-                                <option key={cat.id} value={cat.id}>{cat.name.toUpperCase()}</option>
+                                <option key={cat.id} value={cat.id}>{cat.name}</option>
                             ))}
                         </select>
-                        <Settings2 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={12} />
                     </div>
+
+                    {/* Scan — native camera on iPhone (back camera via capture=environment) */}
+                    <label
+                        htmlFor="barcode-camera-input"
+                        className="h-9 px-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl text-[10px] font-bold cursor-pointer flex items-center gap-1.5 shadow-md shadow-blue-200 hover:from-blue-600 hover:to-indigo-600 active:scale-95 transition-all select-none"
+                        title="Scan barcode with back camera"
+                    >
+                        <Camera size={13} /> Scan
+                    </label>
+                    <input
+                        id="barcode-camera-input"
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setShowScanner(true);
+                            e.target.value = '';
+                        }}
+                    />
                 </div>
 
-                <div className="relative group w-full lg:w-96">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={16} />
-                    <input
-                        type="text"
-                        placeholder="Search inventory records..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 h-10 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold placeholder:text-slate-500 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none text-slate-900"
-                    />
+                {/* Search + delete */}
+                <div className="flex items-center gap-2">
+                    {selectedProducts.size > 0 && (
+                        <button
+                            onClick={() => { setProductToDelete({ isBulk: true, count: selectedProducts.size }); setIsDeleteDialogOpen(true); }}
+                            className="h-9 px-3 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl font-bold text-[10px] hover:bg-rose-600 hover:text-white transition-all flex items-center gap-1.5"
+                        >
+                            <Trash2 size={13} /> Delete ({selectedProducts.size})
+                        </button>
+                    )}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
+                        <input
+                            type="text"
+                            placeholder="Filter visible rows..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-52 pl-9 pr-3 h-9 bg-white border border-slate-200 rounded-xl text-xs font-medium placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/10 transition-all outline-none text-slate-800"
+                        />
+                    </div>
                 </div>
             </div>
 

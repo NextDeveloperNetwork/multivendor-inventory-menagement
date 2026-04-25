@@ -262,59 +262,82 @@ export default function ProductionManagerInventoryClient({
 
     return (
         <div className="space-y-6 fade-in h-full flex flex-col pb-20">
-            {/* Header Controls */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl p-8 flex flex-col md:flex-row md:items-center justify-between gap-8 relative overflow-hidden group">
-                <div className="relative z-10 flex flex-col md:flex-row gap-6 flex-1 max-w-2xl">
-                    <div className="relative flex-1 group">
-                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" size={18} />
-                        <input 
-                            type="text"
-                            placeholder="SEARCH CATALOG (NAME, SKU, INV, SUP)..."
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-xs text-slate-900 focus:bg-white focus:border-slate-900 transition-all uppercase tracking-widest"
-                        />
+            {/* ── Toolbar Container ── */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Segmented Pill Filters */}
+                <div className="flex flex-wrap items-center gap-2">
+                    {/* Primary Actions Pill */}
+                    <div className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
+                        <button 
+                            onClick={openBatchModal}
+                            className="h-8 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-md shadow-blue-500/20 active:scale-95 flex items-center gap-2"
+                        >
+                            <Layers size={13} strokeWidth={2.5} /> Register Items
+                        </button>
+                        <button onClick={() => window.location.reload()} className="h-8 w-10 flex items-center justify-center bg-white hover:bg-slate-100 text-slate-500 rounded-xl transition-all shadow-sm">
+                            <RotateCcw size={13} />
+                        </button>
+                    </div>
+
+                    <div className="h-5 w-px bg-slate-200 hidden sm:block mx-1" />
+
+                    {/* Date Segment */}
+                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
+                        <div className="relative flex items-center">
+                            <Calendar size={12} className="absolute left-3 text-blue-500 pointer-events-none" />
+                            <input 
+                                type="date" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} 
+                                className="h-8 pl-8 pr-2 bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 rounded-xl text-[10px] font-bold text-slate-700 outline-none transition-all shadow-sm cursor-pointer"
+                            />
+                        </div>
+                        <span className="text-slate-400 text-[9px] font-black uppercase px-0.5">—</span>
+                        <div className="relative flex items-center">
+                            <Calendar size={12} className="absolute left-3 text-blue-500 pointer-events-none" />
+                            <input 
+                                type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} 
+                                className="h-8 pl-8 pr-2 bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 rounded-xl text-[10px] font-bold text-slate-700 outline-none transition-all shadow-sm cursor-pointer"
+                            />
+                        </div>
+                        {(filterStartDate || filterEndDate) && (
+                            <button onClick={() => {setFilterStartDate(''); setFilterEndDate('');}} className="p-1 hover:bg-slate-200 rounded-full text-slate-400">
+                                <X size={12}/>
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Status & Size Segment */}
+                    <div className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
+                        <div className="relative flex items-center">
+                            <Filter size={12} className={`absolute left-3 pointer-events-none ${statusFilter !== 'ALL' ? 'text-violet-200' : 'text-slate-400'}`} />
+                            <select 
+                                value={statusFilter} onChange={e => {setStatusFilter(e.target.value as any); setCurrentPage(1);}} 
+                                className={`h-8 pl-8 pr-6 border rounded-xl text-[10px] font-bold outline-none uppercase tracking-widest transition-all appearance-none cursor-pointer shadow-sm min-w-[130px]
+                                ${statusFilter !== 'ALL' ? 'bg-violet-600 text-white border-violet-600 hover:bg-violet-700' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-400'}`}
+                            >
+                                <option value="ALL">ALL STATUS</option>
+                                <option value="ACTIVE">READY / STOCK</option>
+                                <option value="WIP">IN PROGRESS</option>
+                                <option value="DEPLETED">DEPLETED</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <div className="relative z-10 flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200">
-                        <Calendar size={14} className="text-slate-400 ml-2" />
-                        <input type="date" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} className="bg-transparent border-none focus:ring-0 text-[10px] font-black w-28 uppercase" placeholder="START" />
-                        <span className="text-slate-300 text-[10px] font-black">TO</span>
-                        <input type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} className="bg-transparent border-none focus:ring-0 text-[10px] font-black w-28 uppercase" placeholder="END" />
-                        {(filterStartDate || filterEndDate) && <button onClick={() => {setFilterStartDate(''); setFilterEndDate('');}} className="p-1 hover:bg-slate-200 rounded-full text-slate-400"><X size={12}/></button>}
-                    </div>
-
-                    <select value={statusFilter} onChange={e => {setStatusFilter(e.target.value as any); setCurrentPage(1);}} className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl font-black text-[10px] text-slate-900 focus:bg-white appearance-none uppercase tracking-widest min-w-[120px]">
-                        <option value="ALL">ALL STATUS</option>
-                        <option value="ACTIVE">READY / STOCK</option>
-                        <option value="WIP">WORK IN PROGRESS</option>
-                        <option value="DEPLETED">DEPLETED / CLOSED</option>
-                    </select>
-
-                    <select value={pageSize} onChange={e => {setPageSize(Number(e.target.value)); setCurrentPage(1);}} className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl font-black text-[10px] text-slate-900 focus:bg-white appearance-none uppercase tracking-widest">
-                        <option value={20}>20 PER PAGE</option>
-                        <option value={100}>100 PER PAGE</option>
-                        <option value={1000}>1000 PER PAGE</option>
-                    </select>
-                </div>
-
-                <div className="relative z-10 flex items-center gap-4">
-                    <button 
-                        onClick={openBatchModal}
-                        className="px-8 py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-slate-900/20 active:scale-95 flex items-center gap-3"
-                    >
-                        <Layers size={18} /> Batch Register
-                    </button>
-                    <button onClick={() => window.location.reload()} className="p-4 bg-slate-50 text-slate-400 hover:text-slate-900 border border-slate-200 rounded-2xl transition-all shadow-sm">
-                        <RotateCcw size={18} />
-                    </button>
+                {/* Search Bar */}
+                <div className="relative group w-full md:w-72 shrink-0">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
+                    <input 
+                        type="text"
+                        placeholder="Search catalog by name, sku, inv..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 h-9 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold placeholder:text-slate-400 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/10 transition-all outline-none text-slate-800"
+                    />
                 </div>
             </div>
 
             {/* Inventory List View */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden flex flex-col">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                 <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                         <thead>

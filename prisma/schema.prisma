@@ -26,21 +26,30 @@ model Currency {
 }
 
 model User {
-  id               String       @id @default(cuid())
-  email            String       @unique
-  password         String
-  role             Role         @default(USER)
-  name             String?
-  shopId           String?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  transporterId    String?
-  allowedPaths     String[]
-  sessionVersion   Int          @default(0)
-  sales            Sale[]
-  driverTransports Transfer[]   @relation("AssignedDriver")
-  shop             Shop?        @relation(fields: [shopId], references: [id])
-  transporter      Transporter? @relation(fields: [transporterId], references: [id])
+  id                String           @id @default(cuid())
+  email             String           @unique
+  password          String
+  role              Role             @default(USER)
+  name              String?
+  shopId            String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  transporterId     String?
+  allowedPaths      String[]
+  sessionVersion    Int              @default(0)
+  isApproved        Boolean          @default(true)
+  postalBaseFee     Decimal          @default(0) @db.Decimal(10, 2)
+  postalManagerCut  Decimal          @default(0) @db.Decimal(5, 2)
+  managerRelations  PostalRelation[] @relation("ClientRelation")
+  managedClients    PostalRelation[] @relation("ManagerRelation")
+  shipmentsDestined PostalShipment[] @relation("PostalDestinationManager")
+  shipmentsManaged  PostalShipment[] @relation("PostalOriginManager")
+  shipmentsSent     PostalShipment[] @relation("PostalSender")
+  shipmentsCarried  PostalShipment[] @relation("PostalShipmentTransporter")
+  sales             Sale[]
+  driverTransports  Transfer[]       @relation("AssignedDriver")
+  shop              Shop?            @relation(fields: [shopId], references: [id])
+  transporter       Transporter?     @relation(fields: [transporterId], references: [id])
 }
 
 model Transporter {
@@ -94,28 +103,28 @@ model Shop {
 }
 
 model Product {
-  id            String           @id @default(cuid())
-  businessId    String?
-  name          String
-  sku           String?
-  description   String?
-  price         Decimal?         @db.Decimal(10, 2)
-  cost          Decimal?         @default(0) @db.Decimal(10, 2)
-  isPriceManual Boolean          @default(false)
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  barcode       String?          @unique
-  discountPrice Decimal?         @db.Decimal(10, 2)
-  imageUrl      String?
-  unitId        String?
-  categoryId    String?
-  inventory     Inventory[]
-  invoiceItems  InvoiceItem[]
-  category      ProductCategory? @relation(fields: [categoryId], references: [id])
-  unit          ProductUnit?     @relation(fields: [unitId], references: [id])
-  saleItems     SaleItem[]
-  transferItems     TransferItem[]
+  id                String             @id @default(cuid())
+  businessId        String?
+  name              String
+  sku               String?
+  description       String?
+  price             Decimal?           @db.Decimal(10, 2)
+  cost              Decimal?           @default(0) @db.Decimal(10, 2)
+  isPriceManual     Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  barcode           String?            @unique
+  discountPrice     Decimal?           @db.Decimal(10, 2)
+  imageUrl          String?
+  unitId            String?
+  categoryId        String?
+  inventory         Inventory[]
   inventoryRequests InventoryRequest[]
+  invoiceItems      InvoiceItem[]
+  category          ProductCategory?   @relation(fields: [categoryId], references: [id])
+  unit              ProductUnit?       @relation(fields: [unitId], references: [id])
+  saleItems         SaleItem[]
+  transferItems     TransferItem[]
 
   @@index([businessId])
 }
@@ -453,33 +462,33 @@ model InventoryRequest {
   id          String   @id @default(cuid())
   businessId  String?
   productId   String?
-  productName String?
   quantity    Int
-  status      String   @default("PENDING") // PENDING, APPROVED, SHIPPED, REJECTED
+  status      String   @default("PENDING")
   requestedBy String
   warehouseId String?
   shopId      String?
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  productName String?
   product     Product? @relation(fields: [productId], references: [id])
 
   @@index([businessId])
 }
 
 model Debtor {
-  id          String       @id @default(cuid())
-  businessId  String?
-  name        String
-  phone       String?
-  amount      Decimal      @db.Decimal(10, 2)
-  paidAmount  Decimal      @default(0) @db.Decimal(10, 2)
-  status      String       @default("UNPAID") // UNPAID, PARTIAL, PAID
-  notes       String?
-  debtDate    DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  items       DebtorItem[]
+  id         String       @id @default(cuid())
+  businessId String?
+  name       String
+  phone      String?
+  amount     Decimal      @db.Decimal(10, 2)
+  paidAmount Decimal      @default(0) @db.Decimal(10, 2)
+  status     String       @default("UNPAID")
+  notes      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  debtDate   DateTime?
+  items      DebtorItem[]
 
   @@index([businessId])
   @@index([debtDate])
@@ -500,11 +509,11 @@ model DebtorItem {
 model FreeSale {
   id          String         @id @default(cuid())
   businessId  String?
-  totalAmount Decimal        @db.Decimal(10, 2)
   soldBy      String
   notes       String?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+  totalAmount Decimal        @db.Decimal(10, 2)
   items       FreeSaleItem[]
 
   @@index([businessId])
@@ -522,12 +531,62 @@ model FreeSaleItem {
   @@index([freeSaleId])
 }
 
+model PostalShipment {
+  id                   String   @id @default(cuid())
+  trackingNumber       String   @unique
+  senderId             String
+  recipientName        String
+  recipientAddress     String
+  recipientPhone       String?
+  status               String   @default("PENDING")
+  weight               Float?
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  adminCut             Decimal  @default(0) @db.Decimal(10, 2)
+  codAmount            Decimal  @default(0) @db.Decimal(10, 2)
+  destinationManagerId String?
+  hasCod               Boolean  @default(false)
+  managerCut           Decimal  @default(0) @db.Decimal(10, 2)
+  originManagerId      String?
+  shippingFee          Decimal  @default(0) @db.Decimal(10, 2)
+  transporterId        String?
+  destinationManager   User?    @relation("PostalDestinationManager", fields: [destinationManagerId], references: [id])
+  originManager        User?    @relation("PostalOriginManager", fields: [originManagerId], references: [id])
+  sender               User     @relation("PostalSender", fields: [senderId], references: [id], onDelete: Cascade)
+  transporter          User?    @relation("PostalShipmentTransporter", fields: [transporterId], references: [id])
+
+  @@index([trackingNumber])
+  @@index([senderId])
+  @@index([originManagerId])
+  @@index([destinationManagerId])
+  @@index([transporterId])
+  @@index([status])
+}
+
+model PostalRelation {
+  id        String   @id @default(cuid())
+  managerId String
+  clientId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    User     @relation("ClientRelation", fields: [clientId], references: [id], onDelete: Cascade)
+  manager   User     @relation("ManagerRelation", fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@unique([managerId, clientId])
+  @@index([managerId])
+  @@index([clientId])
+}
+
 enum Role {
   ADMIN
   USER
   TRANSPORTER
   PRODUCTION_MANAGER
   SALES_MANAGER
+  POSTAL_MANAGER
+  POSTAL_CLIENT
+  POSTAL_TRANSPORTER
 }
 
 enum ProductionItemType {

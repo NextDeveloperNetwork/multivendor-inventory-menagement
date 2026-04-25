@@ -192,108 +192,111 @@ export default function SalesDebtorsClient({ initialDebtors, currencySymbol = 'A
 
     return (
         <div className="space-y-6">
-            {/* ── HEADER PANEL: VIBRANT LIGHT PRODUCTION EASE */}
-            <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-white shadow-xl shadow-indigo-100/30 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-                <div className="absolute -top-16 -left-16 w-32 h-32 bg-indigo-100/50 rounded-full blur-[60px] opacity-50" />
-                
+            {/* ── Page Identity Banner ── */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 shadow-xl shadow-blue-500/20 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="pointer-events-none absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/10 blur-xl" />
+                <div className="pointer-events-none absolute -bottom-8 right-24 w-32 h-32 rounded-full bg-white/5 blur-lg" />
+
                 <div className="flex items-center gap-5 relative z-10">
-                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-200 shrink-0">
-                        <Landmark size={24} strokeWidth={2.5} />
+                    <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white shadow-lg border border-white/20 shrink-0">
+                        <Landmark size={26} strokeWidth={1.5} />
                     </div>
                     <div>
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">
-                                DEBTORS <span className="text-indigo-600">CENTRAL</span>
-                            </h1>
-                        </div>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 italic flex items-center gap-1.5 leading-none">
-                             <Activity size={10} className="text-indigo-500 animate-pulse" /> NETWORK_SYNC
+                        <h1 className="text-2xl font-black text-white tracking-tight mb-1 uppercase">Debtors Central</h1>
+                        <p className="text-[10px] text-blue-100 font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse border border-emerald-300"/>
+                             Network Sync
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-6 relative z-10 bg-white/50 px-6 py-4 rounded-2xl border border-white">
-                    <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1 italic">AGGREGATE BALANCE</p>
-                        <p className="text-2xl font-black italic text-slate-900 tracking-tighter leading-none">
-                            {currencySymbol} {balance.toLocaleString()}
-                        </p>
+                <div className="flex gap-4 relative z-10 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-2 px-4 shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)] shrink-0">
+                    <div className="px-3 py-2 border-r border-white/10 flex flex-col justify-center">
+                        <p className="text-[9px] text-blue-200 font-black uppercase tracking-widest drop-shadow-sm mb-0.5 whitespace-nowrap">Total Initiated</p>
+                        <p className="text-xl font-black text-white leading-none whitespace-nowrap tabular-nums">{currencySymbol} {totalAmount.toLocaleString()}</p>
                     </div>
-                    <div className="w-px h-8 bg-slate-200 hidden sm:block" />
-                    <div className="hidden sm:block">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1 italic">TOTAL INITIATED</p>
-                        <p className="text-xl font-black italic text-indigo-600 tracking-tighter leading-none">
-                            {currencySymbol} {totalAmount.toLocaleString()}
-                        </p>                        
+                    <div className="px-3 py-2 flex flex-col justify-center">
+                        <p className="text-[9px] text-emerald-200 font-black uppercase tracking-widest drop-shadow-sm mb-0.5 whitespace-nowrap">Aggregate Balance</p>
+                        <p className="text-xl font-black text-emerald-50 leading-none whitespace-nowrap tabular-nums">{currencySymbol} {balance.toLocaleString()}</p>
                     </div>
                 </div>
             </div>
 
-            {/* ── UNIFIED FILTER BAR */}
-            <div className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center gap-4">
-                <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} strokeWidth={3} />
-                    <input 
-                        type="text"
-                        placeholder="SEARCH DEBTOR OR PHONE..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-12 pr-4 h-12 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black text-slate-900 outline-none focus:border-indigo-600 transition-all uppercase placeholder:text-slate-300 italic"
-                    />
-                </div>
-
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
-                    {['ALL', 'UNPAID', 'PARTIAL', 'PAID'].map((s) => (
-                        <button
-                            key={s}
-                            onClick={() => setStatusFilter(s)}
-                            className={cn(
-                                "h-12 px-5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all italic whitespace-nowrap shrink-0 border",
-                                statusFilter === s 
-                                    ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200" 
-                                    : "bg-slate-50 text-slate-400 border-slate-100 hover:text-indigo-600 hover:bg-indigo-50"
-                            )}
+            {/* ── Toolbar Container ── */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                
+                <div className="flex flex-wrap items-center gap-2">
+                    {/* Primary Actions Pill */}
+                    <div className="flex items-center bg-slate-50 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
+                        <button 
+                            onClick={generatePDF}
+                            className="h-8 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-md shadow-blue-500/20 active:scale-95 flex items-center gap-2"
                         >
-                            {s}
+                            <Download size={13} strokeWidth={2.5} /> Export Registry
                         </button>
-                    ))}
-                </div>
-
-                <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
-                    <div className="flex items-center gap-3 bg-slate-50 px-4 h-12 rounded-xl border border-slate-100 shrink-0">
-                        <input 
-                            type="date" 
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            className="bg-transparent border-none text-[10px] font-black text-slate-900 outline-none cursor-pointer uppercase italic p-0"
-                        />
-                        <div className="w-px h-4 bg-slate-200" />
-                        <input 
-                            type="date" 
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            className="bg-transparent border-none text-[10px] font-black text-slate-900 outline-none cursor-pointer uppercase italic p-0"
-                        />
                     </div>
 
-                    <button 
-                        onClick={generatePDF}
-                        className="h-12 w-full sm:w-auto px-6 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 shrink-0"
-                    >
-                        <Download size={14} strokeWidth={3} /> EXPORT
-                    </button>
+                    <div className="h-5 w-px bg-slate-200 hidden sm:block mx-1" />
+
+                    {/* Date Segment */}
+                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
+                        <div className="relative flex items-center">
+                            <Calendar size={12} className="absolute left-3 text-blue-500 pointer-events-none" />
+                            <input 
+                                type="date" value={startDate} onChange={e => setStartDate(e.target.value)} 
+                                className="h-8 pl-8 pr-2 bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 rounded-xl text-[10px] font-bold text-slate-700 outline-none transition-all shadow-sm cursor-pointer"
+                            />
+                        </div>
+                        <span className="text-slate-400 text-[9px] font-black uppercase px-0.5">—</span>
+                        <div className="relative flex items-center">
+                            <Calendar size={12} className="absolute left-3 text-blue-500 pointer-events-none" />
+                            <input 
+                                type="date" value={endDate} onChange={e => setEndDate(e.target.value)} 
+                                className="h-8 pl-8 pr-2 bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 rounded-xl text-[10px] font-bold text-slate-700 outline-none transition-all shadow-sm cursor-pointer"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Status Select Segment */}
+                    <div className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
+                        <div className="relative flex items-center">
+                            <Filter size={12} className={`absolute left-3 pointer-events-none ${statusFilter !== 'ALL' ? 'text-violet-200' : 'text-slate-400'}`} />
+                            <select 
+                                value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                                className={`h-8 pl-8 pr-6 border rounded-xl text-[10px] font-bold outline-none uppercase tracking-widest transition-all appearance-none cursor-pointer shadow-sm min-w-[110px]
+                                ${statusFilter !== 'ALL' ? 'bg-violet-600 text-white border-violet-600 hover:bg-violet-700' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-400'}`}
+                            >
+                                <option value="ALL">ALL STATUS</option>
+                                <option value="UNPAID">UNPAID</option>
+                                <option value="PARTIAL">PARTIAL</option>
+                                <option value="PAID">PAID</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative group w-full lg:w-72 shrink-0">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={14} />
+                    <input 
+                        type="text"
+                        placeholder="Search debtor or phone..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 h-9 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold placeholder:text-slate-400 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/10 transition-all outline-none text-slate-800"
+                    />
                 </div>
             </div>
 
             {/* ── HIGH DENSITY REGISTRY */}
             <div className="w-full">
                 {filteredDebtors.length === 0 ? (
-                        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm h-[400px] flex flex-col items-center justify-center text-center p-8">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm h-[400px] flex flex-col items-center justify-center text-center p-8">
                             <UserMinus size={32} className="text-slate-200 mb-4" />
                             <h2 className="text-lg font-black text-slate-900 italic uppercase">NULL_RECORDS</h2>
                         </div>
                     ) : (
-                        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
                             <Table>
                                 <TableHeader className="bg-slate-50/80">
                                     <TableRow className="hover:bg-transparent">

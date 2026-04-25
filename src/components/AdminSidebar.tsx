@@ -87,6 +87,13 @@ const menuGroups = [
         ],
     },
     {
+        label: 'Postal Service',
+        items: [
+            { href: '/admin/postal', label: 'Network Control', icon: Send },
+            { href: '/admin/postal/sorting', label: 'Sorting Center', icon: Package },
+        ]
+    },
+    {
         label: 'Entities',
         items: [
             { href: '/admin/businesses', label: 'Root Businesses', icon: Briefcase },

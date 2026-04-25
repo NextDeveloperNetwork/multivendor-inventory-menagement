@@ -226,43 +226,69 @@ export default function InvoiceClient({
             </datalist>
 
             {/* ── Top Toolbar ── */}
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-4 bg-white border-b border-slate-300">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-4 bg-white border-b border-slate-200">
                 <div className="flex flex-wrap items-center gap-3">
                     <button
                         onClick={() => setOpen(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white h-10 px-5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 shadow-md shadow-blue-500/10"
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-9 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 shadow-md shadow-blue-500/20"
                     >
-                        <Plus size={16} strokeWidth={3} />
+                        <Plus size={14} strokeWidth={3} />
                         Register Invoice
                     </button>
 
-                    <div className="h-4 w-[1px] bg-slate-300 mx-1 hidden sm:block" />
-
-                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 h-10">
-                        <Calendar size={14} className="text-slate-500" />
-                        <div className="flex items-center gap-1">
+                    {/* Segmented Filters */}
+                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
+                        {/* Start Date */}
+                        <div className="relative flex items-center">
+                            <Calendar size={12} className="absolute left-3 text-blue-600 pointer-events-none" />
                             <input
                                 type="date" value={startDate}
                                 onChange={e => updateFilters('startDate', e.target.value)}
-                                className="bg-transparent border-none text-[11px] font-bold text-slate-700 outline-none w-[105px]"
+                                className="h-8 pl-8 pr-2 bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 rounded-xl text-[11px] font-bold text-slate-700 outline-none transition-all shadow-sm cursor-pointer"
                             />
-                            <span className="text-slate-400 text-[10px] font-bold">TO</span>
+                        </div>
+                        
+                        <span className="text-slate-400 text-[9px] font-black uppercase px-0.5">—</span>
+                        
+                        {/* End Date */}
+                        <div className="relative flex items-center">
+                            <Calendar size={12} className="absolute left-3 text-blue-600 pointer-events-none" />
                             <input
                                 type="date" value={endDate}
                                 onChange={e => updateFilters('endDate', e.target.value)}
-                                className="bg-transparent border-none text-[11px] font-bold text-slate-700 outline-none w-[105px]"
+                                className="h-8 pl-8 pr-2 bg-white border border-slate-200 hover:border-blue-400 focus:border-blue-500 rounded-xl text-[11px] font-bold text-slate-700 outline-none transition-all shadow-sm cursor-pointer"
                             />
+                        </div>
+
+                        <div className="w-px h-6 bg-slate-200 mx-1" />
+
+                        {/* Supplier Filter */}
+                        <div className="relative flex items-center">
+                            <Store size={12} className={`absolute left-3 pointer-events-none ${searchParams.get('supplierId') ? 'text-violet-200' : 'text-violet-500'}`} />
+                            <select
+                                value={searchParams.get('supplierId') || ''}
+                                onChange={(e) => updateFilters('supplierId', e.target.value)}
+                                className={`h-8 pl-8 pr-8 border rounded-xl text-[11px] font-bold outline-none transition-all appearance-none cursor-pointer shadow-sm
+                                    ${searchParams.get('supplierId') 
+                                        ? 'bg-violet-600 text-white border-violet-600 hover:bg-violet-700' 
+                                        : 'bg-white text-slate-700 border-slate-200 hover:border-violet-400'}`}
+                            >
+                                <option value="" disabled>Supplier</option>
+                                <option value="">All Suppliers</option>
+                                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                            <ChevronDown size={12} className={`absolute right-3 pointer-events-none ${searchParams.get('supplierId') ? 'text-violet-200' : 'text-slate-400'}`} />
                         </div>
                     </div>
                 </div>
 
-                <div className="relative group w-full lg:w-96">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-600 transition-colors" size={16} />
+                <div className="relative group w-full lg:w-80">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={14} />
                     <input
                         type="text"
                         placeholder="Search records by number..."
                         defaultValue={searchParams.get('q') || ''}
-                        className="w-full pl-10 pr-4 h-10 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold placeholder:text-slate-500 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none text-slate-900"
+                        className="w-full pl-9 pr-4 h-9 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-semibold placeholder:text-slate-400 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/10 transition-all outline-none text-slate-800"
                         onKeyDown={e => {
                             if (e.key === 'Enter') updateFilters('q', (e.target as HTMLInputElement).value);
                         }}
