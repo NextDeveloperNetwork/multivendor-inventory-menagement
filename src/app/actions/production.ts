@@ -266,7 +266,7 @@ export async function getAdminDailyProductionLogs(businessId: string | undefined
         }
 
         // @ts-ignore
-        return await prisma.productionLog.findMany({
+        const logs = await prisma.productionLog.findMany({
             where: {
                 ...(businessId ? { businessId } : {}),
                 isManager: true,
@@ -278,6 +278,20 @@ export async function getAdminDailyProductionLogs(businessId: string | undefined
             },
             orderBy: { createdAt: 'desc' }
         });
+
+        // ── Fetch articles to get invoice numbers ──
+        const articleIds = Array.from(new Set(logs.map(l => l.articleId).filter(Boolean))) as string[];
+        const articles = await prisma.productionArticle.findMany({
+            where: { id: { in: articleIds } },
+            select: { id: true, invoiceNo: true }
+        });
+
+        const articleMap = new Map(articles.map(a => [a.id, a.invoiceNo]));
+
+        return logs.map(l => ({
+            ...l,
+            invoiceNo: l.articleId ? articleMap.get(l.articleId) : null
+        }));
     } catch (error) {
         console.error('Failed to fetch admin logs:', error);
         return [];

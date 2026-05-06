@@ -196,7 +196,8 @@ export default function AdminProductionTrackingClient({ initialLogs, employees, 
     const filteredLogs = useMemo(() =>
         logs.filter(l =>
             l.articleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (employees.find(e => e.id === l.workerId)?.name || 'Manager').toLowerCase().includes(searchQuery.toLowerCase())
+            (employees.find(e => e.id === l.workerId)?.name || 'Manager').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (l.invoiceNo || '').toLowerCase().includes(searchQuery.toLowerCase())
         ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
         [logs, searchQuery, employees]
     );
@@ -266,7 +267,10 @@ export default function AdminProductionTrackingClient({ initialLogs, employees, 
             Date: format(new Date(l.createdAt), 'yyyy-MM-dd'),
             Time: format(new Date(l.createdAt), 'HH:mm'),
             Manager: employees.find(e => e.id === l.workerId)?.name || 'Manager',
-            Article: l.articleName, Boxes: l.boxes || 0, Quantity: l.quantity,
+            Article: l.articleName, 
+            Invoice: l.invoiceNo || '-',
+            Boxes: l.boxes || 0, 
+            Quantity: l.quantity,
         })));
         const a = Object.assign(document.createElement('a'), {
             href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
@@ -281,11 +285,11 @@ export default function AdminProductionTrackingClient({ initialLogs, employees, 
         doc.setFontSize(9);
         doc.text(`Period: ${startDate}${endDate ? ' → ' + endDate : ''}   Yield: ${totalYield.toLocaleString()} pcs`, 14, 26);
         autoTable(doc, {
-            head: [['Date', 'Time', 'Manager', 'Article', 'Boxes', 'Qty']],
+            head: [['Date', 'Time', 'Manager', 'Article', 'Invoice', 'Boxes', 'Qty']],
             body: filteredLogs.map(l => [
                 format(new Date(l.createdAt), 'MMM dd'), format(new Date(l.createdAt), 'HH:mm'),
                 employees.find(e => e.id === l.workerId)?.name || 'Manager',
-                l.articleName, l.boxes || 0, l.quantity.toLocaleString(),
+                l.articleName, l.invoiceNo || '-', l.boxes || 0, l.quantity.toLocaleString(),
             ]),
             startY: 32, styles: { fontSize: 7.5 }, headStyles: { fillColor: [79, 70, 229] },
         });
@@ -408,7 +412,7 @@ export default function AdminProductionTrackingClient({ initialLogs, employees, 
                         <Table>
                             <TableHeader className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
                                 <TableRow>
-                                    {['Date / Time', 'Manager', 'Article', 'Boxes', 'Yield', ''].map(h => (
+                                    {['Date / Time', 'Manager', 'Article', 'Invoice', 'Boxes', 'Yield', ''].map(h => (
                                         <TableHead key={h}
                                             className={`text-[9px] font-bold uppercase tracking-wider text-slate-500 py-2.5 px-5
                                                 ${h === 'Boxes' || h === 'Yield' ? 'text-right' : ''}
@@ -421,7 +425,7 @@ export default function AdminProductionTrackingClient({ initialLogs, employees, 
                             <TableBody className="divide-y divide-slate-100">
                                 {filteredLogs.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-32 text-center text-slate-400 text-xs">
+                                        <TableCell colSpan={7} className="h-32 text-center text-slate-400 text-xs">
                                             No logs found for this period.
                                         </TableCell>
                                     </TableRow>
@@ -438,6 +442,11 @@ export default function AdminProductionTrackingClient({ initialLogs, employees, 
                                             <TableCell className="py-2 px-5">
                                                 <span className="inline-flex items-center text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
                                                     {log.articleName}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="py-2 px-5">
+                                                <span className="text-[10px] font-medium text-slate-400 font-mono">
+                                                    {log.invoiceNo || '---'}
                                                 </span>
                                             </TableCell>
                                             <TableCell className="py-2 px-5 text-right text-[11px] text-slate-600">{log.boxes}</TableCell>

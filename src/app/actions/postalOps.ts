@@ -20,7 +20,8 @@ function serializableUser(u: any) {
     return {
         ...u,
         postalBaseFee: u.postalBaseFee ? Number(u.postalBaseFee) : 0,
-        postalManagerCut: u.postalManagerCut ? Number(u.postalManagerCut) : 0
+        postalManagerCut: u.postalManagerCut ? Number(u.postalManagerCut) : 0,
+        postalActiveRoute: u.postalActiveRoute || null
     };
 }
 
@@ -56,10 +57,27 @@ export async function getClientShipments() {
             getSystemCurrencySymbol()
         ]);
         
+        const settlements = await (prisma as any).postalSettlement.findMany({
+            where: { toUserId: (session.user as any).id },
+            include: { fromUser: true, shipment: true },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        const totalOutstanding = (shipments || [])
+            .filter((s: any) => s.status === 'DELIVERED' && s.hasCod && s.paymentStatus === 'UNPAID')
+            .reduce((acc: number, s: any) => acc + (Number(s.codAmount) - Number(s.shippingFee)), 0);
+        
         return { 
             success: true, 
             shipments: (shipments || []).map(serializableShipment), 
             myManager: serializableUser(rel?.manager),
+            settlements: settlements.map((st: any) => ({
+                ...st,
+                amount: Number(st.amount),
+                fromUser: serializableUser(st.fromUser),
+                shipment: serializableShipment(st.shipment)
+            })),
+            totalOutstanding,
             currencySymbol
         };
     } catch (e: any) {
@@ -147,15 +165,36 @@ export async function getManagerDashboard() {
         // Economic Logic
         const delivered = shipments.filter((s: any) => s.status === 'DELIVERED');
         const netProfit = delivered.reduce((acc: number, s: any) => acc + Number(s.managerCut), 0);
-        const merchantDebt = delivered.filter((s: any) => s.hasCod).reduce((acc: number, s: any) => {
-            // Debt to merchant = Total Collected - Shipping Fee
+        
+        // Calculate merchant debt specifically for UNPAID COD
+        const merchantDebt = delivered.filter((s: any) => s.hasCod && s.paymentStatus === 'UNPAID').reduce((acc: number, s: any) => {
             return acc + (Number(s.codAmount) - Number(s.shippingFee));
         }, 0);
 
+        const clientsWithDebt = clientsObj.map((c: any) => {
+            const clientShipments = delivered.filter((s: any) => s.senderId === c.clientId && s.hasCod && s.paymentStatus === 'UNPAID');
+            const totalOwed = clientShipments.reduce((acc: number, s: any) => acc + (Number(s.codAmount) - Number(s.shippingFee)), 0);
+            return {
+                ...serializableUser(c.client),
+                outstandingCod: totalOwed
+            };
+        });
+
+        const pendingSettlements = await (prisma as any).postalSettlement.findMany({
+            where: { fromUserId: (session.user as any).id, status: 'PENDING' },
+            include: { toUser: true, shipment: true }
+        });
+
         return { 
             success: true, 
-            clients: clientsObj.map((c: any) => serializableUser(c.client)), 
+            clients: clientsWithDebt, 
             shipments: (shipments || []).map(serializableShipment),
+            pendingSettlements: pendingSettlements.map((st: any) => ({
+                ...st,
+                amount: Number(st.amount),
+                toUser: serializableUser(st.toUser),
+                shipment: serializableShipment(st.shipment)
+            })),
             currencySymbol,
             economics: { netProfit, merchantDebt }
         };
@@ -219,11 +258,12 @@ export async function getTransporterShipments() {
     if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
 
     try {
-        const [shipments, currencySymbol] = await Promise.all([
+        const [shipments, transporter, currencySymbol] = await Promise.all([
             (prisma as any).postalShipment.findMany({
                 where: {
                     OR: [
                         { status: 'PENDING_PICKUP' },
+                        { status: 'AT_SORTING_CENTER' }, // Added to show sorting center packages
                         { status: 'IN_TRANSIT_TO_SORTING' },
                         { status: 'IN_TRANSIT_TO_DESTINATION' }
                     ]
@@ -234,9 +274,225 @@ export async function getTransporterShipments() {
                 },
                 orderBy: { updatedAt: 'asc' }
             }),
+            (prisma.user as any).findUnique({ where: { id: (session.user as any).id } }),
             getSystemCurrencySymbol()
         ]);
-        return { success: true, shipments: (shipments || []).map(serializableShipment), currencySymbol };
+        return { 
+            success: true, 
+            shipments: (shipments || []).map(serializableShipment), 
+            transporter: serializableUser(transporter),
+            currencySymbol 
+        };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+export async function getTransporters() {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
+
+    try {
+        const transporters = await (prisma.user as any).findMany({
+            where: { role: 'POSTAL_TRANSPORTER' },
+            select: { id: true, name: true, email: true, postalActiveRoute: true }
+        });
+        return { success: true, transporters };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function assignShipmentsToTransporter(shipmentIds: string[], transporterId: string) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
+
+    try {
+        await (prisma as any).postalShipment.updateMany({
+            where: { id: { in: shipmentIds } },
+            data: { 
+                transporterId,
+                status: 'ASSIGNED_FOR_PICKUP'
+            }
+        });
+        revalidatePath('/postal-manager');
+        revalidatePath('/postal-transporter');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function transporterAcceptShipment(trackingNumber: string, expectedDestinationAddress?: string) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
+
+    try {
+        const shipment = await (prisma as any).postalShipment.findFirst({
+            where: { 
+                trackingNumber,
+                transporterId: (session.user as any).id,
+                status: 'ASSIGNED_FOR_PICKUP'
+            },
+            include: { destinationManager: true }
+        });
+
+        if (!shipment) return { success: false, error: 'Manifest not found or not assigned for pickup.' };
+
+        if (expectedDestinationAddress && shipment.destinationManager?.address !== expectedDestinationAddress) {
+            return { success: false, error: `Route Mismatch: Package bound for ${shipment.destinationManager?.address || 'Unknown Hub'}` };
+        }
+
+        await (prisma as any).postalShipment.update({
+            where: { id: shipment.id },
+            data: { status: 'IN_TRANSIT_TO_SORTING' }
+        });
+
+        revalidatePath('/postal-transporter');
+        revalidatePath('/postal-manager');
+        return { success: true, shipment: serializableShipment(shipment) };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function offloadAtHub(shipmentId: string) {
+    try {
+        await (prisma as any).postalShipment.update({
+            where: { id: shipmentId },
+            data: { status: 'ARRIVED_AT_HUB' }
+        });
+        revalidatePath('/postal-transporter');
+        revalidatePath('/postal-manager');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function finalizeManagerDelivery(shipmentId: string) {
+    try {
+        await (prisma as any).postalShipment.update({
+            where: { id: shipmentId },
+            data: { status: 'DELIVERED', paymentStatus: 'UNPAID' }
+        });
+        revalidatePath('/postal-manager');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function createSettlement(shipmentId: string, fromUserId: string, toUserId: string, amount: number) {
+    try {
+        await (prisma as any).postalSettlement.create({
+            data: {
+                shipmentId,
+                fromUserId,
+                toUserId,
+                amount,
+                type: 'COD_SETTLEMENT',
+                status: 'PENDING'
+            }
+        });
+        
+        await (prisma as any).postalShipment.update({
+            where: { id: shipmentId },
+            data: { paymentStatus: 'PENDING_ACCEPTANCE' }
+        });
+
+        revalidatePath('/postal-manager');
+        revalidatePath('/postal-client');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function acceptSettlement(settlementId: string) {
+    try {
+        const settlement = await (prisma as any).postalSettlement.update({
+            where: { id: settlementId },
+            data: { status: 'ACCEPTED' },
+            include: { shipment: true }
+        });
+
+        if (settlement.shipmentId) {
+            await (prisma as any).postalShipment.update({
+                where: { id: settlement.shipmentId },
+                data: { paymentStatus: 'PAID' }
+            });
+        }
+
+        revalidatePath('/postal-client');
+        revalidatePath('/postal-manager');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function setTransporterRoute(transporterId: string, route: string) {
+    try {
+        await (prisma.user as any).update({
+            where: { id: transporterId },
+            data: { postalActiveRoute: route }
+        });
+        revalidatePath('/postal-manager');
+        revalidatePath('/admin/postal/sorting');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function transporterScanAndAutoPickup(trackingNumber: string) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
+
+    try {
+        const [transporter, shipment] = await Promise.all([
+            (prisma.user as any).findUnique({ where: { id: session.user.id } }),
+            (prisma as any).postalShipment.findFirst({
+                where: { trackingNumber },
+                include: { destinationManager: true }
+            })
+        ]);
+
+        if (!transporter) return { success: false, error: 'Transporter not found' };
+        if (!shipment) return { success: false, error: 'Manifest not found.' };
+        if (!transporter.postalActiveRoute) return { success: false, error: 'Declar your route first.' };
+
+        // Logic check: if package is at sorting center or pending pickup
+        const validStatuses = ['PENDING_PICKUP', 'AT_SORTING_CENTER', 'ASSIGNED_FOR_PICKUP'];
+        if (!validStatuses.includes(shipment.status)) {
+            return { success: false, error: `Package status is ${shipment.status}. Cannot pick up.` };
+        }
+
+        // Match route (check destination manager hub address or recipient address)
+        const destHub = shipment.destinationManager?.address || '';
+        const destAddr = shipment.recipientAddress || '';
+        const currentRoute = transporter.postalActiveRoute.toLowerCase();
+
+        const matches = destHub.toLowerCase().includes(currentRoute) || 
+                       destAddr.toLowerCase().includes(currentRoute);
+
+        if (!matches) {
+            return { success: false, error: `Route Mismatch: Package bound for ${destHub || destAddr}. Your route: ${transporter.postalActiveRoute}` };
+        }
+
+        // Auto-assign and update status
+        await (prisma as any).postalShipment.update({
+            where: { id: shipment.id },
+            data: { 
+                transporterId: transporter.id,
+                status: shipment.status === 'AT_SORTING_CENTER' ? 'IN_TRANSIT_TO_DESTINATION' : 'IN_TRANSIT_TO_SORTING'
+            }
+        });
+
+        revalidatePath('/postal-transporter');
+        revalidatePath('/postal-manager');
+        revalidatePath('/admin/postal/sorting');
+        return { success: true, shipment: serializableShipment(shipment) };
     } catch (e: any) {
         return { success: false, error: e.message };
     }

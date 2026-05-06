@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import AdminProductionTrackingClient from '@/components/AdminProductionTrackingClient';
 import { Activity } from 'lucide-react';
 import { getSelectedBusinessId } from '@/app/actions/business';
+import { getAdminDailyProductionLogs } from '@/app/actions/production';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,24 +11,8 @@ export default async function ProductionManagerTrackingPage() {
     const businessId = await getSelectedBusinessId();
 
     // Fetch initial logs (Today by default)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    // @ts-ignore
-    const logs = await prisma.productionLog.findMany({
-        where: {
-            isManager: true,
-            orderId: 'MANUAL', // Only manager-dashboard entries from /production
-            ...(businessId ? { businessId } : {}),
-            date: {
-                gte: today,
-                lt: tomorrow
-            }
-        },
-        orderBy: { createdAt: 'desc' }
-    });
+    const todayStr = new Date().toISOString().split('T')[0];
+    const logs = await getAdminDailyProductionLogs(businessId || undefined, todayStr);
 
     const employees = await prisma.user.findMany({
         where: businessId ? { shop: { businessId } } : {}

@@ -19,6 +19,7 @@ export default async function PostalTransporterPage() {
         <div className="max-w-7xl mx-auto md:p-6">
             <PostalTransporterUI 
                 initialShipments={data.shipments || []} 
+                transporter={data.transporter}
                 currencySymbol={data.currencySymbol}
             />
         </div>

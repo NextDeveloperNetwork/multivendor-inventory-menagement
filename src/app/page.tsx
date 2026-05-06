@@ -20,6 +20,8 @@ export default async function Home() {
             redirect('/postal-manager');
         } else if (user.role === 'POSTAL_CLIENT') {
             redirect('/postal-client');
+        } else if (user.role === 'FINANCE_VIEWER' || user.role === 'FINANCE_EDITOR') {
+            redirect('/admin/budget');
         } else {
             redirect('/shop');
         }

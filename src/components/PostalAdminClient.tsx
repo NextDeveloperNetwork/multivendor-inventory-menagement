@@ -15,6 +15,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface PostalAdminClientProps {
@@ -27,6 +28,7 @@ interface PostalAdminClientProps {
         platformRevenue: number;
         globalMerchantDebt: number;
     };
+    settlements?: any[];
 }
 
 export default function PostalAdminClient({ 
@@ -35,14 +37,16 @@ export default function PostalAdminClient({
     initialClients, 
     initialRelations,
     currencySymbol = '$',
-    economics = { platformRevenue: 0, globalMerchantDebt: 0 }
+    economics = { platformRevenue: 0, globalMerchantDebt: 0 },
+    settlements: initialSettlements = []
 }: PostalAdminClientProps) {
     const [managers, setManagers] = useState(initialManagers);
     const [pendingManagers, setPendingManagers] = useState(initialPendingManagers);
     const [clients, setClients] = useState(initialClients);
     const [relations, setRelations] = useState(initialRelations);
+    const [settlements, setSettlements] = useState(initialSettlements || []);
     
-    const [activeTab, setActiveTab] = useState<'MANAGERS' | 'PENDING' | 'CLIENTS' | 'RELATIONS'>('MANAGERS');
+    const [activeTab, setActiveTab] = useState<'MANAGERS' | 'PENDING' | 'CLIENTS' | 'RELATIONS' | 'LEDGER'>('MANAGERS');
     const [searchQuery, setSearchQuery] = useState('');
     
     // Modals
@@ -51,6 +55,7 @@ export default function PostalAdminClient({
     const [newUserName, setNewUserName] = useState('');
     const [newUserEmail, setNewUserEmail] = useState('');
     const [newUserPassword, setNewUserPassword] = useState('');
+    const [newUserAddress, setNewUserAddress] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
 
     const [isCreateRelationOpen, setIsCreateRelationOpen] = useState(false);
@@ -65,7 +70,13 @@ export default function PostalAdminClient({
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsProcessing(true);
-        const res = await createPostalUser({ name: newUserName, email: newUserEmail, password: newUserPassword, role: createUserRole });
+        const res = await createPostalUser({ 
+            name: newUserName, 
+            email: newUserEmail, 
+            password: newUserPassword, 
+            role: createUserRole,
+            address: newUserAddress 
+        } as any);
         setIsProcessing(false);
         if (res.success) {
             toast.success(`${createUserRole} Created Successfully`);
@@ -146,7 +157,11 @@ export default function PostalAdminClient({
         e.preventDefault();
         if (!selectedManagerForFees) return;
         setIsProcessing(true);
-        const res = await updatePostalManagerFees(selectedManagerForFees.id, { postalBaseFee: editBaseFee, postalManagerCut: editManagerCut });
+        const res = await updatePostalManagerFees(selectedManagerForFees.id, { 
+            postalBaseFee: editBaseFee, 
+            postalManagerCut: editManagerCut,
+            address: selectedManagerForFees.address 
+        } as any);
         setIsProcessing(false);
         if (res.success) {
             toast.success('Fees updated successfully');
@@ -203,7 +218,7 @@ export default function PostalAdminClient({
             <div className="bg-white/70 backdrop-blur-md rounded-3xl border border-slate-200 p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="flex flex-wrap items-center bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
-                        {(['MANAGERS', 'PENDING', 'CLIENTS', 'RELATIONS'] as const).map(tab => (
+                        {(['MANAGERS', 'PENDING', 'CLIENTS', 'RELATIONS', 'LEDGER'] as const).map(tab => (
                             <button 
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -304,6 +319,50 @@ export default function PostalAdminClient({
                                     </TableRow>
                                 ))
                             )
+                        ) : activeTab === 'LEDGER' ? (
+                            settlements.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-20 text-slate-300 font-black uppercase text-[10px] tracking-[0.5em] italic animate-pulse">
+                                        No Financial Documents Logged
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                settlements.map((st: any) => (
+                                    <TableRow key={st.id} className="group hover:bg-slate-50 border-slate-50 h-20 transition-colors">
+                                        <TableCell className="px-8">
+                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{new Date(st.createdAt).toLocaleDateString()}</div>
+                                            <div className="font-bold text-xs text-slate-500 font-mono italic">Ref: {st.id.slice(0, 10)}</div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-right">
+                                                    <div className="font-black text-[10px] text-indigo-600 uppercase leading-none">{st.fromUser?.name}</div>
+                                                    <div className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter mt-1 italic">Manager Hub</div>
+                                                </div>
+                                                <Send size={12} className="text-slate-300" />
+                                                <div>
+                                                    <div className="font-black text-[10px] text-emerald-600 uppercase leading-none">{st.toUser?.name}</div>
+                                                    <div className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter mt-1 italic">Merchant Partner</div>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <div className="font-black text-sm text-slate-900 italic tracking-tighter">{currencySymbol}{st.amount.toFixed(2)}</div>
+                                            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Settlement Pay</div>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5 inline-block">
+                                                <p className="text-[10px] font-black text-slate-700 tracking-tight">{st.shipment?.trackingNumber}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell colSpan={2} className="text-right px-8">
+                                            <Badge className={cn("text-[9px] font-black uppercase tracking-widest px-3 border-none", st.status === 'ACCEPTED' ? "bg-emerald-500 text-white" : "bg-amber-500 text-white")}>
+                                                {st.status}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )
                         ) : (
                             (activeTab === 'MANAGERS' ? filteredManagers : activeTab === 'PENDING' ? filteredPending : filteredClients).length === 0 ? (
                                 <TableRow>
@@ -316,7 +375,7 @@ export default function PostalAdminClient({
                                     <TableRow key={user.id} className="group hover:bg-slate-50 border-slate-50 h-20 transition-colors">
                                         <TableCell className="px-8">
                                             <div className="font-black text-sm text-slate-900 mb-0.5 tracking-tight uppercase">{user.name}</div>
-                                            <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest italic">{activeTab === 'PENDING' ? 'Awaiting Hub Approval' : 'Verified Entity'}</div>
+                                            <div className="text-[9px] text-indigo-500 font-black uppercase tracking-widest italic">{user.address || 'No location configured'}</div>
                                         </TableCell>
                                         <TableCell>
                                             <div className="font-bold text-[11px] text-slate-500 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl inline-block font-mono select-all">
@@ -395,6 +454,10 @@ export default function PostalAdminClient({
                             <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 italic">Security Pin</label>
                             <input required type="password" value={newUserPassword} onChange={e=>setNewUserPassword(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 focus:ring-8 focus:ring-indigo-600/5 transition-all outline-none font-mono" placeholder="••••••••" />
                         </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 italic">Hub Location / Address</label>
+                            <input type="text" value={newUserAddress} onChange={e=>setNewUserAddress(e.target.value)} className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 focus:ring-8 focus:ring-indigo-600/5 transition-all outline-none" placeholder="Regional Node Street..." />
+                        </div>
                         <button disabled={isProcessing} className="w-full h-16 bg-slate-900 hover:bg-indigo-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] transition-all shadow-2xl active:scale-95 italic">
                             {isProcessing ? 'AUTHORIZING...' : 'Verify & Inject into Registry'}
                         </button>
@@ -447,12 +510,16 @@ export default function PostalAdminClient({
                                     <input required type="number" step="0.01" value={editBaseFee} onChange={e=>setEditBaseFee(Number(e.target.value))} className="w-full h-16 pl-14 pr-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-2xl font-black text-slate-900 focus:bg-white focus:ring-8 focus:ring-indigo-600/5 transition-all outline-none tabular-nums italic" />
                                 </div>
                             </div>
-                            <div className="space-y-2">
+                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 italic">Node Operator Commission (%)</label>
                                 <div className="relative">
                                     <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-emerald-500 text-xl italic">%</span>
                                     <input required type="number" step="0.1" value={editManagerCut} onChange={e=>setEditManagerCut(Number(e.target.value))} className="w-full h-16 px-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-2xl font-black text-slate-900 focus:bg-white focus:ring-8 focus:ring-emerald-600/5 transition-all outline-none tabular-nums italic" />
                                 </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 italic">Operational Hub Address</label>
+                                <input type="text" value={selectedManagerForFees?.address || ''} onChange={e=>setSelectedManagerForFees({...selectedManagerForFees, address: e.target.value})} className="w-full h-14 px-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 focus:ring-8 focus:ring-indigo-600/5 transition-all outline-none" />
                             </div>
                         </div>
                         <button disabled={isProcessing} className="w-full h-16 bg-slate-900 hover:bg-black text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] transition-all shadow-2xl active:scale-95 italic">

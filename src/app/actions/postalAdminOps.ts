@@ -13,8 +13,10 @@ function serializableUser(u: any) {
     if (!u) return null;
     return {
         ...u,
+        address: u.address || null,
         postalBaseFee: u.postalBaseFee ? Number(u.postalBaseFee) : 0,
-        postalManagerCut: u.postalManagerCut ? Number(u.postalManagerCut) : 0
+        postalManagerCut: u.postalManagerCut ? Number(u.postalManagerCut) : 0,
+        postalActiveRoute: u.postalActiveRoute || null
     };
 }
 
@@ -34,7 +36,7 @@ function serializableShipment(s: any) {
 
 export async function getPostalUsers() {
     try {
-        const [managers, pendingManagers, clients, relations, currencySymbol, shipments] = await Promise.all([
+        const [managers, pendingManagers, clients, relations, currencySymbol, shipments, settlements] = await Promise.all([
             (prisma.user as any).findMany({
                 where: { role: 'POSTAL_MANAGER', isApproved: true },
                 include: { managedClients: { include: { client: true } } }
@@ -52,12 +54,16 @@ export async function getPostalUsers() {
             getSystemCurrencySymbol(),
             (prisma as any).postalShipment.findMany({
                 where: { status: 'DELIVERED' }
+            }),
+            (prisma as any).postalSettlement.findMany({
+                include: { fromUser: true, toUser: true, shipment: true },
+                orderBy: { createdAt: 'desc' }
             })
         ]);
 
         // Global Economics
         const platformRevenue = shipments.reduce((acc: number, s: any) => acc + Number(s.adminCut), 0);
-        const globalMerchantDebt = shipments.filter((s: any) => s.hasCod).reduce((acc: number, s: any) => {
+        const globalMerchantDebt = shipments.filter((s: any) => s.hasCod && s.paymentStatus === 'UNPAID').reduce((acc: number, s: any) => {
             return acc + (Number(s.codAmount) - Number(s.shippingFee));
         }, 0);
 
@@ -70,6 +76,13 @@ export async function getPostalUsers() {
                 ...r,
                 manager: serializableUser(r.manager),
                 client: serializableUser(r.client)
+            })),
+            settlements: (settlements || []).map((st: any) => ({
+                ...st,
+                amount: Number(st.amount),
+                fromUser: serializableUser(st.fromUser),
+                toUser: serializableUser(st.toUser),
+                shipment: serializableShipment(st.shipment)
             })),
             currencySymbol,
             economics: { platformRevenue, globalMerchantDebt }
@@ -98,7 +111,8 @@ export async function updatePostalManagerFees(userId: string, data: { postalBase
             where: { id: userId },
             data: {
                 postalBaseFee: data.postalBaseFee,
-                postalManagerCut: data.postalManagerCut
+                postalManagerCut: data.postalManagerCut,
+                address: (data as any).address || undefined
             }
         });
         revalidatePath('/admin/postal');
@@ -116,8 +130,9 @@ export async function createPostalUser(data: { name: string; email: string; pass
                 name: data.name,
                 email: data.email,
                 password: hashedPassword,
-                role: data.role
-            }
+                role: data.role,
+                address: (data as any).address || null
+            } as any
         });
         revalidatePath('/admin/postal');
         return { success: true, user: serializableUser(user) };
@@ -163,13 +178,16 @@ export async function removePostalRelation(relationId: string) {
 
 export async function getSortingCenterShipments() {
     try {
-        const [shipments, managers, currencySymbol] = await Promise.all([
+        const [shipments, managers, transporters, currencySymbol] = await Promise.all([
             (prisma.postalShipment as any).findMany({
                 where: { status: 'AT_SORTING_CENTER' },
-                include: { sender: true, originManager: true }
+                include: { sender: true, originManager: true, destinationManager: true }
             }),
             (prisma.user as any).findMany({
                 where: { role: 'POSTAL_MANAGER', isApproved: true }
+            }),
+            (prisma.user as any).findMany({
+                where: { role: 'POSTAL_TRANSPORTER' }
             }),
             getSystemCurrencySymbol()
         ]);
@@ -178,6 +196,7 @@ export async function getSortingCenterShipments() {
             success: true, 
             shipments: (shipments || []).map(serializableShipment), 
             managers: (managers || []).map(serializableUser),
+            transporters: (transporters || []).map(serializableUser),
             currencySymbol
         };
     } catch (error: any) {

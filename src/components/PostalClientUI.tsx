@@ -8,34 +8,45 @@ import { signOut } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { BarcodeGenerator } from './barcode/components/BarcodeGenerator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 interface PostalClientUIProps {
     initialShipments: any[];
+    settlements?: any[];
+    totalOutstanding?: number;
     manager: any | null;
     currencySymbol?: string;
 }
 
 const StatsCard = ({ title, value, icon: Icon, color, subValue }: any) => (
-    <div className="bg-white/60 backdrop-blur-sm rounded-[2rem] border border-slate-100 p-6 flex items-center justify-between shadow-sm group hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300">
+    <div className="bg-white/5 backdrop-blur-xl rounded-[2rem] border border-white/10 p-6 flex items-center justify-between shadow-2xl group hover:bg-white/10 hover:border-white/20 transition-all duration-500">
         <div>
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1.5">{title}</p>
             <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-black text-slate-900 tabular-nums tracking-tighter">{value}</p>
-                {subValue && <span className="text-[10px] font-bold text-slate-400 uppercase italic">{subValue}</span>}
+                <p className="text-2xl font-black text-white tabular-nums tracking-tighter">{value}</p>
+                {subValue && <span className="text-[10px] font-bold text-indigo-400 uppercase italic opacity-80">{subValue}</span>}
             </div>
         </div>
-        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300", color)}>
+        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-6 duration-500 shadow-lg", color)}>
             <Icon size={24} strokeWidth={1.5} />
         </div>
     </div>
 );
 
-export default function PostalClientUI({ initialShipments, manager, currencySymbol = '$' }: PostalClientUIProps) {
+export default function PostalClientUI({ 
+    initialShipments, 
+    settlements: initialSettlements = [], 
+    totalOutstanding = 0,
+    manager, 
+    currencySymbol = '$' 
+}: PostalClientUIProps) {
     const [shipments, setShipments] = useState(initialShipments);
+    const [settlements, setSettlements] = useState(initialSettlements);
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isPrintOpen, setIsPrintOpen] = useState(false);
-    const [activeTab, setActiveTab ] = useState<'ALL' | 'PENDING' | 'IN_TRANSIT' | 'DELIVERED'>('ALL');
+    const [activeTab, setActiveTab ] = useState<'ALL' | 'PENDING' | 'IN_TRANSIT' | 'DELIVERED' | 'ACCOUNTS'>('ALL');
     const [selectedShipment, setSelectedShipment] = useState<any>(null);
     
     // Form State
@@ -60,7 +71,10 @@ export default function PostalClientUI({ initialShipments, manager, currencySymb
         pending: shipments.filter(s => s.status === 'PENDING' || s.status === 'PENDING_PICKUP' || !s.status).length,
         delivered: shipments.filter(s => s.status === 'DELIVERED').length,
         inTransit: shipments.filter(s => s.status && s.status.includes('TRANSIT')).length,
-        totalValue: shipments.reduce((acc, s) => acc + Number(s.codAmount || 0), 0),
+        totalOwed: shipments
+            .filter(s => s.status === 'DELIVERED' && s.hasCod)
+            .reduce((acc, s) => acc + (Number(s.codAmount) - Number(s.shippingFee)), 0),
+        totalFees: shipments.reduce((acc, s) => acc + Number(s.shippingFee || 0), 0),
         totalWeight: shipments.reduce((acc, s) => acc + Number(s.weight || 0), 0)
     };
 
@@ -98,6 +112,19 @@ export default function PostalClientUI({ initialShipments, manager, currencySymb
         }
     };
 
+    const handleAcceptSettlement = async (settlementId: string) => {
+        setIsProcessing(true);
+        const { acceptSettlement } = await import('@/app/actions/postalOps');
+        const res = await acceptSettlement(settlementId);
+        setIsProcessing(false);
+        if (res.success) {
+            toast.success('Funds Accepted and Closed');
+            setSettlements(settlements.map(s => s.id === settlementId ? { ...s, status: 'ACCEPTED' } : s));
+        } else {
+            toast.error(res.error);
+        }
+    };
+
     const handlePrint = (shipment: any) => {
         setSelectedShipment(shipment);
         setIsPrintOpen(true);
@@ -116,331 +143,340 @@ export default function PostalClientUI({ initialShipments, manager, currencySymb
     });
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8 -m-4 md:-m-8 space-y-6 animate-in fade-in duration-500">
             {/* Identity Banner */}
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-950 shadow-2xl p-10 flex flex-col md:flex-row md:items-center justify-between gap-8 border border-slate-800">
-                <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-indigo-600/20 blur-[100px]" />
-                <div className="pointer-events-none absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-blue-600/10 blur-[100px]" />
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 shadow-xl p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/10 blur-3xl opacity-50" />
+                <div className="pointer-events-none absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-white/5 blur-3xl opacity-30" />
 
-                <div className="flex items-center gap-8 relative z-10">
-                    <div className="group relative">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-[2.2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                        <div className="relative w-20 h-20 bg-slate-900 border border-white/10 rounded-[2rem] flex items-center justify-center text-white cursor-pointer hover:scale-105 transition-all active:scale-95 shadow-2xl" onClick={() => signOut()}>
-                            <Package size={40} className="text-indigo-400 group-hover:text-indigo-300 group-hover:rotate-12 transition-all" strokeWidth={1} />
-                        </div>
+                <div className="flex items-center gap-6 relative z-10">
+                    <div className="w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center text-white shadow-2xl">
+                        <Package size={32} strokeWidth={1.5} />
                     </div>
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">Client Portal</h1>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.4em] flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse ring-4 ring-indigo-500/20"/>
-                                Station: {manager?.name || 'Central Hub'}
+                        <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic leading-none mb-2">Logistics Center</h1>
+                        <div className="flex items-center gap-3">
+                            <p className="text-[10px] text-blue-100 font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ring-4 ring-emerald-400/20"/>
+                                {manager?.name || 'Central Hub'}
                             </p>
-                            <span className="w-1 h-1 rounded-full bg-slate-700" />
-                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">v2.0.4 - ACTIVE_SESSION</p>
+                            <span className="w-1 h-1 rounded-full bg-white/20" />
+                            <p className="text-[10px] text-indigo-100/60 font-black uppercase tracking-widest italic">Operations Portal</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="inline-flex h-20 bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-2 relative z-10 group hover:border-white/20 transition-all">
-                    <div className="px-8 flex flex-col justify-center border-r border-white/5">
-                        <p className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.2em] mb-1">Manifest Count</p>
-                        <p className="text-3xl font-black text-white tabular-nums tracking-tighter">{shipments.length}</p>
+                <div className="flex flex-wrap items-center gap-3 relative z-10">
+                    <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 min-w-[120px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)]">
+                        <p className="text-[9px] text-blue-200 font-black uppercase tracking-widest mb-1.5 opacity-80 leading-none">Manifests</p>
+                        <p className="text-xl font-black text-white tabular-nums tracking-tighter leading-none">{shipments.length}</p>
                     </div>
-                    <div className="px-8 flex flex-col justify-center bg-white/[0.02] rounded-2xl">
-                        <p className="text-[9px] text-emerald-400 font-black uppercase tracking-[0.2em] mb-1">Total COD Value</p>
-                        <p className="text-3xl font-black text-white tabular-nums tracking-tighter">{currencySymbol}{stats.totalValue.toLocaleString()}</p>
+                    <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 min-w-[120px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)]">
+                        <p className="text-[9px] text-amber-200 font-black uppercase tracking-widest mb-1.5 opacity-80 leading-none">In Transit</p>
+                        <p className="text-xl font-black text-white tabular-nums tracking-tighter leading-none">{stats.inTransit}</p>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 min-w-[120px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)]">
+                        <p className="text-[9px] text-emerald-200 font-black uppercase tracking-widest mb-1.5 opacity-80 leading-none">Delivered</p>
+                        <p className="text-xl font-black text-white tabular-nums tracking-tighter leading-none">{stats.delivered}</p>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 min-w-[120px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)] group">
+                        <p className="text-[9px] text-emerald-200 font-black uppercase tracking-widest mb-1.5 leading-none italic">Outstanding</p>
+                        <p className="text-xl font-black text-white tabular-nums tracking-tighter leading-none group-hover:scale-110 transition-transform">{currencySymbol}{totalOutstanding.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 min-w-[110px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)]">
+                        <p className="text-[9px] text-indigo-200 font-black uppercase tracking-widest mb-1.5 leading-none italic">Revenue</p>
+                        <p className="text-xl font-black text-white/80 tabular-nums tracking-tighter leading-none">{currencySymbol}{stats.totalOwed.toLocaleString()}</p>
                     </div>
                 </div>
-            </div>
-
-            {/* Stats Dashboard */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatsCard 
-                    title="Active Transit" 
-                    value={stats.inTransit} 
-                    icon={Truck} 
-                    color="bg-indigo-50 text-indigo-600" 
-                    subValue="Units pending"
-                />
-                <StatsCard 
-                    title="Awaiting Pickup" 
-                    value={stats.pending} 
-                    icon={Clock} 
-                    color="bg-amber-50 text-amber-600" 
-                    subValue="Station side"
-                />
-                <StatsCard 
-                    title="Delivered" 
-                    value={stats.delivered} 
-                    icon={CheckCircle2} 
-                    color="bg-emerald-50 text-emerald-600" 
-                    subValue="Success rate"
-                />
-                <StatsCard 
-                    title="Gross Weight" 
-                    value={`${stats.totalWeight.toFixed(1)}KG`} 
-                    icon={Scale} 
-                    color="bg-blue-50 text-blue-600" 
-                    subValue="Volume metric"
-                />
             </div>
 
             {/* Toolbar */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Main Manifest Content */}
-                <div className="lg:col-span-3 space-y-6">
-                    <div className="bg-white/60 backdrop-blur-md rounded-[2.5rem] border border-slate-100 p-3 flex flex-col xl:flex-row xl:items-center justify-between gap-6 shadow-sm">
-                        <div className="flex flex-wrap items-center gap-2 p-1 bg-slate-100/50 rounded-2xl w-fit">
-                            {(['ALL', 'PENDING', 'IN_TRANSIT', 'DELIVERED'] as const).map(tab => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={cn(
-                                        "h-11 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-nowrap",
-                                        activeTab === tab 
-                                            ? "bg-white text-indigo-600 shadow-sm" 
-                                            : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
-                                    )}
-                                >
-                                    {tab.replace('_', ' ')}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
-                            <div className="relative group w-full sm:w-64">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors" size={16} />
-                                <input 
-                                    type="text"
-                                    placeholder="Search Active Manifests..."
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                    className="w-full pl-12 pr-4 h-12 bg-white border border-slate-200 rounded-2xl text-[11px] font-bold tracking-wider placeholder:text-slate-300 focus:ring-8 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-slate-900 shadow-sm"
-                                />
-                            </div>
-                            <button 
-                                onClick={() => setIsCreateOpen(true)}
-                                className="h-12 px-8 bg-slate-900 hover:bg-black text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl shadow-slate-200 active:scale-95 flex items-center gap-3 w-full sm:w-auto justify-center"
-                            >
-                                <Plus size={16} strokeWidth={3} /> Submit Dispatch
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Manifest Grid */}
-                    <div className="grid grid-cols-1 gap-4">
-                        {filtered.map(s => (
-                            <div key={s.id} className="bg-white rounded-[2.5rem] border border-slate-100 p-2 flex flex-col md:flex-row items-center justify-between gap-6 hover:shadow-2xl hover:shadow-slate-200/50 transition-all group shadow-sm overflow-hidden border-l-8 border-l-indigo-600">
-                                <div className="flex flex-col md:flex-row items-center gap-8 w-full md:w-auto p-4 md:p-2">
-                                    <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-400 border border-slate-100 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shrink-0">
-                                        <QrCode size={32} strokeWidth={1} />
-                                    </div>
-                                    <div className="text-center md:text-left">
-                                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-2">
-                                            <p className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em] font-mono">{new Date(s.createdAt).toLocaleDateString()}</p>
-                                            <span className={cn(
-                                                "px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border-none flex items-center gap-1",
-                                                s.hasCod ? "bg-amber-100 text-amber-700 font-bold italic" : "bg-emerald-100 text-emerald-700 font-bold italic"
-                                            )}>
-                                                {s.hasCod ? <Banknote size={10}/> : <CreditCard size={10}/>}
-                                                {s.hasCod ? 'COD ENFORCED' : 'FULL PREPAID'}
-                                            </span>
-                                            {s.status && (
-                                                <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[8px] font-black uppercase tracking-widest">
-                                                    {s.status.replace(/_/g, ' ')}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-2xl font-black text-slate-900 font-mono tracking-tighter leading-none mb-3 group-hover:text-indigo-600 transition-colors uppercase">{s.trackingNumber}</p>
-                                        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                                            <div className="flex items-center gap-2 group/info">
-                                                <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover/info:bg-indigo-50 transition-colors">
-                                                     <User size={12} className="text-slate-400 group-hover/info:text-indigo-500" />
-                                                </div>
-                                                <p className="text-[10px] font-black text-slate-600 uppercase tracking-wide">{s.recipientName}</p>
-                                            </div>
-                                            <div className="flex items-center gap-2 group/info">
-                                                <div className="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center group-hover/info:bg-indigo-50 transition-colors">
-                                                     <MapPin size={12} className="text-slate-400 group-hover/info:text-indigo-500" />
-                                                </div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight truncate max-w-[200px]">{s.recipientAddress}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-10 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-slate-100 p-6 md:p-8 bg-slate-50/50">
-                                    <div className="text-right">
-                                        <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1.5">{s.hasCod ? 'COLLECT AMOUNT' : 'LOGISTICS FEE'}</p>
-                                        <p className="text-3xl font-black text-slate-900 tabular-nums tracking-tighter italic">
-                                            <span className="text-slate-300 mr-1 not-italic font-bold">{currencySymbol}</span>
-                                            {s.hasCod ? Number(s.codAmount).toFixed(2) : Number(s.shippingFee).toFixed(2)}
-                                        </p>
-                                    </div>
-                                    <button 
-                                        onClick={() => handlePrint(s)}
-                                        className="h-16 px-8 bg-slate-950 text-white rounded-[1.5rem] font-bold text-[11px] uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl active:scale-95 flex items-center gap-3"
-                                    >
-                                        <Printer size={16} /> Print Label
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-
-                        {filtered.length === 0 && (
-                            <div className="py-24 text-center bg-white rounded-[3rem] border border-dashed border-slate-200">
-                                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <Search size={40} className="text-slate-200" />
-                                </div>
-                                <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-widest mb-2">No Operations Found</h3>
-                                <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Adjust filters or initialize a new dispatch</p>
-                            </div>
-                        )}
-                    </div>
+            <div className="bg-white border-b border-slate-200 p-4 rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-sm">
+                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-2xl overflow-x-auto no-scrollbar">
+                    {(['ALL', 'PENDING', 'IN_TRANSIT', 'DELIVERED', 'ACCOUNTS'] as const).map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={cn(
+                                "h-9 px-5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all text-nowrap",
+                                activeTab === tab 
+                                    ? "bg-indigo-600 text-white shadow-md" 
+                                    : "text-slate-500 hover:text-slate-800"
+                            )}
+                        >
+                            {tab.replace('_', ' ')}
+                        </button>
+                    ))}
                 </div>
 
-                {/* Sidebar Intelligence */}
-                <div className="space-y-6">
-                    <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-6 text-indigo-500/20 group-hover:text-indigo-500/40 transition-colors">
-                            <TrendingUp size={80} strokeWidth={1} />
-                        </div>
-                        <h4 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-400 mb-6">Logistics Intelli</h4>
-                        <div className="space-y-6 relative z-10">
-                            <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Network Status</p>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                                    <p className="text-sm font-black tracking-tight uppercase">Optimal Flow</p>
-                                </div>
-                            </div>
-                            <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Avg. Delivery</p>
-                                <div className="flex items-center gap-3">
-                                    <Clock size={16} className="text-indigo-400" />
-                                    <p className="text-sm font-black tracking-tight uppercase">1.2 Transit Days</p>
-                                </div>
-                            </div>
-                        </div>
+                <div className="flex items-center gap-4">
+                    <div className="relative group w-full sm:w-72">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
+                        <input 
+                            type="text"
+                            placeholder="Search active records..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="w-full pl-12 pr-4 h-10 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold tracking-wider placeholder:text-slate-400 focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10 transition-all outline-none text-slate-800"
+                        />
                     </div>
-
-                    <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-200 mb-6 flex items-center gap-2">
-                             Guidelines
-                        </h4>
-                        <div className="space-y-5">
-                            {guidelines.map((g, i) => (
-                                <div key={i} className="space-y-1">
-                                    <p className="text-[11px] font-black uppercase tracking-wide">{g.title}</p>
-                                    <p className="text-[9px] font-medium text-indigo-100 opacity-70 leading-relaxed uppercase tracking-tight">{g.desc}</p>
-                                </div>
-                            ))}
-                        </div>
-                        <button className="w-full mt-8 py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border border-white/5 italic">
-                            Full Service Terms
-                        </button>
-                    </div>
-
-                    <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-                        <div className="flex items-center gap-3 mb-4">
-                            <Info size={16} className="text-slate-400" />
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Service Alert</h4>
-                        </div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed tracking-tight italic">
-                            High volume detected in Northern Hub. Anticipate +4h transit delay for heavy units.
-                        </p>
-                    </div>
+                    <button 
+                        onClick={() => setIsCreateOpen(true)}
+                        className="h-10 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center gap-3 shrink-0"
+                    >
+                        <Plus size={16} strokeWidth={3} /> Submit Dispatch
+                    </button>
+                    <button onClick={() => signOut()} className="h-10 w-10 border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors">
+                        <User size={18} />
+                    </button>
                 </div>
             </div>
 
+            {/* Records Table */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <Table>
+                    <TableHeader className="bg-slate-50/50">
+                        <TableRow>
+                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 py-4 h-14">Date</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-14">Tracking & Method</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-14">Identity / Route</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-14">Status</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-14 text-right">Due to Me</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-14 text-right">Service Fee</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 h-14 text-right pr-6">Action</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filtered.map((s) => (
+                            <TableRow key={s.id} className="group hover:bg-slate-50/50 border-slate-100 transition-colors">
+                                <TableCell className="py-5">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter leading-none">{new Date(s.createdAt).toLocaleDateString()}</p>
+                                    <p className="text-[9px] font-medium text-slate-300 uppercase italic mt-1">{new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
+                                            <Package size={14} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] font-black text-slate-900 tracking-tight uppercase leading-none mb-1">{s.trackingNumber}</p>
+                                            <Badge variant="outline" className={cn(
+                                                "h-4 px-1.5 text-[8px] font-black uppercase tracking-tighter border-0",
+                                                s.hasCod ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
+                                            )}>
+                                                {s.hasCod ? 'Collect COD' : 'Prepaid Item'}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <p className="text-[11px] font-bold text-slate-700 uppercase tracking-tight leading-none mb-1 italic">{s.recipientName}</p>
+                                    <div className="flex items-center gap-1.5 text-slate-400">
+                                        <MapPin size={10} />
+                                        <p className="text-[9px] font-medium uppercase truncate max-w-[150px]">{s.recipientAddress}</p>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col gap-1.5">
+                                        <div className="flex items-center gap-2">
+                                            <div className={cn(
+                                                "w-2 h-2 rounded-full",
+                                                s.status === 'DELIVERED' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" :
+                                                s.status?.includes('TRANSIT') ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]" :
+                                                "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+                                            )} />
+                                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{s.status?.replace(/_/g, ' ') || 'Pending Pickup'}</span>
+                                        </div>
+                                        {s.status === 'DELIVERED' && s.hasCod && (
+                                            <span className={cn(
+                                                "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded w-fit",
+                                                s.paymentStatus === 'PAID' ? "bg-emerald-100 text-emerald-700" :
+                                                s.paymentStatus === 'PENDING_ACCEPTANCE' ? "bg-amber-100 text-amber-700 animate-pulse" :
+                                                "bg-slate-100 text-slate-500"
+                                            )}>
+                                                {s.paymentStatus || 'UNPAID'}
+                                            </span>
+                                        )}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <div className="inline-flex flex-col items-end">
+                                        <p className="text-sm font-black text-slate-900 tabular-nums italic tracking-tighter">
+                                            {s.hasCod ? (Number(s.codAmount) - Number(s.shippingFee)).toFixed(2) : '-'}
+                                        </p>
+                                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest leading-none mt-1">Merchant Share</p>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <p className="text-sm font-bold text-slate-400 tabular-nums tracking-tighter">
+                                        {currencySymbol}{Number(s.shippingFee).toFixed(2)}
+                                    </p>
+                                </TableCell>
+                                <TableCell className="text-right pr-6">
+                                    <button 
+                                        onClick={() => handlePrint(s)}
+                                        className="h-8 w-8 bg-slate-900 hover:bg-indigo-600 text-white rounded-lg flex items-center justify-center transition-all shadow-md active:scale-95 ml-auto"
+                                    >
+                                        <Printer size={14} />
+                                    </button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+
+                        {filtered.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={7} className="h-64 text-center">
+                                    <div className="flex flex-col items-center justify-center">
+                                        <Search size={32} className="text-slate-200 mb-4" />
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No matching operations recorded</p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {activeTab === 'ACCOUNTS' && (
+                <div className="p-8 space-y-8 animate-in slide-in-from-bottom-4 duration-700">
+                     <div>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 italic mb-6 flex items-center gap-3">
+                            <DollarSign size={18} /> Financial Settlements
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {settlements.map(st => (
+                                <div key={st.id} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xl shadow-slate-200/50 flex flex-col justify-between group hover:border-indigo-200 transition-all">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <Badge className={cn("text-[9px] font-black uppercase tracking-widest border-none px-3", st.status === 'ACCEPTED' ? "bg-emerald-500 text-white" : "bg-amber-500 text-white shadow-lg shadow-amber-100")}>
+                                                {st.status}
+                                            </Badge>
+                                            <span className="text-[10px] font-bold text-slate-300 uppercase italic">Ref: {st.id.slice(0, 8)}</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Income from Shipment</p>
+                                            <p className="text-xl font-black text-slate-900 tracking-tighter uppercase italic">{st.shipment?.trackingNumber}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                                                <Banknote size={20} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Settlement</p>
+                                                <p className="text-2xl font-black text-slate-900 tabular-nums italic tracking-tighter leading-none">{currencySymbol}{st.amount.toFixed(2)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {st.status === 'PENDING' && (
+                                        <button 
+                                            onClick={() => handleAcceptSettlement(st.id)}
+                                            className="w-full h-14 bg-slate-900 hover:bg-emerald-600 text-white rounded-[1.5rem] mt-6 font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all italic flex items-center justify-center gap-3"
+                                        >
+                                            <CheckCircle2 size={18} /> Accept Funds
+                                        </button>
+                                    )}
+                                    {st.status === 'ACCEPTED' && (
+                                        <div className="w-full h-14 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-[1.5rem] mt-6 font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 italic">
+                                            <Clock size={18} /> Funds Disbursed
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            {settlements.length === 0 && (
+                                <div className="col-span-full py-24 text-center bg-slate-50 border border-dashed border-slate-200 rounded-[3rem]">
+                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] italic leading-none">No settlement documents found</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="bg-white rounded-[3rem] border-slate-200 shadow-3xl p-10 max-w-2xl overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-500" />
+                <DialogContent className="bg-white rounded-[1.5rem] border-slate-200 shadow-3xl p-8 max-w-2xl overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600" />
                     
-                    <DialogHeader className="mb-8">
+                    <DialogHeader className="mb-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <DialogTitle className="text-3xl font-black uppercase text-slate-900 tracking-tighter leading-none mb-2">New Dispatch</DialogTitle>
-                                <DialogDescription className="text-[10px] uppercase tracking-[0.3em] font-black text-slate-400 flex items-center gap-2 font-mono">
-                                    <Info size={12} className="text-indigo-400" /> Initialize Regional Transit Operation
+                                <DialogTitle className="text-2xl font-black uppercase text-slate-900 tracking-tighter">New Dispatch</DialogTitle>
+                                <DialogDescription className="text-[9px] uppercase tracking-[0.2em] font-bold text-slate-400 flex items-center gap-2">
+                                    Initialize Regional Transit Operation
                                 </DialogDescription>
                             </div>
                             <div className="text-right">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Estimated Fee</p>
-                                <p className="text-3xl font-black text-indigo-600 tabular-nums italic tracking-tighter">{currencySymbol}{estimatedFee.toFixed(2)}</p>
+                                <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Est. Fee</p>
+                                <p className="text-2xl font-black text-blue-600 tabular-nums italic tracking-tighter">{currencySymbol}{estimatedFee.toFixed(2)}</p>
                             </div>
                         </div>
                     </DialogHeader>
 
                     <form onSubmit={handleCreate} className="space-y-8">
                         <div className="grid grid-cols-2 gap-6">
-                            <div className="space-y-2 col-span-2 md:col-span-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Recipient Identity</label>
-                                <input required placeholder="Enter Full Name" value={recipientName} onChange={e=>setRecipientName(e.target.value)} className="w-full h-14 px-5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all" />
+                            <div className="space-y-1.5 col-span-2 md:col-span-1">
+                                <label className="text-[9px] font-bold uppercase text-slate-400 tracking-widest ml-1">Recipient Identity</label>
+                                <input required placeholder="Full Name" value={recipientName} onChange={e=>setRecipientName(e.target.value)} className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-400 transition-all placeholder:text-slate-300" />
                             </div>
-                            <div className="space-y-2 col-span-2 md:col-span-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Contact Phone</label>
-                                <input required placeholder="+00..." value={recipientPhone} onChange={e=>setRecipientPhone(e.target.value)} className="w-full h-14 px-5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all font-mono" />
+                            <div className="space-y-1.5 col-span-2 md:col-span-1">
+                                <label className="text-[9px] font-bold uppercase text-slate-400 tracking-widest ml-1">Phone</label>
+                                <input required placeholder="+00..." value={recipientPhone} onChange={e=>setRecipientPhone(e.target.value)} className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-400 transition-all font-mono placeholder:text-slate-300" />
                             </div>
-                            <div className="space-y-2 col-span-2">
-                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Delivery Destination</label>
+                            <div className="space-y-1.5 col-span-2">
+                                <label className="text-[9px] font-bold uppercase text-slate-400 tracking-widest ml-1">Transit Address</label>
                                 <div className="relative">
-                                    <MapPin size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input required placeholder="Full Transit Address" value={recipientAddress} onChange={e=>setRecipientAddress(e.target.value)} className="w-full h-14 pl-14 pr-5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all" />
+                                    <MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input required placeholder="Enter Address" value={recipientAddress} onChange={e=>setRecipientAddress(e.target.value)} className="w-full h-11 pl-11 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-400 transition-all placeholder:text-slate-300" />
                                 </div>
                             </div>
 
-                            <div className="h-px bg-slate-100 col-span-2 my-2" />
+                            <div className="h-px bg-slate-100 col-span-2 my-1" />
 
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1 italic">Weight (KG)</label>
-                                <input type="number" step="0.1" required placeholder="0.00" value={weight} onChange={e=>setWeight(e.target.value)} className="w-full h-14 px-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-slate-900 outline-none focus:border-indigo-600 transition-all tabular-nums" />
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-bold uppercase text-slate-400 tracking-widest ml-1 italic">Weight (KG)</label>
+                                <input type="number" step="0.1" required placeholder="0.00" value={weight} onChange={e=>setWeight(e.target.value)} className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-400 transition-all tabular-nums" />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1 italic">Value ({currencySymbol})</label>
-                                <input type="number" step="0.01" required placeholder="0.00" value={packageValue} onChange={e=>setPackageValue(e.target.value)} className="w-full h-14 px-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-indigo-600 outline-none focus:border-indigo-600 transition-all tabular-nums placeholder:text-indigo-200" />
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-bold uppercase text-slate-400 tracking-widest ml-1 italic">Value ({currencySymbol})</label>
+                                <input type="number" step="0.01" required placeholder="0.00" value={packageValue} onChange={e=>setPackageValue(e.target.value)} className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-blue-600 outline-none focus:border-blue-400 transition-all tabular-nums" />
                             </div>
 
-                            <div className="col-span-2 space-y-4">
-                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-1">Service Mode & Payment</label>
-                                <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2 space-y-3">
+                                <label className="text-[9px] font-bold uppercase text-slate-400 tracking-widest ml-1">Service & Payment</label>
+                                <div className="grid grid-cols-2 gap-3">
                                     <button 
                                         type="button" 
                                         onClick={() => setPaymentMode('PREPAID')}
                                         className={cn(
-                                            "flex items-center gap-3 h-16 px-6 rounded-2xl border-2 transition-all group",
-                                            paymentMode === 'PREPAID' ? "bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-100" : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
+                                            "flex items-center gap-3 h-14 px-4 rounded-xl border-2 transition-all",
+                                            paymentMode === 'PREPAID' ? "bg-blue-600 border-blue-600 text-white" : "bg-slate-50 border-slate-100 text-slate-400"
                                         )}
                                     >
-                                        <CreditCard size={20} className={paymentMode === 'PREPAID' ? "text-indigo-100" : "text-slate-200 group-hover:text-slate-400"} />
+                                        <CreditCard size={18} />
                                         <div className="text-left">
-                                            <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Prepaid</p>
-                                            <p className="text-[8px] font-medium opacity-70 uppercase tracking-tighter">Customer has paid client</p>
+                                            <p className="text-[9px] font-bold uppercase leading-none mb-1">Prepaid</p>
+                                            <p className="text-[7px] font-medium opacity-70 uppercase tracking-tighter">Paid Online</p>
                                         </div>
                                     </button>
                                     <button 
                                         type="button" 
                                         onClick={() => setPaymentMode('COD')}
                                         className={cn(
-                                            "flex items-center gap-3 h-16 px-6 rounded-2xl border-2 transition-all group",
-                                            paymentMode === 'COD' ? "bg-amber-600 border-amber-600 text-white shadow-xl shadow-amber-100" : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
+                                            "flex items-center gap-3 h-14 px-4 rounded-xl border-2 transition-all",
+                                            paymentMode === 'COD' ? "bg-amber-600 border-amber-600 text-white" : "bg-slate-50 border-slate-100 text-slate-400"
                                         )}
                                     >
-                                        <Banknote size={20} className={paymentMode === 'COD' ? "text-amber-100" : "text-slate-200 group-hover:text-slate-400"} />
+                                        <Banknote size={18} />
                                         <div className="text-left">
-                                            <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1 font-black">COD</p>
-                                            <p className="text-[8px] font-medium opacity-70 uppercase tracking-tighter">Collect {currencySymbol}{ (Number(packageValue) + estimatedFee).toFixed(2) } on delivery</p>
+                                            <p className="text-[9px] font-bold uppercase leading-none mb-1">COD</p>
+                                            <p className="text-[7px] font-medium opacity-70 uppercase tracking-tighter">Pay on Delivery</p>
                                         </div>
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <button disabled={isProcessing} className="w-full h-16 bg-slate-900 hover:bg-black text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] transition-all shadow-2xl active:scale-95 disabled:opacity-50 mt-4 italic border-t border-white/10">
-                            {isProcessing ? 'SYNCHRONIZING...' : 'Authorize Logistics Chain'}
+                        <button disabled={isProcessing} className="w-full h-12 bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 disabled:opacity-50 mt-2">
+                            {isProcessing ? 'Processing...' : 'Submit Operation'}
                         </button>
                     </form>
                 </DialogContent>
@@ -448,6 +484,10 @@ export default function PostalClientUI({ initialShipments, manager, currencySymb
 
             <Dialog open={isPrintOpen} onOpenChange={setIsPrintOpen}>
                 <DialogContent className="max-w-2xl bg-white p-0 overflow-hidden rounded-[2rem] border-none shadow-3xl">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>Shipment Print Manifest</DialogTitle>
+                        <DialogDescription>Print-ready logistic tracking label with barcode</DialogDescription>
+                    </DialogHeader>
                     <div id="shipment-label" className="p-8 bg-white text-black font-sans min-h-[500px] flex flex-col">
                         {/* Label Header */}
                         <div className="flex justify-between items-start border-b-4 border-black pb-4 mb-6">

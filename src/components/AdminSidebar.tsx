@@ -52,6 +52,12 @@ const menuGroups = [
         ],
     },
     {
+        label: 'Budgeting',
+        items: [
+            { href: '/admin/budget', label: 'Financial Budget', icon: Coins },
+        ],
+    },
+    {
         label: 'Production',
         items: [
             { href: '/admin/production/inventory', label: 'Production Inventory', icon: PackagePlus },
@@ -188,9 +194,20 @@ export function AdminSidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }:
 
                     {menuGroups.map((group, groupIndex) => {
                         const isFirstGroup = groupIndex === 0;
+                        const userRole = (session?.user as any)?.role;
+                        const isFinanceUser = userRole === 'FINANCE_VIEWER' || userRole === 'FINANCE_EDITOR';
                         
-                        // Filter out hidden items
-                        const visibleItems = group.items.filter(item => !isHidden(item.href));
+                        // Filter out items based on visibility and roles
+                        const visibleItems = group.items.filter(item => {
+                            if (isHidden(item.href)) return false;
+                            
+                            // Simple role-based filtering
+                            if (isFinanceUser) {
+                                return item.href === '/admin/budget';
+                            }
+                            
+                            return true;
+                        });
                         
                         // Don't render the section if all items are hidden
                         if (visibleItems.length === 0 && isMounted) {

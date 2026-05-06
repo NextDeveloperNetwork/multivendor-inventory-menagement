@@ -15,6 +15,7 @@ export default async function AdminPostalPage() {
                 initialRelations={data.relations || []} 
                 currencySymbol={data.currencySymbol}
                 economics={data.economics}
+                settlements={data.settlements || []}
             />
         </div>
     );

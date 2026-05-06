@@ -9,6 +9,7 @@ export default async function SortingCenterPage() {
             <PostalSortingClient 
                 initialShipments={res.shipments || []} 
                 managers={res.managers || []} 
+                transporters={res.transporters || []}
             />
         </div>
     );
