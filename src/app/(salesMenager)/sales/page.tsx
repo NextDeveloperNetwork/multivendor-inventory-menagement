@@ -1,10 +1,7 @@
-import { prisma } from '@/lib/prisma';
-import { getBusinesses, getSelectedBusinessId, getBusinessFilter } from '@/app/actions/business';
-import SalesManagerClient from '@/components/SalesManagerClient';
-import { redirect } from 'next/navigation';
+import { ShoppingBag } from 'lucide-react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { sanitizeData } from '@/lib/utils';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,87 +11,31 @@ export default async function SalesManagerPage() {
         redirect('/login');
     }
 
-    const businesses = await getBusinesses();
-    const businessFilter = await getBusinessFilter();
-    const selectedBusinessId = await getSelectedBusinessId();
-
-    const [rawProducts, rawWarehouses, rawSuppliers, rawShops, rawCategories, rawUnits, baseCurrency] = await Promise.all([
-        (prisma as any).product.findMany({
-            where: { ...businessFilter },
-            include: {
-                inventory: {
-                    include: { shop: true, warehouse: true }
-                },
-                unit: true,
-                category: true
-            },
-            orderBy: { name: 'asc' }
-        }),
-        (prisma as any).warehouse.findMany({
-            where: { 
-                OR: [
-                    { ...businessFilter },
-                    { businessId: null }
-                ]
-            },
-            orderBy: { name: 'asc' }
-        }),
-        (prisma as any).supplier.findMany({
-            where: { ...businessFilter },
-            orderBy: { name: 'asc' }
-        }),
-        (prisma as any).shop.findMany({
-            where: { ...businessFilter },
-            orderBy: { name: 'asc' }
-        }),
-        (prisma as any).productCategory.findMany({
-            where: { ...businessFilter },
-            orderBy: { name: 'asc' }
-        }),
-        (prisma as any).productUnit.findMany({
-            where: { ...businessFilter },
-            orderBy: { name: 'asc' }
-        }),
-        prisma.currency.findFirst({ where: { isBase: true } })
-    ]);
-
-    // Today's sales
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const rawTodaySales = await (prisma as any).sale.findMany({
-        where: {
-            ...(selectedBusinessId ? { businessId: selectedBusinessId } : {}),
-            createdAt: { gte: todayStart }
-        },
-        include: { items: { include: { product: true } }, user: true },
-        orderBy: { createdAt: 'desc' }
-    });
-
-    const products = sanitizeData(rawProducts);
-    const warehouses = sanitizeData(rawWarehouses);
-    const suppliers = sanitizeData(rawSuppliers);
-    const shops = sanitizeData(rawShops);
-    const categories = sanitizeData(rawCategories);
-    const units = sanitizeData(rawUnits);
-    const todaySales = sanitizeData(rawTodaySales);
-    const currencySymbol = baseCurrency?.symbol || '$';
-
-    const activeBusiness = businesses.find(b => b.id === selectedBusinessId);
-
     return (
-        <div className="min-h-screen bg-slate-50">
-            <SalesManagerClient 
-                products={products} 
-                warehouses={warehouses} 
-                suppliers={suppliers}
-                shops={shops}
-                categories={categories}
-                units={units}
-                todaySales={todaySales}
-                businessId={selectedBusinessId} 
-                businessName={activeBusiness?.name}
-                currencySymbol={currencySymbol}
-            />
+        <div className="space-y-6 fade-in max-w-7xl mx-auto p-6">
+            {/* Header */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                        <ShoppingBag size={24} />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900">Sales Workspace</h1>
+                        <p className="text-sm text-slate-400 font-medium">Sales Management Console</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Empty Clean Content */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-16 text-center">
+                <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mx-auto mb-4">
+                    <ShoppingBag size={28} />
+                </div>
+                <h2 className="text-lg font-bold text-slate-900">Sales Workspace</h2>
+                <p className="text-sm text-slate-400 max-w-md mx-auto mt-1">
+                    Select a section from the navigation menu to manage sales operations.
+                </p>
+            </div>
         </div>
     );
 }

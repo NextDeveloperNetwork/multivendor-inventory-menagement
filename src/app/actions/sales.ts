@@ -215,11 +215,7 @@ export async function deleteSale(id: string) {
             });
         });
 
-        revalidatePath('/shop');
-        revalidatePath('/shop/history');
-        revalidatePath('/shop/inventory');
         revalidatePath('/admin');
-        revalidatePath(`/admin/shops/${sale.shopId}`);
 
         return { success: true };
     } catch (error: any) {

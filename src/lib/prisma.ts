@@ -1,16 +1,28 @@
 // Prisma Client Engine - Synchronized with new schema v1.1.1 - 2026-04-18
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+neonConfig.webSocketConstructor = ws;
 
-const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
+const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
-export const prisma =
-    globalForPrisma.prisma ||
-    new PrismaClient({
+function createPrismaClient(): PrismaClient {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+        throw new Error('DATABASE_URL environment variable is missing.');
+    }
+    const adapter = new PrismaNeon({ connectionString });
+    return new PrismaClient({
         adapter,
         log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     });
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+
+if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = prisma;
+}
+

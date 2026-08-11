@@ -463,19 +463,21 @@ model ProductionProcess {
 }
 
 model InventoryRequest {
-  id          String   @id @default(cuid())
-  businessId  String?
-  productId   String?
-  quantity    Int
-  status      String   @default("PENDING")
-  requestedBy String
-  warehouseId String?
-  shopId      String?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  productName String?
-  product     Product? @relation(fields: [productId], references: [id])
+  id            String   @id @default(cuid())
+  businessId    String?
+  productId     String?
+  articleId     String?
+  quantity      Int
+  status        String   @default("PENDING")
+  requestedBy   String
+  warehouseId   String?
+  shopId        String?
+  notes         String?
+  matrixDetails String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  productName   String?
+  product       Product? @relation(fields: [productId], references: [id])
 
   @@index([businessId])
 }
@@ -632,3 +634,52 @@ model FinancialBudget {
 
   @@index([businessId])
 }
+
+model CountArticle {
+  id          String   @id @default(cuid())
+  businessId  String?
+  name        String
+  code        String?
+  colors      String[]
+  sizes       String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  counts      CountSessionItem[]
+
+  @@index([businessId])
+}
+
+model CountSession {
+  id          String   @id @default(cuid())
+  businessId  String?
+  name        String
+  status      String   @default("OPEN") // OPEN, COMPLETED
+  createdById String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       CountSessionItem[]
+
+  @@index([businessId])
+}
+
+model CountSessionItem {
+  id          String       @id @default(cuid())
+  sessionId   String
+  articleId   String
+  color       String
+  size        String
+  quantity    Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  session     CountSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  article     CountArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, articleId, color, size])
+  @@index([sessionId])
+  @@index([articleId])
+}
+

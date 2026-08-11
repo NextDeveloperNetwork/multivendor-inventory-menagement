@@ -13,15 +13,10 @@ import {
     Warehouse,
     X,
     Coins,
-    Map,
     Activity,
-    Heart,
     Briefcase,
     Truck,
     Landmark,
-    Factory,
-    PackagePlus,
-    Cpu,
     ChevronLeft,
     ClipboardList,
     ShoppingCart,
@@ -38,8 +33,6 @@ const menuGroups = [
         label: 'Overview',
         items: [
             { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-            { href: '/admin/intelligence', label: 'Intelligence', icon: Activity },
-            { href: '/admin/map', label: 'System Map', icon: Map },
         ],
     },
     {
@@ -48,62 +41,20 @@ const menuGroups = [
             { href: '/admin/inventory', label: 'Inventory', icon: Package },
             { href: '/admin/invoices', label: 'Supplier Invoices', icon: FileText },
             { href: '/admin/reports/cost', label: 'Cost Analysis', icon: Activity },
-            { href: '/admin/finance', label: 'Treasury & Cash', icon: Landmark },
-        ],
-    },
-    {
-        label: 'Budgeting',
-        items: [
-            { href: '/admin/budget', label: 'Financial Budget', icon: Coins },
-        ],
-    },
-    {
-        label: 'Production',
-        items: [
-            { href: '/admin/production/inventory', label: 'Production Inventory', icon: PackagePlus },
-            { href: '/admin/production/workforce', label: 'Production Workforce', icon: Users },
-            { href: '/admin/production/machinery', label: 'Production Machinery', icon: Cpu },
-            { href: '/admin/production/planning', label: 'Production Planning', icon: Factory },
-            { href: '/admin/production/roster', label: 'Production Roster', icon: ClipboardList },
-            { href: '/admin/production/ready-to-ship', label: 'Ready to Ship', icon: Package },
-        ],
-    },
-    {
-        label: 'Production Manager',
-        items: [
-            { href: '/admin/production/manager-inventory', label: 'Manager Inventory', icon: Package },
-            { href: '/admin/production/tracking', label: 'Managers Output', icon: Activity },
         ],
     },
     {
         label: 'Sales Manager',
         items: [
-            { href: '/admin/sales-manager-inputs', label: 'Terminal Dispatches', icon: ShoppingCart },
             { href: '/admin/sales/requests', label: 'Requested Items', icon: ClipboardList },
             { href: '/admin/sales/free-sales', label: 'Free Sales', icon: ShoppingBag },
             { href: '/admin/sales/debtors', label: 'Debtors Ledger', icon: Landmark },
         ],
     },
     {
-        label: 'Logistics',
-        items: [
-            { href: '/admin/transfers', label: 'Transfers', icon: Send },
-            { href: '/admin/transportation', label: 'Transportation', icon: Truck },
-            { href: '/admin/transporters', label: 'Fleet Status', icon: Truck },
-        ],
-    },
-    {
-        label: 'Postal Service',
-        items: [
-            { href: '/admin/postal', label: 'Network Control', icon: Send },
-            { href: '/admin/postal/sorting', label: 'Sorting Center', icon: Package },
-        ]
-    },
-    {
         label: 'Entities',
         items: [
             { href: '/admin/businesses', label: 'Root Businesses', icon: Briefcase },
-            { href: '/admin/shops', label: 'Retail Shops', icon: Store },
             { href: '/admin/warehouses', label: 'Warehouses', icon: Warehouse },
         ],
     },
@@ -112,7 +63,6 @@ const menuGroups = [
         items: [
             { href: '/admin/users', label: 'Personnel', icon: Users },
             { href: '/admin/suppliers', label: 'Suppliers', icon: Users },
-            { href: '/admin/customers', label: 'Customers', icon: Heart },
             { href: '/admin/currencies', label: 'Currencies', icon: Coins },
         ]
     }
@@ -203,7 +153,7 @@ export function AdminSidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }:
                             
                             // Simple role-based filtering
                             if (isFinanceUser) {
-                                return item.href === '/admin/budget';
+                                return item.href === '/admin/reports/cost';
                             }
                             
                             return true;

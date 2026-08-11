@@ -10,20 +10,12 @@ export default async function Home() {
         const user = session.user as any;
         if (user.role === 'ADMIN') {
             redirect('/admin');
-        } else if (user.role === 'TRANSPORTER' || user.transporterId) {
-            redirect('/transporter');
-        } else if (user.role === 'PRODUCTION_MANAGER') {
-            redirect('/production');
         } else if (user.role === 'SALES_MANAGER') {
             redirect('/sales');
-        } else if (user.role === 'POSTAL_MANAGER') {
-            redirect('/postal-manager');
-        } else if (user.role === 'POSTAL_CLIENT') {
-            redirect('/postal-client');
         } else if (user.role === 'FINANCE_VIEWER' || user.role === 'FINANCE_EDITOR') {
-            redirect('/admin/budget');
+            redirect('/admin/reports/cost');
         } else {
-            redirect('/shop');
+            redirect('/admin');
         }
     }
 

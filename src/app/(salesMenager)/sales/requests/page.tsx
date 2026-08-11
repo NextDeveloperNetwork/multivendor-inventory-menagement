@@ -1,34 +1,36 @@
 import React from 'react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { getCountArticles, getActiveCountSession } from '@/app/actions/articleCounting';
 import { getInventoryRequests } from '@/app/actions/salesOps';
-import { getBusinessFilter } from '@/app/actions/business';
-import { prisma } from '@/lib/prisma';
 import { sanitizeData } from '@/lib/utils';
-import RequestsClient from '@/components/RequestsClient';
+import SalesManagerRequestsUI from '@/components/SalesManagerRequestsUI';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SalesRequestsPage() {
     const session = await getServerSession(authOptions);
-    const businessFilter = await getBusinessFilter();
+    if (!session?.user) {
+        redirect('/login');
+    }
 
-    const [rawRequests, rawProducts] = await Promise.all([
-        getInventoryRequests(),
-        (prisma as any).product.findMany({
-            where: { ...businessFilter },
-            orderBy: { name: 'asc' },
-        }),
+    const [articles, countingSession, rawRequests] = await Promise.all([
+        getCountArticles(),
+        getActiveCountSession(),
+        getInventoryRequests()
     ]);
 
-    const requests = sanitizeData(rawRequests) as any[];
-    const products = sanitizeData(rawProducts) as any[];
+    const sanitizedArticles = sanitizeData(articles);
+    const sanitizedSession = sanitizeData(countingSession);
+    const sanitizedRequests = sanitizeData(rawRequests);
 
     return (
-        <RequestsClient
-            initialRequests={requests}
-            products={products}
-            userName={session?.user?.name || 'Manager'}
+        <SalesManagerRequestsUI
+            articles={sanitizedArticles}
+            session={sanitizedSession}
+            myRequests={sanitizedRequests}
+            userName={session.user.name || 'Sales Manager'}
         />
     );
 }

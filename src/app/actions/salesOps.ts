@@ -38,6 +38,72 @@ export async function createInventoryRequest(data: {
     }
 }
 
+export async function createMatrixArticleRequest(data: {
+    articleId: string;
+    articleName: string;
+    totalQuantity: number;
+    requestedBy: string;
+    notes?: string;
+    matrixDetails: any;
+}) {
+    const businessId = await getSelectedBusinessId();
+
+    try {
+        const request = await (prisma as any).inventoryRequest.create({
+            data: {
+                articleId: data.articleId,
+                productName: data.articleName,
+                quantity: data.totalQuantity,
+                requestedBy: data.requestedBy,
+                notes: data.notes || 'Color × Size Shortage Request',
+                matrixDetails: JSON.stringify(data.matrixDetails),
+                businessId,
+                status: 'PENDING'
+            }
+        });
+
+        revalidatePath('/sales/requests');
+        revalidatePath('/admin/sales/requests');
+        return { success: true, requestId: request.id };
+    } catch (e: any) {
+        console.error('Matrix Article Request Error:', e);
+        return { error: e.message || 'Failed to create matrix request' };
+    }
+}
+
+export async function submitInventoryRequestBatch(requests: {
+    productId?: string;
+    productName?: string;
+    quantity: number;
+    requestedBy: string;
+    notes?: string;
+}[]) {
+    const businessId = await getSelectedBusinessId();
+
+    try {
+        await (prisma as any).$transaction(
+            requests.map(req => (prisma as any).inventoryRequest.create({
+                data: {
+                    businessId,
+                    productId: req.productId || null,
+                    productName: req.productName || null,
+                    quantity: req.quantity,
+                    requestedBy: req.requestedBy,
+                    notes: req.notes || 'Batch Matrix Counting Request',
+                    status: 'PENDING'
+                }
+            }))
+        );
+
+        revalidatePath('/sales/requests');
+        revalidatePath('/admin/sales/requests');
+        return { success: true, count: requests.length };
+    } catch (e: any) {
+        console.error('Batch Request Error:', e);
+        return { error: e.message || 'Failed to submit batch requests' };
+    }
+}
+
 export async function createDebtor(data: {
     name: string;
     phone?: string;

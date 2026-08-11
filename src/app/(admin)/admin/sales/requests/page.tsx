@@ -1,16 +1,32 @@
+import React from 'react';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { getCountArticles } from '@/app/actions/articleCounting';
 import { getInventoryRequests } from '@/app/actions/salesOps';
-import SalesRequestsClient from '@/components/SalesRequestsClient';
 import { sanitizeData } from '@/lib/utils';
+import AdminSalesRequestsUI from '@/components/AdminSalesRequestsUI';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminSalesRequestsPage() {
-    const rawRequests = await getInventoryRequests();
-    const requests = sanitizeData(rawRequests);
+    const session = await getServerSession(authOptions);
+    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+        redirect('/login');
+    }
+
+    const [rawRequests, articles] = await Promise.all([
+        getInventoryRequests(),
+        getCountArticles()
+    ]);
+
+    const sanitizedRequests = sanitizeData(rawRequests);
+    const sanitizedArticles = sanitizeData(articles);
 
     return (
-        <div className="max-w-[1600px] mx-auto px-1 md:px-0">
-            <SalesRequestsClient initialRequests={requests} />
-        </div>
+        <AdminSalesRequestsUI
+            requests={sanitizedRequests}
+            articles={sanitizedArticles}
+        />
     );
 }

@@ -269,12 +269,6 @@ export default function MapComponent({ locations, paths = [], onLocationSelect, 
                                 <div className="space-y-1.5 md:space-y-2">
                                     <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5 px-1 italic">Register New</div>
                                     <Link
-                                        href={`/admin/shops?lat=${selectedLocation.latitude}&lng=${selectedLocation.longitude}`}
-                                        className="flex items-center gap-2 md:gap-3 w-full p-2.5 md:p-3 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg transition-all text-[9px] md:text-[11px] font-black uppercase tracking-wider"
-                                    >
-                                        <Store size={14} className="md:w-[16px] md:h-[16px]" /> Register Shop
-                                    </Link>
-                                    <Link
                                         href={`/admin/warehouses?lat=${selectedLocation.latitude}&lng=${selectedLocation.longitude}`}
                                         className="flex items-center gap-2 md:gap-3 w-full p-2.5 md:p-3 bg-purple-50 hover:bg-purple-600 text-purple-600 hover:text-white rounded-lg transition-all text-[9px] md:text-[11px] font-black uppercase tracking-wider"
                                     >
@@ -282,12 +276,6 @@ export default function MapComponent({ locations, paths = [], onLocationSelect, 
                                     </Link>
 
                                     <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest mt-4 mb-1.5 px-1 italic">Update Existing</div>
-                                    <Link
-                                        href={`/admin/shops?lat=${selectedLocation.latitude}&lng=${selectedLocation.longitude}&mode=choose_existing`}
-                                        className="flex items-center gap-2 md:gap-3 w-full p-2.5 md:p-3 bg-slate-50 hover:bg-slate-900 text-slate-600 hover:text-white rounded-lg transition-all text-[8px] md:text-[10px] font-bold uppercase tracking-widest border border-slate-200"
-                                    >
-                                        <Store size={14} /> Update Existing Shop
-                                    </Link>
                                     <Link
                                         href={`/admin/warehouses?lat=${selectedLocation.latitude}&lng=${selectedLocation.longitude}&mode=choose_existing`}
                                         className="flex items-center gap-2 md:gap-3 w-full p-2.5 md:p-3 bg-slate-50 hover:bg-slate-900 text-slate-600 hover:text-white rounded-lg transition-all text-[8px] md:text-[10px] font-bold uppercase tracking-widest border border-slate-200"

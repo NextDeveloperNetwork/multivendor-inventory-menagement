@@ -19,7 +19,7 @@ export default withAuth(
         }
 
         if (req.nextUrl.pathname.startsWith('/admin') && token?.role !== 'ADMIN') {
-            return NextResponse.redirect(new URL('/shop', req.url));
+            return NextResponse.redirect(new URL('/login', req.url));
         }
 
         if ((token as any)?.role === 'SALES_MANAGER' && req.nextUrl.pathname === '/') {
